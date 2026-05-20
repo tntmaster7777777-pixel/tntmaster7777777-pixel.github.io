@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Poop Your Pants</title>
+<style>
+  body { font-family: sans-serif; text-align: center; padding: 40px; background: #fffbe6; }
+  h1 { font-size: 32px; }
+  #bar { width: 300px; height: 30px; background: #eee; border: 2px solid #000; margin: 20px auto; }
+  #fill { height: 100%; width: 0%; background: #8b4513; transition: width .1s; }
+  button { font-size: 20px; padding: 12px 22px; cursor: pointer; margin: 4px; border-radius: 8px; border: 2px solid #000; background: #fff; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button:hover:not(:disabled) { background: #ffe680; }
+  #msg { font-size: 20px; margin-top: 20px; min-height: 30px; }
+  .row { margin: 10px 0; }
+  .row h3 { font-size: 13px; color: #888; letter-spacing: 2px; margin-bottom: 6px; }
+  #helpBtn { position: fixed; top: 15px; right: 15px; font-size: 24px; background: #ffd24d;
+    border: 3px solid #000; width: 50px; height: 50px; padding: 0; border-radius: 50%;
+    box-shadow: 3px 3px 0 #000; }
+  #helpModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100;
+    align-items: center; justify-content: center; padding: 20px; }
+  #helpModal.show { display: flex; }
+  #helpBox { background: #fff; border: 4px solid #000; max-width: 500px; padding: 24px;
+    border-radius: 14px; box-shadow: 8px 8px 0 #000; }
+  #helpBox h2 { margin-bottom: 14px; color: #b54; }
+  #helpBox ul { text-align: left; line-height: 1.8; font-size: 15px; padding-left: 20px; margin-bottom: 14px; }
+  #helpBox li b { color: #b54; }
+  #helpBox button { font-size: 18px; }
+  #daily {
+    margin-top: 30px; padding: 20px; background: #fff; border: 3px dashed #c89;
+    max-width: 400px; margin-left: auto; margin-right: auto; border-radius: 12px;
+    display: none;
+  }
+  #daily.show { display: block; }
+  #daily h2 { color: #b54; margin-bottom: 10px; }
+  #prize {
+    font-size: 26px; padding: 14px; background: #ffe680;
+    border: 2px solid #b8860b; border-radius: 8px; margin: 10px 0;
+  }
+  .timer { font-size: 13px; color: #888; }
+  .label { font-size: 12px; color: #888; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <h1>Poop Your Pants 💩</h1>
+  <p>$1090 game</p>
+  <div id="bar"><div id="fill"></div></div>
+
+  <div class="row">
+    <h3>SOLO</h3>
+    <button id="bPoop" onclick="poop()">💩 POOP</button>
+    <button id="bPee"  onclick="pee()">💧 PEE</button>
+    <button id="bFart" onclick="fart()">💨 FART</button>
+  </div>
+  <div class="row">
+    <h3>MIXERS (2-INGREDIENT)</h3>
+    <button onclick="mixTwo('poop','pee')">💩💧 SPLASH</button>
+    <button onclick="mixTwo('poop','fart')">💩💨 BLAST</button>
+    <button onclick="mixTwo('pee','fart')">💧💨 SPRAY</button>
+  </div>
+  <div class="row">
+    <h3>SUPER MIX (1/DAY · UNLOCKS REWARDS)</h3>
+    <button id="bMix" onclick="mix()">🌀 TRIFECTA</button>
+  </div>
+  <div class="label">Solos and 2-mixers are unlimited. Super mix unlocks daily rewards.</div>
+
+  <button id="helpBtn" onclick="toggleHelp()" title="Help">❓</button>
+  <div id="helpModal" onclick="if(event.target===this)toggleHelp()">
+    <div id="helpBox">
+      <h2>❓ HELP — POOP YOUR PANTS</h2>
+      <ul>
+        <li><b>The bar:</b> fills up automatically. The fuller it is when you click 💩 POOP, the better the result.</li>
+        <li><b>💩 POOP:</b> aim for 50–90% fill for the win. Below 50% = barely a toot. Above 90% = catastrophic.</li>
+        <li><b>💧 PEE:</b> click for a hissing sound and a wet message. Unlimited.</li>
+        <li><b>💨 FART:</b> click for a random fart sound and toot text. Unlimited.</li>
+        <li><b>MIXERS (2-ingredient):</b> SPLASH, BLAST, SPRAY combine two sounds at once. Unlimited.</li>
+        <li><b>🌀 TRIFECTA:</b> plays all three at once. <b>Once per day.</b> Unlocks the daily reward panel forever.</li>
+        <li><b>🎁 DAILY REWARD:</b> after unlocking, click CLAIM once per day for a random prize from a pool of 15 absurd items.</li>
+        <li><b>Reset:</b> all daily limits reset at local midnight.</li>
+      </ul>
+      <button onclick="toggleHelp()">CLOSE</button>
+    </div>
+  </div>
+
+  <div id="msg">Wait for the bar to fill, then click POOP.</div>
+
+  <div id="daily">
+    <h2>🎁 DAILY REWARD</h2>
+    <div id="prize">???</div>
+    <button id="bClaim" onclick="claim()">CLAIM TODAY'S PRIZE</button>
+    <div class="timer" id="timer"></div>
+  </div>
+
+<script>
+  // --- Pressure bar ---
+  let p = 0;
+  setInterval(() => {
+    p = Math.min(100, p + 1);
+    document.getElementById('fill').style.width = p + '%';
+  }, 60);
+
+  // --- Daily state via localStorage ---
+  const today = () => new Date().toISOString().slice(0, 10);
+  const state = JSON.parse(localStorage.getItem('pyp') || '{}');
+  const save = () => localStorage.setItem('pyp', JSON.stringify(state));
+  const usedToday = (k) => state[k] === today();
+  const useToday  = (k) => { state[k] = today(); save(); refresh(); };
+
+  // --- Sound ---
+  let ac;
+  const audio = () => ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+
+  function tone({freqStart, freqEnd, type='sawtooth', dur=0.4, vol=0.4, wobble=0, delay=0}) {
+    const a = audio();
+    const t = a.currentTime + delay;
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freqStart, t);
+    o.frequency.linearRampToValueAtTime(freqEnd, t + dur);
+    if (wobble > 0) {
+      const lfo = a.createOscillator();
+      const lg = a.createGain();
+      lfo.frequency.value = 15 + Math.random() * 25;
+      lg.gain.value = wobble;
+      lfo.connect(lg).connect(o.frequency);
+      lfo.start(t); lfo.stop(t + dur);
+    }
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination);
+    o.start(t); o.stop(t + dur);
+  }
+
+  function fartSound() {
+    tone({
+      freqStart: 80 + Math.random() * 60,
+      freqEnd:   40 + Math.random() * 40,
+      type: 'sawtooth', dur: 0.25 + Math.random() * 0.6,
+      vol: 0.4, wobble: 20
+    });
+  }
+
+  function peeSound() {
+    // Higher pitched hiss using a noise burst via fast oscillator + filter feel
+    const a = audio();
+    const t = a.currentTime;
+    const dur = 1.2;
+    const buffer = a.createBuffer(1, a.sampleRate * dur, a.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.4;
+    const src = a.createBufferSource();
+    src.buffer = buffer;
+    const filter = a.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1800;
+    filter.Q.value = 2;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.3, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(filter).connect(g).connect(a.destination);
+    src.start(t); src.stop(t + dur);
+  }
+
+  function poopSound() {
+    tone({ freqStart: 60, freqEnd: 30, dur: 0.6, vol: 0.5, wobble: 30 });
+    setTimeout(() => tone({ freqStart: 100, freqEnd: 50, dur: 0.3, vol: 0.3, wobble: 15 }), 300);
+  }
+
+  // --- Actions ---
+  function poop() {
+    poopSound();
+    const msg = document.getElementById('msg');
+    if (p < 50) msg.textContent = "💩 Too early. Barely a toot.";
+    else if (p < 90) msg.textContent = "🎉 You pooped your pants! Nice.";
+    else msg.textContent = "💥 Catastrophic. Call a plumber.";
+    p = 0;
+  }
+
+  function pee() {
+    peeSound();
+    const lines = [
+      "💧 You peed your pants. Warm.",
+      "💧 A river runs through it.",
+      "💧 Hope nobody saw that.",
+      "💧 The seat is now a swamp."
+    ];
+    document.getElementById('msg').textContent = lines[Math.floor(Math.random()*lines.length)];
+  }
+
+  function fart() {
+    fartSound();
+    const toots = ['pfft','BLORP','prrrt','tooot','squeak','PFFFFT','blub blub','💨💨💨'];
+    document.getElementById('msg').textContent = toots[Math.floor(Math.random() * toots.length)];
+  }
+
+  const SOUNDS = { poop: poopSound, pee: peeSound, fart: fartSound };
+  const MIX_LINES = {
+    'poop+pee':   ["💩💧 SPLASH! It's a soup situation.", "💩💧 SPLASH! The pants are a wetland habitat now.", "💩💧 SPLASH! Two-tone disaster."],
+    'poop+fart':  ["💩💨 BLAST! Shart event detected.", "💩💨 BLAST! That was supposed to be a fart.", "💩💨 BLAST! Trumpet AND tuba."],
+    'pee+fart':   ["💧💨 SPRAY! A misty toot.", "💧💨 SPRAY! Sprinkles + sound effects.", "💧💨 SPRAY! Bubbles in the swamp."],
+  };
+
+  function mixTwo(a, b) {
+    SOUNDS[a]();
+    setTimeout(SOUNDS[b], 120);
+    const key = [a,b].sort().join('+');
+    const lines = MIX_LINES[key];
+    document.getElementById('msg').textContent = lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  function mix() {
+    if (usedToday('mix')) return;
+    // Play all three at once
+    fartSound();
+    setTimeout(peeSound, 100);
+    setTimeout(poopSound, 200);
+    document.getElementById('msg').textContent = "🌀💩💧💨 THE TRIFECTA. Your dignity has left the chat.";
+    useToday('mix');
+    // Unlock daily rewards permanently
+    state.mixUnlocked = true;
+    save();
+    refresh();
+  }
+
+  function toggleHelp() {
+    document.getElementById('helpModal').classList.toggle('show');
+  }
+
+  // --- Daily rewards ---
+  const PRIZES = [
+    "🧻 1 ply of toilet paper",
+    "🪙 A penny (sticky)",
+    "🩲 A fresh pair of pants",
+    "💐 Sympathy bouquet from mom",
+    "🥫 Can of beans (uh oh)",
+    "🦠 Mysterious gut bacteria",
+    "📜 Coupon: 10% off plumber",
+    "🧼 One (1) bar of soap",
+    "🚽 Toilet voucher",
+    "🐀 A rat that owes you a favor",
+    "🎺 Trumpet (for fart solos)",
+    "🏆 Pants Olympics gold medal",
+    "💼 Briefcase full of wet wipes",
+    "🦠 STINK CLOUD +5",
+    "👖 LEGENDARY: GoldenPants™"
+  ];
+
+  function claim() {
+    if (usedToday('claim')) return;
+    const prize = PRIZES[Math.floor(Math.random() * PRIZES.length)];
+    state.lastPrize = prize;
+    state.prizes = (state.prizes || 0) + 1;
+    useToday('claim');
+    document.getElementById('prize').textContent = `${prize}  (Total prizes: ${state.prizes})`;
+  }
+
+  function refresh() {
+    document.getElementById('bMix').disabled  = usedToday('mix');
+
+    const dailyEl = document.getElementById('daily');
+    const claimBtn = document.getElementById('bClaim');
+    if (state.mixUnlocked) {
+      dailyEl.classList.add('show');
+      if (usedToday('claim')) {
+        claimBtn.disabled = true;
+        claimBtn.textContent = "ALREADY CLAIMED TODAY";
+        document.getElementById('prize').textContent = state.lastPrize || "???";
+      } else {
+        claimBtn.disabled = false;
+        claimBtn.textContent = "CLAIM TODAY'S PRIZE";
+        document.getElementById('prize').textContent = "??? click to reveal ???";
+      }
+      // Countdown to next reset
+      const tick = () => {
+        const now = new Date();
+        const tmrw = new Date(now); tmrw.setHours(24,0,0,0);
+        const ms = tmrw - now;
+        const h = Math.floor(ms/3.6e6);
+        const m = Math.floor((ms%3.6e6)/6e4);
+        const s = Math.floor((ms%6e4)/1000);
+        document.getElementById('timer').textContent =
+          `Next reset in ${h}h ${m}m ${s}s`;
+      };
+      tick();
+      clearInterval(window._t);
+      window._t = setInterval(tick, 1000);
+    }
+  }
+
+  refresh();
+</script>
+</body>
+</html>

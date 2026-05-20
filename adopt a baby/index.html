@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adopt a Baby</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#fce4ec,#f3e5f5,#e8eaf6);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+
+/* ADOPT SCREEN */
+#adopt-screen{display:flex;flex-direction:column;align-items:center;padding:16px;max-width:700px;width:96%}
+#adopt-screen.hide{display:none}
+#adopt-screen h1{font-size:2.2rem;color:#e91e63;margin:16px 0 4px;text-shadow:2px 2px 4px rgba(0,0,0,.1)}
+#adopt-screen .sub{color:#888;margin-bottom:14px;font-size:.95rem}
+.step-title{font-size:1.1rem;font-weight:700;color:#7b1fa2;margin:12px 0 8px}
+.baby-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-bottom:14px}
+@media(min-width:550px){.baby-grid{grid-template-columns:repeat(4,1fr)}}
+.baby-card{background:#fff;border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;border:3px solid transparent;transition:transform .15s,border-color .2s,box-shadow .2s;box-shadow:0 3px 10px rgba(0,0,0,.08)}
+.baby-card:hover{transform:translateY(-2px);box-shadow:0 5px 14px rgba(0,0,0,.13)}
+.baby-card.selected{border-color:#e91e63;box-shadow:0 4px 18px rgba(233,30,99,.3)}
+.baby-card .emoji{font-size:44px;display:block;margin-bottom:2px}
+.baby-card .label{font-size:.72rem;font-weight:600;color:#555}
+.baby-card .desc{font-size:.62rem;color:#999;margin-top:1px}
+.trait-badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:.6rem;font-weight:600;margin:2px;color:#fff}
+.name-section{width:100%;text-align:center;margin-bottom:12px}
+.name-section input{padding:10px 16px;font-size:1rem;border:2px solid #e0e0e0;border-radius:12px;outline:none;width:240px;text-align:center;font-weight:600;transition:border-color .2s}
+.name-section input:focus{border-color:#e91e63}
+.name-suggestions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.name-sug{padding:4px 12px;background:rgba(233,30,99,.1);border:1px solid rgba(233,30,99,.2);border-radius:18px;font-size:.75rem;color:#c2185b;cursor:pointer;font-weight:500}
+.name-sug:hover{background:rgba(233,30,99,.2)}
+#adopt-btn{padding:14px 44px;font-size:1.1rem;font-weight:700;border:none;border-radius:14px;background:linear-gradient(135deg,#e91e63,#c2185b);color:#fff;cursor:pointer;box-shadow:0 5px 18px rgba(233,30,99,.4);margin-bottom:16px}
+#adopt-btn:hover{transform:scale(1.03)}
+#adopt-error{color:#d32f2f;font-size:.82rem;min-height:18px;margin-bottom:6px;font-weight:500}
+/* Baby info panel */
+#baby-info{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;width:100%;max-width:400px;display:none;box-shadow:0 3px 12px rgba(0,0,0,.1);text-align:center}
+#baby-info.show{display:block}
+#baby-info .bi-emoji{font-size:60px}
+#baby-info .bi-name{font-size:1.1rem;font-weight:700;color:#e91e63;margin:4px 0}
+#baby-info .bi-desc{font-size:.82rem;color:#666;margin-bottom:4px}
+#baby-info .bi-likes{font-size:.75rem;color:#4caf50;font-weight:600}
+#baby-info .bi-hates{font-size:.75rem;color:#f44336;font-weight:600}
+
+/* GAME SCREEN */
+#game-screen{display:none;flex-direction:column;align-items:center;width:96%;max-width:650px}
+#game-screen.show{display:flex}
+#game-title{font-size:1.5rem;color:#e91e63;margin:12px 0 2px}
+#baby-name-display{font-size:1rem;color:#7b1fa2;font-weight:600;margin-bottom:4px}
+#hud{display:flex;gap:14px;font-size:.82rem;font-weight:600;color:#555;margin-bottom:6px;flex-wrap:wrap;justify-content:center}
+#hud span{background:rgba(255,255,255,.6);padding:3px 10px;border-radius:8px}
+#stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;max-width:600px}
+.stat{display:flex;flex-direction:column;align-items:center;width:82px}
+.stat-label{font-size:.66rem;font-weight:600;color:#555;margin-bottom:2px;text-transform:uppercase;letter-spacing:.3px}
+.bar-bg{width:100%;height:12px;background:#ddd;border-radius:6px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}
+.bar-fill{height:100%;border-radius:6px;transition:width .4s ease,background .4s ease}
+.stat-val{font-size:.64rem;color:#777;margin-top:1px}
+#baby-area{position:relative;width:260px;height:240px;margin-bottom:4px}
+#baby{font-size:110px;text-align:center;line-height:1;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);user-select:none}
+#baby.bounce{animation:bounce .5s ease}
+@keyframes bounce{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-55%) scale(1.12)}}
+#baby.shake{animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translate(-50%,-50%) rotate(0)}25%{transform:translate(-50%,-50%) rotate(-8deg)}75%{transform:translate(-50%,-50%) rotate(8deg)}}
+#baby.run{animation:runA .6s ease}
+@keyframes runA{0%{transform:translate(-50%,-50%) translateX(0)}25%{transform:translate(-50%,-50%) translateX(-25px) rotate(-5deg)}75%{transform:translate(-50%,-50%) translateX(25px) rotate(5deg)}100%{transform:translate(-50%,-50%) translateX(0)}}
+#baby.wiggle{animation:wiggle .5s ease}
+@keyframes wiggle{0%,100%{transform:translate(-50%,-50%) rotate(0)}20%{transform:translate(-50%,-50%) rotate(5deg)}40%{transform:translate(-50%,-50%) rotate(-5deg)}60%{transform:translate(-50%,-50%) rotate(3deg)}80%{transform:translate(-50%,-50%) rotate(-3deg)}}
+#floating-effects{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
+.float-emoji{position:absolute;font-size:24px;animation:floatUp 1.2s ease-out forwards;pointer-events:none}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.4)}}
+#mood-text{text-align:center;font-size:.9rem;font-weight:600;min-height:22px;color:#e91e63}
+#action-text{text-align:center;font-size:.78rem;color:#666;min-height:18px;font-style:italic;margin-bottom:2px}
+#lyrics{font-size:.78rem;color:#ad1457;text-align:center;max-width:360px;min-height:18px;font-style:italic;margin-bottom:4px}
+#actions{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;max-width:480px;width:94%;margin-bottom:12px}
+.btn{padding:10px 4px;font-size:.78rem;font-weight:600;border:none;border-radius:12px;cursor:pointer;transition:transform .15s,box-shadow .15s,filter .15s;box-shadow:0 3px 10px rgba(0,0,0,.13);color:#fff;display:flex;align-items:center;justify-content:center;gap:4px;position:relative;overflow:hidden}
+.btn:hover{transform:translateY(-2px);box-shadow:0 5px 14px rgba(0,0,0,.18)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{filter:grayscale(.6);cursor:not-allowed;transform:none}
+.btn-feed{background:linear-gradient(135deg,#ff9800,#f57c00)}
+.btn-shower{background:linear-gradient(135deg,#29b6f6,#0288d1)}
+.btn-teeth{background:linear-gradient(135deg,#26c6da,#00838f)}
+.btn-soothe{background:linear-gradient(135deg,#ec407a,#c2185b)}
+.btn-distract{background:linear-gradient(135deg,#ab47bc,#7b1fa2)}
+.btn-run{background:linear-gradient(135deg,#66bb6a,#2e7d32)}
+.btn-burp{background:linear-gradient(135deg,#ffa726,#e65100)}
+.btn-special{background:linear-gradient(135deg,#ffd54f,#ff6f00);color:#333}
+.btn .cd-bar{position:absolute;bottom:0;left:0;height:3px;background:rgba(255,255,255,.5);border-radius:0 0 12px 12px}
+/* Overlays */
+.overlay-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;justify-content:center;align-items:center}
+.overlay-bg.show{display:flex}
+.overlay-box{background:#fff;border-radius:18px;padding:28px 36px;text-align:center;box-shadow:0 10px 36px rgba(0,0,0,.3);max-width:340px}
+.overlay-box h2{font-size:1.6rem;color:#e91e63;margin-bottom:6px}
+.overlay-box p{color:#666;margin-bottom:12px;font-size:.9rem}
+.o-btn{padding:10px 24px;font-size:.95rem;font-weight:700;border:none;border-radius:12px;color:#fff;cursor:pointer;margin:3px}
+.o-btn:hover{transform:scale(1.03)}
+.o-btn-pink{background:linear-gradient(135deg,#e91e63,#c2185b)}
+.o-btn-purple{background:linear-gradient(135deg,#7b1fa2,#4a148c)}
+#mg-box h3{color:#7b1fa2;margin-bottom:8px}
+#mg-box p{color:#666;margin-bottom:10px;font-size:.9rem}
+.mg-targets{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+.mg-target{font-size:44px;cursor:pointer;transition:transform .15s;user-select:none}
+.mg-target:hover{transform:scale(1.2)}
+#music-btn{position:fixed;top:10px;right:10px;z-index:50;width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(135deg,#ff80ab,#f50057);color:#fff;font-size:1.2rem;cursor:pointer;box-shadow:0 3px 8px rgba(245,0,87,.3);display:flex;align-items:center;justify-content:center}
+#music-btn:hover{transform:scale(1.1)}
+#music-btn.off{background:linear-gradient(135deg,#bbb,#888)}
+</style>
+</head>
+<body>
+
+<!-- 🤫 SECRET: impossible mode can be defeated by naming your vampire "garlic" 🧄 -->
+<div id="secret-bat" onclick="revealSecret()" style="position:fixed;bottom:4px;right:4px;font-size:12px;opacity:0.15;cursor:pointer;z-index:100;user-select:none;padding:4px" title="...">🦇</div>
+<div id="secret-hint" style="display:none;position:fixed;bottom:30px;right:10px;background:rgba(0,0,0,0.85);color:#ff8a80;padding:10px 14px;border-radius:10px;font-size:.75rem;font-style:italic;z-index:100;max-width:220px;box-shadow:0 4px 16px rgba(0,0,0,0.3)"></div>
+
+<div id="adopt-screen">
+  <h1>Adopt a Baby!</h1>
+  <p class="sub">Pick your baby, name them, and take care of them!</p>
+  <div id="baby-counter" style="font-size:.7rem;color:#7b1fa2;font-weight:600;margin-bottom:4px;text-align:center;word-break:break-all;line-height:1.2">🌟 Random: 1,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000,000 babies 🌟<br>📋 Classic: 100 · 💰 Money Isle: 790</div>
+  <div id="coins-display" style="font-size:1rem;font-weight:800;color:#ff6f00;background:#fff8e1;border:2px solid #ffb300;padding:4px 16px;border-radius:20px;margin-bottom:8px">💰 <span id="coins-count">1000</span> coins</div>
+  <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;justify-content:center">
+    <button id="shuffle-btn" onclick="shuffleBabies()" style="padding:8px 18px;font-size:.85rem;font-weight:700;border:none;border-radius:12px;background:linear-gradient(135deg,#9c27b0,#673ab7);color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(156,39,176,.3)">🔀 Roll New Babies!</button>
+    <button id="show-all-btn" onclick="toggleAllBabies()" style="padding:8px 18px;font-size:.85rem;font-weight:700;border:none;border-radius:12px;background:linear-gradient(135deg,#2196f3,#0d47a1);color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(33,150,243,.3)">📋 Classic 100</button>
+    <button id="isle-btn" onclick="openMoneyIsle()" style="padding:8px 18px;font-size:.85rem;font-weight:700;border:none;border-radius:12px;background:linear-gradient(135deg,#ff9800,#e65100);color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(255,152,0,.3)">💰 Money Isle (790)</button>
+    <button id="rewards-btn" onclick="viewRewards()" style="padding:8px 18px;font-size:.85rem;font-weight:700;border:none;border-radius:12px;background:linear-gradient(135deg,#ffb300,#ff8f00);color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(255,179,0,.3)">🎁 Daily Rewards</button>
+    <button id="vault-btn" onclick="openVault()" style="padding:8px 18px;font-size:.85rem;font-weight:700;border:none;border-radius:12px;background:linear-gradient(135deg,#37474f,#263238);color:#ffd54f;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.3)">🔐 Secret Vault</button>
+  </div>
+  <div class="step-title">Step 1: Pick Your Baby</div>
+  <div class="baby-grid" id="baby-grid"></div>
+  <div id="baby-info"><div class="bi-emoji" id="bi-emoji"></div><div class="bi-name" id="bi-name"></div><div class="bi-desc" id="bi-desc"></div><div class="bi-likes" id="bi-likes"></div><div class="bi-hates" id="bi-hates"></div><div id="bi-special"></div></div>
+  <div class="step-title">Step 2: Name Your Baby</div>
+  <div class="name-section">
+    <input type="text" id="baby-name-input" placeholder="Enter a name..." maxlength="16">
+    <div class="name-suggestions" id="name-suggestions"></div>
+  </div>
+  <div id="adopt-error"></div>
+  <button id="adopt-btn" onclick="adoptBaby()">Adopt My Baby!</button>
+</div>
+
+<div id="game-screen">
+  <button id="music-btn" onclick="toggleMusic()">&#x1F3B5;</button>
+  <div id="game-title">Adopt a Baby</div>
+  <div id="baby-name-display"></div>
+  <div id="hud">
+    <span>Score: <b id="score">0</b></span>
+    <span>Level: <b id="level">1</b></span>
+    <span>Age: <b id="age">Newborn</b></span>
+  </div>
+  <div id="stats">
+    <div class="stat"><div class="stat-label">Hunger</div><div class="bar-bg"><div class="bar-fill" id="bar-hunger"></div></div><div class="stat-val" id="val-hunger">80</div></div>
+    <div class="stat"><div class="stat-label">Hygiene</div><div class="bar-bg"><div class="bar-fill" id="bar-hygiene"></div></div><div class="stat-val" id="val-hygiene">80</div></div>
+    <div class="stat"><div class="stat-label">Teeth</div><div class="bar-bg"><div class="bar-fill" id="bar-teeth"></div></div><div class="stat-val" id="val-teeth">80</div></div>
+    <div class="stat"><div class="stat-label">Happiness</div><div class="bar-bg"><div class="bar-fill" id="bar-happiness"></div></div><div class="stat-val" id="val-happiness">80</div></div>
+    <div class="stat"><div class="stat-label">Energy</div><div class="bar-bg"><div class="bar-fill" id="bar-energy"></div></div><div class="stat-val" id="val-energy">70</div></div>
+    <div class="stat"><div class="stat-label">Tummy</div><div class="bar-bg"><div class="bar-fill" id="bar-tummy"></div></div><div class="stat-val" id="val-tummy">90</div></div>
+  </div>
+  <div id="baby-area"><div id="floating-effects"></div><div id="baby"></div></div>
+  <div id="mood-text"></div>
+  <div id="action-text"></div>
+  <div id="lyrics"></div>
+  <div id="actions"></div>
+</div>
+
+<div class="overlay-bg" id="overlay"><div class="overlay-box" id="overlay-box"><h2 id="go-title">Oh no!</h2><p id="go-msg"></p><p id="go-score"></p><button class="o-btn o-btn-pink" onclick="restartGame()">Try Again</button><button class="o-btn o-btn-purple" onclick="backToAdopt()">Pick New Baby</button></div></div>
+<div class="overlay-bg" id="minigame"><div class="overlay-box" id="mg-box"><h3 id="mg-title"></h3><p id="mg-desc"></p><div class="mg-targets" id="mg-targets"></div></div></div>
+
+<script>
+// ===================== ALL BABIES =====================
+const BABIES = [
+  {id:'happy',emoji:'👶',label:'Happy Baby',desc:'Always smiling!',trait:'Cheerful',traitColor:'#e91e63',bonus:{happiness:10},weakness:'hunger',likes:'being fed',hates:'being dirty',personalNames:['Sunny','Joy','Mila','Leo'],feedMsg:'Yummy! {name} gobbles it up!',sootheMsg:'{name} giggles and hugs you!',brushMsg:'{name} shows off a sparkly smile!',runMsg:'{name} runs in happy circles!',burpMsg:'*BURRRP* {name} laughs!',showerMsg:'{name} splashes happily!',distractMsg:'{name} claps with delight!',specialAction:'Tickle',specialEmoji:'🤭',specialMsg:'{name} can\'t stop giggling!',specialEffect(s){s.happiness=Math.min(100,s.happiness+15);s.energy=Math.max(0,s.energy-5);}},
+  {id:'sleepy',emoji:'😴',label:'Sleepy Baby',desc:'Loves naps',trait:'Drowsy',traitColor:'#7b1fa2',bonus:{energy:15},weakness:'happiness',likes:'napping',hates:'loud noises',personalNames:['Luna','Noel','Ziggy','Dream'],feedMsg:'{name} eats with eyes half closed...',sootheMsg:'{name} yawns and snuggles in',brushMsg:'{name} barely opens mouth to brush',runMsg:'{name} does a sleepy jog...',burpMsg:'*burp*... zzz...',showerMsg:'{name} dozes off in the bath',distractMsg:'{name} blinks sleepily at the toy',specialAction:'Nap Time',specialEmoji:'💤',specialMsg:'{name} takes a cozy nap!',specialEffect(s){s.energy=Math.min(100,s.energy+25);s.happiness=Math.min(100,s.happiness+10);}},
+  {id:'hungry',emoji:'🤤',label:'Hungry Baby',desc:'Always wants food!',trait:'Foodie',traitColor:'#ff9800',bonus:{hunger:15},weakness:'energy',likes:'snacks',hates:'waiting for food',personalNames:['Cookie','Benny','Olive','Taco'],feedMsg:'{name} devours everything! MORE!',sootheMsg:'{name} calms down with a belly rub',brushMsg:'Uh oh, {name} tried to eat the toothpaste!',runMsg:'{name} runs to the fridge!',burpMsg:'*MEGA BURP* That was a big one!',showerMsg:'{name} tries to drink the bath water!',distractMsg:'{name} only wants food-shaped toys',specialAction:'Snack Time',specialEmoji:'🍪',specialMsg:'{name} munches a yummy cookie!',specialEffect(s){s.hunger=Math.min(100,s.hunger+20);s.happiness=Math.min(100,s.happiness+8);s.tummy=Math.max(0,s.tummy-10);}},
+  {id:'giggly',emoji:'😆',label:'Giggly Baby',desc:'Laughs at everything',trait:'Silly',traitColor:'#4caf50',bonus:{happiness:15},weakness:'hygiene',likes:'peek-a-boo',hates:'being still',personalNames:['Bubbles','Giggles','Pixie','Chip'],feedMsg:'{name} laughs while eating! Food everywhere!',sootheMsg:'{name} giggles at your lullaby',brushMsg:'{name} makes funny faces while brushing!',runMsg:'{name} runs around laughing hysterically!',burpMsg:'*burp* HAHAHAHA!',showerMsg:'{name} makes bubble beards!',distractMsg:'{name} thinks everything is hilarious!',specialAction:'Peek-a-boo',specialEmoji:'🙈',specialMsg:'Peek-a-boo! {name} SCREAMS with laughter!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.hygiene=Math.max(0,s.hygiene-5);}},
+  {id:'curious',emoji:'🧒',label:'Curious Baby',desc:'Wants to explore!',trait:'Explorer',traitColor:'#2196f3',bonus:{energy:10},weakness:'teeth',likes:'exploring',hates:'sitting still',personalNames:['Scout','Dash','Atlas','Wren'],feedMsg:'{name} inspects every bite carefully',sootheMsg:'{name} calms down looking at a picture book',brushMsg:'{name} wants to know how the toothbrush works',runMsg:'{name} explores every corner!',burpMsg:'{name} is fascinated by the burp sound!',showerMsg:'{name} investigates every bubble!',distractMsg:'{name} examines the toy from every angle',specialAction:'Explore',specialEmoji:'🔍',specialMsg:'{name} discovers something amazing!',specialEffect(s){s.happiness=Math.min(100,s.happiness+12);s.energy=Math.min(100,s.energy+10);}},
+  {id:'shy',emoji:'🥺',label:'Shy Baby',desc:'Needs lots of love',trait:'Gentle',traitColor:'#f06292',bonus:{teeth:10},weakness:'happiness',likes:'cuddles',hates:'strangers',personalNames:['Rosie','Pip','Fawn','Bean'],feedMsg:'{name} eats quietly and looks up at you',sootheMsg:'{name} melts into your arms',brushMsg:'{name} lets you brush very gently',runMsg:'{name} takes tiny careful steps',burpMsg:'*tiny burp* {name} looks embarrassed!',showerMsg:'{name} holds your hand in the bath',distractMsg:'{name} peeks at the toy from behind you',specialAction:'Cuddle',specialEmoji:'🧸',specialMsg:'{name} snuggles into your arms!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.min(100,s.energy+5);}},
+  {id:'wild',emoji:'😤',label:'Wild Baby',desc:'Full of energy!',trait:'Hyper',traitColor:'#ff5722',bonus:{energy:20},weakness:'hygiene',likes:'running around',hates:'bath time',personalNames:['Blaze','Rex','Zippy','Storm'],feedMsg:'{name} eats while bouncing around!',sootheMsg:'It takes a while but {name} finally calms down',brushMsg:'{name} runs away from the toothbrush!',runMsg:'{name} ZOOMS everywhere at top speed!',burpMsg:'*EXPLOSIVE BURP* Woah!',showerMsg:'{name} tries to escape the bath!',distractMsg:'{name} throws the toy across the room!',specialAction:'Wrestling',specialEmoji:'💪',specialMsg:'{name} wins a pretend wrestling match!',specialEffect(s){s.energy=Math.min(100,s.energy+15);s.happiness=Math.min(100,s.happiness+12);s.hunger=Math.max(0,s.hunger-8);}},
+  {id:'angel',emoji:'😇',label:'Angel Baby',desc:'Sweet and calm',trait:'Peaceful',traitColor:'#9c27b0',bonus:{hygiene:10,happiness:5},weakness:'hunger',likes:'singing',hates:'mess',personalNames:['Angel','Hope','Grace','Star'],feedMsg:'{name} eats neatly without any mess!',sootheMsg:'{name} hums along with you',brushMsg:'{name} brushes perfectly!',runMsg:'{name} floats gracefully around the room',burpMsg:'*polite tiny burp* Excuse me!',showerMsg:'{name} sits still and gets perfectly clean',distractMsg:'{name} plays gently and quietly',specialAction:'Sing Along',specialEmoji:'🎵',specialMsg:'{name} sings a sweet little song!',specialEffect(s){s.happiness=Math.min(100,s.happiness+15);s.hygiene=Math.min(100,s.hygiene+5);}},
+  {id:'tough',emoji:'😎',label:'Cool Baby',desc:'Too cool for drool',trait:'Chill',traitColor:'#00bcd4',bonus:{teeth:10,hygiene:5},weakness:'energy',likes:'sunglasses',hates:'being uncool',personalNames:['Ace','Kai','Ryder','Jett'],feedMsg:'{name} eats casually like it\'s no big deal',sootheMsg:'{name} nods and acts like they weren\'t crying',brushMsg:'{name} brushes teeth with style',runMsg:'{name} does a cool slow-motion run',burpMsg:'*burp* {name} plays it cool',showerMsg:'{name} takes a cool, calm shower',distractMsg:'{name} plays it cool with the toy',specialAction:'Pose',specialEmoji:'😎',specialMsg:'{name} strikes an epic cool pose!',specialEffect(s){s.happiness=Math.min(100,s.happiness+12);s.teeth=Math.min(100,s.teeth+8);}},
+  {id:'musical',emoji:'🎤',label:'Musical Baby',desc:'Born to sing!',trait:'Melodic',traitColor:'#e040fb',bonus:{happiness:8},weakness:'teeth',likes:'music',hates:'silence',personalNames:['Melody','Rhythm','Lyric','Tempo'],feedMsg:'{name} hums while eating!',sootheMsg:'{name} sways to your lullaby',brushMsg:'{name} brushes to the beat!',runMsg:'{name} dances while running!',burpMsg:'*musical burp* Was that a note?!',showerMsg:'{name} sings in the shower!',distractMsg:'{name} turns the toy into a drum!',specialAction:'Dance Party',specialEmoji:'💃',specialMsg:'{name} busts out adorable dance moves!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.max(0,s.energy-5);}},
+  {id:'artist',emoji:'🎨',label:'Artsy Baby',desc:'Loves to draw!',trait:'Creative',traitColor:'#ff7043',bonus:{happiness:5},weakness:'hygiene',likes:'finger painting',hates:'being clean',personalNames:['Indigo','Palette','Doodle','Sketch'],feedMsg:'{name} makes art with the food!',sootheMsg:'{name} draws you a heart',brushMsg:'The toothpaste becomes face paint!',runMsg:'{name} runs leaving paint everywhere!',burpMsg:'*burp* {name} says that was art!',showerMsg:'Noooo! {name} hates washing off the paint!',distractMsg:'{name} turns everything into a canvas!',specialAction:'Finger Paint',specialEmoji:'🖌️',specialMsg:'{name} creates a masterpiece!',specialEffect(s){s.happiness=Math.min(100,s.happiness+15);s.hygiene=Math.max(0,s.hygiene-10);}},
+  {id:'sporty',emoji:'⚽',label:'Sporty Baby',desc:'Little athlete!',trait:'Athletic',traitColor:'#43a047',bonus:{energy:15},weakness:'tummy',likes:'playing ball',hates:'sitting down',personalNames:['Kicker','Goalie','Champ','Sprinter'],feedMsg:'{name} eats like a champion!',sootheMsg:'{name} calms down tossing a soft ball',brushMsg:'{name} brushes like training for a race!',runMsg:'{name} sprints like an Olympic baby!',burpMsg:'*POWER BURP* New record!',showerMsg:'{name} does laps in the bath!',distractMsg:'{name} kicks the toy around!',specialAction:'Goal!',specialEmoji:'⚽',specialMsg:'{name} scores an amazing goal!',specialEffect(s){s.energy=Math.min(100,s.energy+20);s.happiness=Math.min(100,s.happiness+10);s.hunger=Math.max(0,s.hunger-6);}},
+  {id:'princess',emoji:'👑',label:'Royal Baby',desc:'Demands the best!',trait:'Fancy',traitColor:'#ffd600',bonus:{hygiene:15},weakness:'happiness',likes:'sparkly things',hates:'dirt',personalNames:['Royal','Crown','Duchess','Prince'],feedMsg:'{name} only eats with a golden spoon!',sootheMsg:'{name} is comforted by a silk blanket',brushMsg:'{name} uses a diamond toothbrush!',runMsg:'{name} does a royal parade!',burpMsg:'{name} burps and says "pardon me"',showerMsg:'{name} takes a luxurious bubble bath!',distractMsg:'{name} only plays with the fanciest toy!',specialAction:'Royal Wave',specialEmoji:'👑',specialMsg:'{name} does an adorable royal wave!',specialEffect(s){s.happiness=Math.min(100,s.happiness+15);s.hygiene=Math.min(100,s.hygiene+10);}},
+  {id:'nature',emoji:'🌿',label:'Nature Baby',desc:'Loves the outdoors!',trait:'Earthy',traitColor:'#689f38',bonus:{energy:10,happiness:5},weakness:'hygiene',likes:'flowers',hates:'being indoors',personalNames:['Willow','River','Fern','Moss'],feedMsg:'{name} eats organic mush happily!',sootheMsg:'Nature sounds calm {name} instantly',brushMsg:'{name} prefers a bamboo toothbrush!',runMsg:'{name} runs through an imaginary garden!',burpMsg:'*natural burp* One with nature!',showerMsg:'{name} pretends it\'s a waterfall!',distractMsg:'{name} plays with a leaf and is thrilled!',specialAction:'Garden Time',specialEmoji:'🌻',specialMsg:'{name} plants an imaginary flower!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+8);}},
+  {id:'nerdy',emoji:'🤓',label:'Smart Baby',desc:'Already reading!',trait:'Genius',traitColor:'#5c6bc0',bonus:{teeth:5,happiness:5},weakness:'energy',likes:'books',hates:'boring stuff',personalNames:['Newton','Ada','Brainly','Einstein'],feedMsg:'{name} calculates the perfect bite size!',sootheMsg:'{name} is soothed by a bedtime story',brushMsg:'{name} brushes with scientific precision!',runMsg:'{name} calculates the optimal running path!',burpMsg:'{name} says "that was gastric release!"',showerMsg:'{name} measures the water temperature first!',distractMsg:'{name} solves the toy like a puzzle!',specialAction:'Story Time',specialEmoji:'📚',specialMsg:'{name} reads a tiny book! So smart!',specialEffect(s){s.happiness=Math.min(100,s.happiness+12);s.energy=Math.max(0,s.energy-3);s.teeth=Math.min(100,s.teeth+5);}},
+  {id:'dramatic',emoji:'🎭',label:'Drama Baby',desc:'So dramatic!',trait:'Theatrical',traitColor:'#f44336',bonus:{happiness:5},weakness:'tummy',likes:'attention',hates:'being ignored',personalNames:['Drama','Diva','Oscar','Star'],feedMsg:'{name} acts like it\'s the best meal EVER!',sootheMsg:'{name} does a dramatic sob then smiles',brushMsg:'{name} brushes teeth like a movie star!',runMsg:'{name} runs in slow motion dramatically!',burpMsg:'*DRAMATIC BURP* {name} takes a bow!',showerMsg:'{name} acts out a rain scene!',distractMsg:'{name} performs a one-baby show!',specialAction:'Perform',specialEmoji:'🎭',specialMsg:'{name} puts on an incredible show!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.energy=Math.max(0,s.energy-8);}},
+  {id:'cuddly',emoji:'🧸',label:'Cuddly Baby',desc:'Hugs everything!',trait:'Snuggly',traitColor:'#8d6e63',bonus:{happiness:10,energy:5},weakness:'hunger',likes:'teddy bears',hates:'being alone',personalNames:['Teddy','Huggy','Snuggles','Cocoa'],feedMsg:'{name} hugs the bottle while eating!',sootheMsg:'{name} melts into the coziest cuddle!',brushMsg:'{name} hugs the toothbrush first!',runMsg:'{name} runs with teddy in both arms!',burpMsg:'*cozy burp* {name} snuggles closer',showerMsg:'{name} brings teddy to the bath!',distractMsg:'{name} cuddles every single toy!',specialAction:'Big Hug',specialEmoji:'🤗',specialMsg:'{name} gives the BIGGEST hug ever!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.min(100,s.energy+8);}},
+  {id:'messy',emoji:'🤪',label:'Messy Baby',desc:'Chaos everywhere!',trait:'Chaotic',traitColor:'#ff6e40',bonus:{energy:10,happiness:10},weakness:'hygiene',likes:'making messes',hates:'cleaning up',personalNames:['Chaos','Splat','Muddy','Tornado'],feedMsg:'Food is EVERYWHERE! {name} loves it!',sootheMsg:'{name} calms down hugging a paint-covered bear',brushMsg:'Toothpaste on the walls! Thanks {name}!',runMsg:'{name} crashes through everything!',burpMsg:'*HUGE BURP* Spit-up everywhere!',showerMsg:'{name} turns the bathroom into a pool!',distractMsg:'{name} breaks the toy... oops!',specialAction:'Mess Time',specialEmoji:'💥',specialMsg:'{name} makes a GLORIOUS mess!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.hygiene=Math.max(0,s.hygiene-15);s.energy=Math.min(100,s.energy+5);}},
+  // 19-100: MORE BABIES!
+  {id:'pirate',emoji:'🏴‍☠️',label:'Pirate Baby',desc:'Arrr matey!',trait:'Adventurer',traitColor:'#795548',bonus:{energy:10},weakness:'hygiene',likes:'treasure',hates:'rules',personalNames:['Captain','Hook','Sparrow','Matey'],feedMsg:'Arrr! {name} eats like a pirate!',sootheMsg:'{name} rocks in a ship cradle',brushMsg:'{name} brushes with a sword... toothbrush!',runMsg:'{name} runs looking for treasure!',burpMsg:'*PIRATE BURP* Arrrr!',showerMsg:'{name} walks the plank into the bath!',distractMsg:'{name} finds toy treasure!',specialAction:'Treasure Hunt',specialEmoji:'🗺️',specialMsg:'{name} finds hidden treasure!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+8);}},
+  {id:'dino',emoji:'🦖',label:'Dino Baby',desc:'RAWR!',trait:'Prehistoric',traitColor:'#558b2f',bonus:{energy:15},weakness:'teeth',likes:'roaring',hates:'quiet time',personalNames:['Rex','Raptor','Tiny','Fossil'],feedMsg:'{name} chomps food like a T-Rex!',sootheMsg:'{name} purrs like a baby dino',brushMsg:'{name} shows those dino teeth!',runMsg:'{name} stomps around like a dinosaur!',burpMsg:'*DINO ROAR BURP* RAWR!',showerMsg:'{name} splashes like a sea dinosaur!',distractMsg:'{name} chases the toy like prey!',specialAction:'RAWR!',specialEmoji:'🦖',specialMsg:'{name} does the most epic RAWR!',specialEffect(s){s.happiness=Math.min(100,s.happiness+15);s.energy=Math.min(100,s.energy+10);}},
+  {id:'space',emoji:'🚀',label:'Space Baby',desc:'To the moon!',trait:'Cosmic',traitColor:'#1a237e',bonus:{happiness:8},weakness:'tummy',likes:'stars',hates:'gravity',personalNames:['Astro','Nova','Orbit','Cosmo'],feedMsg:'{name} eats astronaut food!',sootheMsg:'{name} is calmed by twinkling stars',brushMsg:'{name} brushes in zero gravity!',runMsg:'{name} floats around the room!',burpMsg:'*space burp* Houston we have a burp!',showerMsg:'{name} takes a meteor shower!',distractMsg:'{name} builds a toy rocket!',specialAction:'Blast Off',specialEmoji:'🚀',specialMsg:'3... 2... 1... {name} BLASTS OFF!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+12);}},
+  {id:'ninja',emoji:'🥷',label:'Ninja Baby',desc:'Silent but deadly!',trait:'Stealthy',traitColor:'#37474f',bonus:{energy:12},weakness:'tummy',likes:'sneaking',hates:'being spotted',personalNames:['Shadow','Blade','Stealth','Kaze'],feedMsg:'{name} eats so fast you didn\'t see it!',sootheMsg:'{name} disappears into sleep',brushMsg:'{name} ninja-brushes in 2 seconds!',runMsg:'{name} vanishes and reappears across the room!',burpMsg:'*silent but deadly burp*',showerMsg:'{name} appears in the bath out of nowhere!',distractMsg:'{name} catches the toy mid-air!',specialAction:'Vanish',specialEmoji:'💨',specialMsg:'{name} disappears and reappears!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+12);}},
+  {id:'wizard',emoji:'🧙',label:'Wizard Baby',desc:'Pure magic!',trait:'Magical',traitColor:'#4a148c',bonus:{happiness:10},weakness:'energy',likes:'spells',hates:'normal stuff',personalNames:['Merlin','Wanda','Hex','Spell'],feedMsg:'{name} magically makes food appear!',sootheMsg:'{name} casts a calm spell on themselves',brushMsg:'{name} enchants the toothbrush to brush itself!',runMsg:'{name} rides a tiny broomstick!',burpMsg:'*MAGICAL BURP* Sparkles fly out!',showerMsg:'{name} makes it rain indoors!',distractMsg:'{name} levitates the toy!',specialAction:'Cast Spell',specialEmoji:'✨',specialMsg:'{name} casts a sparkly spell!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.tummy=Math.min(100,s.tummy+10);}},
+  {id:'robot',emoji:'🤖',label:'Robot Baby',desc:'Beep boop!',trait:'Mechanical',traitColor:'#607d8b',bonus:{teeth:10},weakness:'happiness',likes:'buttons',hates:'water',personalNames:['Byte','Chip','Pixel','Bolt'],feedMsg:'{name} refuels... BEEP!',sootheMsg:'{name} enters sleep mode',brushMsg:'{name} polishes their chrome teeth!',runMsg:'{name} rolls around on wheels!',burpMsg:'*BEEP BOOP BURP* System cleared!',showerMsg:'ERROR! {name} does not like water!',distractMsg:'{name} calculates optimal fun!',specialAction:'Upgrade',specialEmoji:'⚡',specialMsg:'{name} installs a fun upgrade!',specialEffect(s){s.happiness=Math.min(100,s.happiness+15);s.teeth=Math.min(100,s.teeth+10);}},
+  {id:'fairy',emoji:'🧚',label:'Fairy Baby',desc:'Sprinkles magic dust!',trait:'Enchanted',traitColor:'#e91ee9',bonus:{happiness:12},weakness:'hunger',likes:'glitter',hates:'darkness',personalNames:['Tinker','Pixie','Glimmer','Dewdrop'],feedMsg:'{name} sprinkles fairy dust on the food!',sootheMsg:'{name} is soothed by fairy lights',brushMsg:'{name} waves a wand to clean teeth!',runMsg:'{name} flutters around the room!',burpMsg:'*sparkly burp* Glitter comes out!',showerMsg:'{name} bathes in rainbow water!',distractMsg:'{name} enchants the toy to glow!',specialAction:'Fairy Dust',specialEmoji:'✨',specialMsg:'{name} showers everything in fairy dust!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.hygiene=Math.min(100,s.hygiene+8);}},
+  {id:'dj',emoji:'🎧',label:'DJ Baby',desc:'Drop the beat!',trait:'Groovy',traitColor:'#aa00ff',bonus:{happiness:10},weakness:'energy',likes:'bass drops',hates:'silence',personalNames:['Bass','Beat','Vinyl','Remix'],feedMsg:'{name} eats to the rhythm!',sootheMsg:'{name} vibes to a chill beat',brushMsg:'{name} brushes to dubstep!',runMsg:'{name} runs to drum and bass!',burpMsg:'*WUB WUB BURP* That\'s a beat!',showerMsg:'{name} makes bath beats!',distractMsg:'{name} scratches the toy like a record!',specialAction:'Drop Beat',specialEmoji:'🎧',specialMsg:'{name} drops the sickest baby beat!',specialEffect(s){s.happiness=Math.min(100,s.happiness+17);s.energy=Math.max(0,s.energy-5);}},
+  {id:'chef',emoji:'👨‍🍳',label:'Chef Baby',desc:'Master of the kitchen!',trait:'Gourmet',traitColor:'#d84315',bonus:{hunger:15},weakness:'hygiene',likes:'cooking',hates:'bad food',personalNames:['Gordon','Julia','Remy','Sushi'],feedMsg:'{name} critiques the food then eats it!',sootheMsg:'{name} is comforted by kitchen sounds',brushMsg:'{name} uses the toothbrush like a whisk!',runMsg:'{name} runs to the kitchen!',burpMsg:'*chef\'s kiss BURP* Magnifique!',showerMsg:'{name} pretends the bath is a soup pot!',distractMsg:'{name} pretends the toy is an ingredient!',specialAction:'Cook',specialEmoji:'🍳',specialMsg:'{name} cooks an imaginary gourmet meal!',specialEffect(s){s.hunger=Math.min(100,s.hunger+18);s.happiness=Math.min(100,s.happiness+10);}},
+  {id:'superhero',emoji:'🦸',label:'Super Baby',desc:'Saves the day!',trait:'Heroic',traitColor:'#c62828',bonus:{energy:12,happiness:5},weakness:'tummy',likes:'capes',hates:'villains',personalNames:['Captain','Super','Hero','Flash'],feedMsg:'{name} eats with SUPER speed!',sootheMsg:'{name} is calmed by heroic stories',brushMsg:'{name} brushes with SUPER strength!',runMsg:'{name} FLIES across the room!',burpMsg:'*SUPER BURP* That had power!',showerMsg:'{name} takes a SUPER shower!',distractMsg:'{name} saves the toy from danger!',specialAction:'Save Day',specialEmoji:'🦸',specialMsg:'{name} saves the day! Everyone cheers!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.min(100,s.energy+10);}},
+  {id:'mermaid',emoji:'🧜',label:'Mermaid Baby',desc:'Splash splash!',trait:'Aquatic',traitColor:'#00897b',bonus:{hygiene:15},weakness:'energy',likes:'water',hates:'dry land',personalNames:['Coral','Marina','Pearl','Splash'],feedMsg:'{name} eats seaweed... just kidding, milk!',sootheMsg:'{name} is calmed by ocean sounds',brushMsg:'{name} brushes with a seashell brush!',runMsg:'{name} swims through the air!',burpMsg:'*bubble burp* Blub blub!',showerMsg:'{name} is IN THEIR ELEMENT! Loves it!',distractMsg:'{name} plays with a shell!',specialAction:'Swim Time',specialEmoji:'🐚',specialMsg:'{name} does a magical underwater dance!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.hygiene=Math.min(100,s.hygiene+15);}},
+  {id:'vampire',emoji:'🧛',label:'Vampire Baby',desc:'Bleh bleh!',trait:'Nocturnal',traitColor:'#880e4f',bonus:{energy:10},weakness:'hygiene',likes:'nighttime',hates:'garlic',personalNames:['Vlad','Fang','Midnight','Garlic'],feedMsg:'{name} only drinks... red juice!',sootheMsg:'{name} wraps up in a tiny cape',brushMsg:'{name} brushes those tiny fangs!',runMsg:'{name} turns into a bat and flies!',burpMsg:'*BLEH BLEH BURP*',showerMsg:'{name} hisses at the water!',distractMsg:'{name} plays with a bat toy!',specialAction:'Bat Mode',specialEmoji:'🦇',specialMsg:'{name} transforms into a cute baby bat!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+12);}},
+  {id:'cowboy',emoji:'🤠',label:'Cowboy Baby',desc:'Yeehaw partner!',trait:'Western',traitColor:'#a1887f',bonus:{energy:10},weakness:'teeth',likes:'horses',hates:'city life',personalNames:['Buck','Dusty','Rodeo','Lasso'],feedMsg:'Yeehaw! {name} chows down!',sootheMsg:'{name} rocks in a rocking horse',brushMsg:'{name} brushes like polishing boots!',runMsg:'{name} gallops around on a stick horse!',burpMsg:'*YEEHAW BURP* Ride em cowboy!',showerMsg:'{name} pretends the tub is a watering hole!',distractMsg:'{name} lassos the toy!',specialAction:'Rodeo',specialEmoji:'🐴',specialMsg:'{name} rides a wild rocking horse!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+12);}},
+  {id:'scientist',emoji:'🔬',label:'Science Baby',desc:'Experiments!',trait:'Analytical',traitColor:'#0277bd',bonus:{teeth:8},weakness:'happiness',likes:'test tubes',hates:'no answers',personalNames:['Newton','Atom','Tesla','Beaker'],feedMsg:'{name} analyzes the food composition first!',sootheMsg:'{name} is calmed by nature documentaries',brushMsg:'{name} measures exact toothpaste amount!',runMsg:'{name} runs timing themselves with a stopwatch!',burpMsg:'{name} measures the burp on the Richter scale!',showerMsg:'{name} tests the water pH level!',distractMsg:'{name} conducts an experiment with the toy!',specialAction:'Experiment',specialEmoji:'🧪',specialMsg:'{name} makes a bubbling experiment!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.teeth=Math.min(100,s.teeth+8);}},
+  {id:'rockstar',emoji:'🎸',label:'Rockstar Baby',desc:'Ready to rock!',trait:'Rebel',traitColor:'#d50000',bonus:{happiness:10},weakness:'hygiene',likes:'loud music',hates:'quiet',personalNames:['Axel','Riot','Amp','Riff'],feedMsg:'{name} eats while air-guitaring!',sootheMsg:'{name} calms to a power ballad',brushMsg:'{name} uses the toothbrush as a microphone!',runMsg:'{name} does a rock and roll run!',burpMsg:'*ROCK AND ROLL BURP* \\m/',showerMsg:'{name} sings in the shower LOUDLY!',distractMsg:'{name} smashes the toy like a guitar!',specialAction:'Rock Out',specialEmoji:'🎸',specialMsg:'{name} performs an epic guitar solo!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.max(0,s.energy-5);}},
+  {id:'garden',emoji:'🌸',label:'Flower Baby',desc:'Pretty as a petal!',trait:'Blooming',traitColor:'#ec407a',bonus:{hygiene:8,happiness:5},weakness:'energy',likes:'flowers',hates:'weeds',personalNames:['Daisy','Lily','Rose','Petal'],feedMsg:'{name} eats like a little bumblebee!',sootheMsg:'{name} is calmed by flower scents',brushMsg:'{name} uses a flower-shaped toothbrush!',runMsg:'{name} skips through a flower field!',burpMsg:'*flowery burp* Smells like roses!',showerMsg:'{name} bathes in flower petals!',distractMsg:'{name} arranges toy flowers!',specialAction:'Bloom',specialEmoji:'🌸',specialMsg:'{name} blooms like a beautiful flower!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.hygiene=Math.min(100,s.hygiene+8);}},
+  {id:'ice',emoji:'🧊',label:'Ice Baby',desc:'Cool as ice!',trait:'Frosty',traitColor:'#4fc3f7',bonus:{teeth:10},weakness:'energy',likes:'cold things',hates:'heat',personalNames:['Frost','Icy','Glacier','Chill'],feedMsg:'{name} only eats frozen treats!',sootheMsg:'{name} chills out... literally',brushMsg:'{name} uses an icicle toothbrush!',runMsg:'{name} ice skates across the floor!',burpMsg:'*frozen burp* Brrr!',showerMsg:'{name} turns the bath into an ice rink!',distractMsg:'{name} builds a tiny igloo!',specialAction:'Freeze',specialEmoji:'❄️',specialMsg:'{name} freezes everything! So cool!',specialEffect(s){s.happiness=Math.min(100,s.happiness+12);s.teeth=Math.min(100,s.teeth+12);}},
+  {id:'fire',emoji:'🔥',label:'Fire Baby',desc:'Hot hot hot!',trait:'Fiery',traitColor:'#ff3d00',bonus:{energy:15},weakness:'hygiene',likes:'warmth',hates:'cold',personalNames:['Blaze','Ember','Flame','Ash'],feedMsg:'{name} likes it SPICY!',sootheMsg:'{name} is warmed by a cozy blanket',brushMsg:'{name} uses a red-hot toothbrush!',runMsg:'{name} blazes a trail around the room!',burpMsg:'*FIRE BURP* Spicy!',showerMsg:'{name} makes the bath water boil!',distractMsg:'{name} juggles flaming toys!',specialAction:'Fire Dance',specialEmoji:'🔥',specialMsg:'{name} does a fiery dance!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+12);}},
+  {id:'ghost',emoji:'👻',label:'Ghost Baby',desc:'Boo!',trait:'Spooky',traitColor:'#90a4ae',bonus:{energy:8},weakness:'happiness',likes:'scaring people',hates:'bright lights',personalNames:['Boo','Casper','Phantom','Spook'],feedMsg:'{name} phases through the food... then eats it!',sootheMsg:'{name} fades into peaceful sleep',brushMsg:'{name} brushes invisible teeth!',runMsg:'{name} floats through walls!',burpMsg:'*ghostly BOOOO-RP*',showerMsg:'{name} floats above the water!',distractMsg:'{name} haunts the toy!',specialAction:'Scare',specialEmoji:'👻',specialMsg:'{name} goes BOO and scares everyone!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+8);}},
+  {id:'candy',emoji:'🍭',label:'Candy Baby',desc:'Sweet tooth!',trait:'Sugary',traitColor:'#f48fb1',bonus:{happiness:12},weakness:'teeth',likes:'sweets',hates:'vegetables',personalNames:['Sugar','Candy','Taffy','Jellybean'],feedMsg:'{name} only wants candy! Fine... milk first!',sootheMsg:'{name} sucks on a pacifier',brushMsg:'SO important! {name} has a sweet tooth!',runMsg:'{name} runs on a sugar rush!',burpMsg:'*sweet burp* Smells like candy!',showerMsg:'{name} wishes the bath was chocolate!',distractMsg:'{name} plays with gummy bear toys!',specialAction:'Sugar Rush',specialEmoji:'🍬',specialMsg:'{name} goes on a SUGAR RUSH! Wheee!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.min(100,s.energy+15);s.teeth=Math.max(0,s.teeth-8);}},
+  {id:'bunny',emoji:'🐰',label:'Bunny Baby',desc:'Hop hop hop!',trait:'Bouncy',traitColor:'#ffab91',bonus:{energy:12},weakness:'hunger',likes:'carrots',hates:'foxes',personalNames:['Bunny','Hop','Clover','Thumper'],feedMsg:'{name} munches like a little bunny!',sootheMsg:'{name} curls up like a bunny ball',brushMsg:'{name} shows off bunny teeth!',runMsg:'{name} HOP HOP HOPS everywhere!',burpMsg:'*hop burp hop* Cute!',showerMsg:'{name} shakes off water like a bunny!',distractMsg:'{name} hops after the toy!',specialAction:'Hop',specialEmoji:'🐰',specialMsg:'{name} does the biggest bunny hop!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+14);}},
+  {id:'kitty',emoji:'🐱',label:'Kitty Baby',desc:'Meow!',trait:'Feline',traitColor:'#ffcc02',bonus:{happiness:8},weakness:'energy',likes:'naps and fish',hates:'water',personalNames:['Whiskers','Mittens','Kitty','Paws'],feedMsg:'{name} laps up milk! Meow!',sootheMsg:'{name} purrs themselves to sleep',brushMsg:'{name} grooms like a cat!',runMsg:'{name} pounces around the room!',burpMsg:'*meow-burp* Purrr',showerMsg:'{name} HATES the water! Hiss!',distractMsg:'{name} chases the toy like a mouse!',specialAction:'Purr',specialEmoji:'🐱',specialMsg:'{name} does the loudest cutest purr!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+10);}},
+  {id:'puppy',emoji:'🐶',label:'Puppy Baby',desc:'Woof woof!',trait:'Loyal',traitColor:'#8d6e63',bonus:{happiness:10,energy:5},weakness:'hygiene',likes:'belly rubs',hates:'baths',personalNames:['Buddy','Rex','Paws','Woof'],feedMsg:'{name} eats eagerly! Woof!',sootheMsg:'{name} rolls over for belly rubs',brushMsg:'{name} tries to chew the toothbrush!',runMsg:'{name} runs fetching everything!',burpMsg:'*WOOF BURP* Good boy/girl!',showerMsg:'{name} shakes water EVERYWHERE!',distractMsg:'{name} fetches the toy!',specialAction:'Fetch',specialEmoji:'🦴',specialMsg:'{name} fetches the toy perfectly! Good baby!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+10);}},
+  {id:'panda',emoji:'🐼',label:'Panda Baby',desc:'Bamboo please!',trait:'Cuddly',traitColor:'#424242',bonus:{happiness:8,energy:8},weakness:'hunger',likes:'bamboo',hates:'rushing',personalNames:['Bamboo','Panda','Zen','Mochi'],feedMsg:'{name} munches slowly like a panda!',sootheMsg:'{name} rolls into a cozy ball',brushMsg:'{name} brushes while munching bamboo!',runMsg:'{name} waddles adorably!',burpMsg:'*lazy panda burp* Mmmm',showerMsg:'{name} takes a calm zen bath!',distractMsg:'{name} rolls around with the toy!',specialAction:'Bamboo Time',specialEmoji:'🎋',specialMsg:'{name} happily munches imaginary bamboo!',specialEffect(s){s.happiness=Math.min(100,s.happiness+12);s.hunger=Math.min(100,s.hunger+10);}},
+  {id:'dragon',emoji:'🐉',label:'Dragon Baby',desc:'Breathes fire!',trait:'Fierce',traitColor:'#b71c1c',bonus:{energy:15},weakness:'hygiene',likes:'gold',hates:'knights',personalNames:['Drago','Ember','Scales','Blaze'],feedMsg:'{name} toasts the food first! Yum!',sootheMsg:'{name} curls up on a gold pile',brushMsg:'{name} uses fire to sterilize the brush!',runMsg:'{name} swoops around breathing fire!',burpMsg:'*FIRE BREATHING BURP* Woah!',showerMsg:'{name} evaporates the water!',distractMsg:'{name} hoards all the toys!',specialAction:'Breathe Fire',specialEmoji:'🔥',specialMsg:'{name} breathes adorable baby fire!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+14);}},
+  {id:'unicorn',emoji:'🦄',label:'Unicorn Baby',desc:'Magical and rare!',trait:'Mystical',traitColor:'#e040fb',bonus:{happiness:15},weakness:'hunger',likes:'rainbows',hates:'boring things',personalNames:['Sparkle','Rainbow','Magic','Horn'],feedMsg:'{name} eats rainbow cereal!',sootheMsg:'{name} is calmed by rainbow lights',brushMsg:'{name} uses a rainbow toothbrush!',runMsg:'{name} gallops leaving rainbows behind!',burpMsg:'*rainbow burp* Magical!',showerMsg:'{name} bathes in rainbow water!',distractMsg:'{name} enchants the toy with rainbows!',specialAction:'Rainbow',specialEmoji:'🌈',specialMsg:'{name} creates a beautiful rainbow!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.hygiene=Math.min(100,s.hygiene+5);}},
+  {id:'bear',emoji:'🐻',label:'Bear Baby',desc:'Growl!',trait:'Strong',traitColor:'#6d4c41',bonus:{energy:12,hunger:5},weakness:'happiness',likes:'honey',hates:'alarm clocks',personalNames:['Teddy','Grizzly','Honey','Bruno'],feedMsg:'{name} eats like a hungry bear! NOM!',sootheMsg:'{name} hibernates peacefully',brushMsg:'{name} shows off big bear teeth!',runMsg:'{name} lumbers around like a bear!',burpMsg:'*BEAR GROWL BURP* GRRRR!',showerMsg:'{name} plays in the water like a river bear!',distractMsg:'{name} wrestles the toy!',specialAction:'Hibernate',specialEmoji:'💤',specialMsg:'{name} takes a cozy bear nap!',specialEffect(s){s.energy=Math.min(100,s.energy+20);s.happiness=Math.min(100,s.happiness+10);}},
+  {id:'alien',emoji:'👽',label:'Alien Baby',desc:'Not from here!',trait:'Extraterrestrial',traitColor:'#76ff03',bonus:{happiness:5,energy:8},weakness:'tummy',likes:'probing',hates:'Earth food',personalNames:['Zyx','Nebula','Alien','ET'],feedMsg:'{name} doesn\'t understand food... but eats it!',sootheMsg:'{name} is calmed by radio static',brushMsg:'{name} brushes all 47 teeth!',runMsg:'{name} floats around in zero-G!',burpMsg:'*ALIEN BURP* What language is that?!',showerMsg:'{name} absorbs water through skin!',distractMsg:'{name} disassembles the toy to study it!',specialAction:'Phone Home',specialEmoji:'📡',specialMsg:'{name} phones home! They say hi!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.tummy=Math.min(100,s.tummy+10);}},
+  {id:'monkey',emoji:'🐵',label:'Monkey Baby',desc:'Ooh ooh ah ah!',trait:'Mischief',traitColor:'#795548',bonus:{energy:15},weakness:'teeth',likes:'bananas',hates:'staying put',personalNames:['George','Coco','Chimp','Banana'],feedMsg:'{name} peels a banana and goes OOH!',sootheMsg:'{name} swings gently in a hammock',brushMsg:'{name} eats the toothpaste!',runMsg:'{name} swings from the furniture!',burpMsg:'*OOH OOH BURP AH AH!*',showerMsg:'{name} splashes everything like a monkey!',distractMsg:'{name} climbs on everything!',specialAction:'Swing',specialEmoji:'🍌',specialMsg:'{name} swings from toy to toy!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+14);}},
+  {id:'penguin',emoji:'🐧',label:'Penguin Baby',desc:'Waddle waddle!',trait:'Tuxedo',traitColor:'#263238',bonus:{hygiene:10},weakness:'energy',likes:'fish',hates:'heat',personalNames:['Waddle','Tux','Pebble','Skipper'],feedMsg:'{name} gobbles fish crackers!',sootheMsg:'{name} huddles for warmth',brushMsg:'{name} brushes with icy freshness!',runMsg:'{name} waddles at maximum speed!',burpMsg:'*waddle burp waddle*',showerMsg:'{name} LOVES cold bath time!',distractMsg:'{name} slides on their belly after the toy!',specialAction:'Belly Slide',specialEmoji:'🐧',specialMsg:'{name} does an epic belly slide!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.hygiene=Math.min(100,s.hygiene+8);}},
+  {id:'rainbow',emoji:'🌈',label:'Rainbow Baby',desc:'All the colors!',trait:'Colorful',traitColor:'#ff6f00',bonus:{happiness:15},weakness:'hygiene',likes:'colors',hates:'grey days',personalNames:['Iris','Spectrum','Prism','Hue'],feedMsg:'{name} eats rainbow colored food!',sootheMsg:'{name} is calmed by a color light show',brushMsg:'{name} uses all-color toothpaste!',runMsg:'{name} leaves a rainbow trail!',burpMsg:'*colorful burp* Every color!',showerMsg:'{name} makes tie-dye bath water!',distractMsg:'{name} sorts toys by color!',specialAction:'Rainbow Power',specialEmoji:'🌈',specialMsg:'{name} summons a DOUBLE RAINBOW!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.energy=Math.min(100,s.energy+5);}},
+  {id:'cloud',emoji:'☁️',label:'Cloud Baby',desc:'Head in the clouds!',trait:'Dreamy',traitColor:'#90caf9',bonus:{happiness:8,energy:8},weakness:'hunger',likes:'daydreaming',hates:'being rushed',personalNames:['Nimbus','Cirrus','Misty','Fluffy'],feedMsg:'{name} dreams about the food before eating...',sootheMsg:'{name} drifts off on a cloud',brushMsg:'{name} brushes while daydreaming!',runMsg:'{name} drifts around like a cloud!',burpMsg:'*fluffy cloud burp* So soft!',showerMsg:'{name} floats in a misty shower!',distractMsg:'{name} imagines the toy is a cloud castle!',specialAction:'Daydream',specialEmoji:'💭',specialMsg:'{name} has the most wonderful daydream!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+10);}},
+  {id:'clown',emoji:'🤡',label:'Clown Baby',desc:'Honk honk!',trait:'Funny',traitColor:'#ff1744',bonus:{happiness:15},weakness:'teeth',likes:'jokes',hates:'serious stuff',personalNames:['Honkers','Giggly','Bozo','Chuckle'],feedMsg:'{name} juggles food into their mouth!',sootheMsg:'{name} does a funny face and feels better',brushMsg:'{name} uses a squeaky toothbrush!',runMsg:'{name} runs in giant shoes!',burpMsg:'*HONK HONK BURP* HONK!',showerMsg:'{name} fills the bath with rubber ducks!',distractMsg:'{name} does magic tricks with the toy!',specialAction:'Clown Show',specialEmoji:'🎪',specialMsg:'{name} puts on a hilarious clown show!',specialEffect(s){s.happiness=Math.min(100,s.happiness+22);s.teeth=Math.max(0,s.teeth-5);}},
+  {id:'detective',emoji:'🕵️',label:'Detective Baby',desc:'Clues everywhere!',trait:'Sleuth',traitColor:'#455a64',bonus:{teeth:5,happiness:5},weakness:'energy',likes:'mysteries',hates:'unsolved cases',personalNames:['Sherlock','Clue','Watson','Sleuth'],feedMsg:'{name} investigates the food for clues!',sootheMsg:'{name} reads a mystery before sleep',brushMsg:'{name} dusts for fingerprints on the brush!',runMsg:'{name} chases down suspects!',burpMsg:'{name} deduces where the burp came from!',showerMsg:'{name} searches the bath for evidence!',distractMsg:'{name} examines the toy with a magnifying glass!',specialAction:'Investigate',specialEmoji:'🔎',specialMsg:'{name} cracks the case! Mystery solved!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.teeth=Math.min(100,s.teeth+8);}},
+  {id:'construction',emoji:'👷',label:'Builder Baby',desc:'Let\'s build!',trait:'Handy',traitColor:'#f9a825',bonus:{energy:10},weakness:'hygiene',likes:'blocks',hates:'destruction',personalNames:['Builder','Brick','Hammer','Crane'],feedMsg:'{name} builds a tower of food first!',sootheMsg:'{name} stacks blocks to calm down',brushMsg:'{name} builds a toothbrush holder!',runMsg:'{name} drives a toy bulldozer around!',burpMsg:'*construction burp* Building power!',showerMsg:'{name} builds a dam in the bathtub!',distractMsg:'{name} builds an amazing tower!',specialAction:'Build',specialEmoji:'🧱',specialMsg:'{name} builds the tallest tower ever!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+10);}},
+  {id:'pilot',emoji:'✈️',label:'Pilot Baby',desc:'Ready for takeoff!',trait:'Aviator',traitColor:'#0288d1',bonus:{energy:12},weakness:'tummy',likes:'flying',hates:'landing',personalNames:['Jet','Sky','Amelia','Maverick'],feedMsg:'{name} eats airplane-style! Vroooom!',sootheMsg:'White noise calms {name} like an engine',brushMsg:'{name} does a flyby with the toothbrush!',runMsg:'{name} zooms around like an airplane!',burpMsg:'*turbulence burp* Hold on!',showerMsg:'{name} pretends the bath is a cloud!',distractMsg:'{name} flies the toy around the room!',specialAction:'Fly',specialEmoji:'✈️',specialMsg:'{name} pilots a cardboard airplane!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+14);}},
+  {id:'doctor',emoji:'👨‍⚕️',label:'Doctor Baby',desc:'Playing doctor!',trait:'Healer',traitColor:'#43a047',bonus:{teeth:10,hygiene:5},weakness:'happiness',likes:'check-ups',hates:'being the patient',personalNames:['Doc','Medic','Nurse','Heartbeat'],feedMsg:'{name} prescribes a healthy meal!',sootheMsg:'{name} checks your heartbeat then smiles',brushMsg:'{name} brushes with medical precision!',runMsg:'{name} runs to an emergency!',burpMsg:'{name} diagnoses the burp: totally normal!',showerMsg:'{name} sanitizes in the bath!',distractMsg:'{name} gives the toy a check-up!',specialAction:'Check-Up',specialEmoji:'🩺',specialMsg:'{name} gives everyone a clean bill of health!',specialEffect(s){s.happiness=Math.min(100,s.happiness+12);s.teeth=Math.min(100,s.teeth+10);s.hygiene=Math.min(100,s.hygiene+5);}},
+  {id:'farmer',emoji:'🧑‍🌾',label:'Farmer Baby',desc:'Old MacDonald!',trait:'Country',traitColor:'#558b2f',bonus:{hunger:10},weakness:'energy',likes:'animals',hates:'cities',personalNames:['Mac','Harvest','Barn','Hay'],feedMsg:'{name} eats farm-fresh food!',sootheMsg:'{name} is calmed by farm animal sounds',brushMsg:'{name} brushes while feeding chickens!',runMsg:'{name} chases chickens around!',burpMsg:'*farm fresh burp* MOOO!',showerMsg:'{name} plays in the rain like on the farm!',distractMsg:'{name} plays with toy farm animals!',specialAction:'Farm Time',specialEmoji:'🐔',specialMsg:'{name} feeds all the farm animals!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.hunger=Math.min(100,s.hunger+10);}},
+  {id:'ballet',emoji:'🩰',label:'Ballet Baby',desc:'Twirl twirl!',trait:'Graceful',traitColor:'#f8bbd0',bonus:{happiness:10},weakness:'energy',likes:'dancing',hates:'tripping',personalNames:['Twirl','Grace','Pirouette','Tutu'],feedMsg:'{name} eats daintily between pirouettes!',sootheMsg:'{name} does a gentle swan dance',brushMsg:'{name} brushes while doing a plié!',runMsg:'{name} leaps and twirls gracefully!',burpMsg:'*graceful burp* How elegant!',showerMsg:'{name} does water ballet in the tub!',distractMsg:'{name} dances with the toy!',specialAction:'Twirl',specialEmoji:'🩰',specialMsg:'{name} does the most beautiful twirl!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.max(0,s.energy-5);}},
+  {id:'gamer',emoji:'🎮',label:'Gamer Baby',desc:'Press start!',trait:'Digital',traitColor:'#7c4dff',bonus:{happiness:8},weakness:'energy',likes:'video games',hates:'loading screens',personalNames:['Pixel','Mario','Link','Gamer'],feedMsg:'{name} speed-eats to get back to gaming!',sootheMsg:'{name} is calmed by chiptune music',brushMsg:'{name} brushes while button mashing!',runMsg:'{name} speed-runs across the room!',burpMsg:'*8-BIT BURP* Bleep bloop!',showerMsg:'{name} brings a waterproof controller!',distractMsg:'{name} games with the toy!',specialAction:'Power Up',specialEmoji:'⭐',specialMsg:'{name} gets a POWER UP! Level up!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+8);}},
+  {id:'weather',emoji:'⛈️',label:'Storm Baby',desc:'Thunder and lightning!',trait:'Stormy',traitColor:'#546e7a',bonus:{energy:15},weakness:'happiness',likes:'rain',hates:'sunshine',personalNames:['Thunder','Lightning','Storm','Rainy'],feedMsg:'{name} eats during a thunder crash!',sootheMsg:'Rain sounds calm {name} perfectly',brushMsg:'{name} brushes like lightning! ZAP!',runMsg:'{name} runs like the wind!',burpMsg:'*THUNDER BURP* BOOM!',showerMsg:'{name} makes their own rainstorm!',distractMsg:'{name} makes weather with the toy!',specialAction:'Thunder',specialEmoji:'⚡',specialMsg:'{name} summons an adorable thunderstorm!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+15);}},
+  {id:'butterfly',emoji:'🦋',label:'Butterfly Baby',desc:'Flutter flutter!',trait:'Delicate',traitColor:'#ab47bc',bonus:{happiness:10},weakness:'energy',likes:'flowers',hates:'wind',personalNames:['Flutter','Wing','Monarch','Chrysalis'],feedMsg:'{name} sips nectar... er, juice!',sootheMsg:'{name} folds their little wings to rest',brushMsg:'{name} flutters while brushing!',runMsg:'{name} flutters around beautifully!',burpMsg:'*flutter burp* How dainty!',showerMsg:'{name} dries their tiny wings!',distractMsg:'{name} lands on each toy gently!',specialAction:'Flutter',specialEmoji:'🦋',specialMsg:'{name} does the most beautiful flutter!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.hygiene=Math.min(100,s.hygiene+5);}},
+  {id:'shark',emoji:'🦈',label:'Shark Baby',desc:'Baby shark doo doo!',trait:'Fierce',traitColor:'#37474f',bonus:{energy:12},weakness:'hygiene',likes:'swimming',hates:'dry land',personalNames:['Sharky','Finn','Jaws','Chomper'],feedMsg:'Baby shark eats! Doo doo doo doo!',sootheMsg:'Baby shark sleeps... doo doo...',brushMsg:'{name} shows ALL their shark teeth!',runMsg:'{name} does the shark swim!',burpMsg:'*SHARK BURP* Doo doo!',showerMsg:'Baby shark in water! DOO DOO DOO!',distractMsg:'{name} chases toy fish!',specialAction:'Shark Dance',specialEmoji:'🦈',specialMsg:'Baby {name} doo doo doo doo doo doo!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.min(100,s.energy+10);}},
+  {id:'owl',emoji:'🦉',label:'Owl Baby',desc:'Who who!',trait:'Wise',traitColor:'#5d4037',bonus:{teeth:5,happiness:8},weakness:'energy',likes:'nighttime',hates:'mornings',personalNames:['Hoot','Owliver','Sage','Wisdom'],feedMsg:'{name} eats mouse-shaped crackers! Who!',sootheMsg:'{name} whooos softly to sleep',brushMsg:'{name} carefully brushes wise owl teeth!',runMsg:'{name} swoops around the room!',burpMsg:'*WHO WHO BURP* Hoot!',showerMsg:'{name} fluffs their feathers in the bath!',distractMsg:'{name} wisely studies the toy!',specialAction:'Wisdom',specialEmoji:'🦉',specialMsg:'{name} shares ancient baby wisdom! Who!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.teeth=Math.min(100,s.teeth+8);}},
+  {id:'star',emoji:'⭐',label:'Star Baby',desc:'Born to shine!',trait:'Shining',traitColor:'#ffd600',bonus:{happiness:12},weakness:'hygiene',likes:'being center stage',hates:'being ignored',personalNames:['Stella','Twinkle','Shine','Glitter'],feedMsg:'{name} eats under a spotlight!',sootheMsg:'Twinkle twinkle calms {name}',brushMsg:'{name}\'s teeth sparkle like stars!',runMsg:'{name} shoots across like a shooting star!',burpMsg:'*STARRY BURP* ✨',showerMsg:'{name} takes a stardust bath!',distractMsg:'{name} makes every toy sparkle!',specialAction:'Shine',specialEmoji:'⭐',specialMsg:'{name} shines the brightest! Everyone looks!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.hygiene=Math.min(100,s.hygiene+5);}},
+  {id:'viking',emoji:'⚔️',label:'Viking Baby',desc:'To Valhalla!',trait:'Warrior',traitColor:'#4e342e',bonus:{energy:15},weakness:'teeth',likes:'adventure',hates:'peace and quiet',personalNames:['Thor','Odin','Freya','Ragnar'],feedMsg:'{name} feasts like a Viking warrior!',sootheMsg:'{name} listens to tales of Valhalla',brushMsg:'{name} polishes their battle teeth!',runMsg:'{name} charges into battle! For glory!',burpMsg:'*VIKING WAR BURP* SKOL!',showerMsg:'{name} sails the bathtub seas!',distractMsg:'{name} conquers the toy fortress!',specialAction:'Battle Cry',specialEmoji:'⚔️',specialMsg:'{name} lets out a mighty Viking cry!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+14);}},
+  {id:'zen',emoji:'🧘',label:'Zen Baby',desc:'Inner peace!',trait:'Calm',traitColor:'#78909c',bonus:{happiness:10,energy:5},weakness:'hunger',likes:'meditation',hates:'chaos',personalNames:['Zen','Om','Lotus','Serenity'],feedMsg:'{name} mindfully eats each bite',sootheMsg:'{name} achieves perfect inner peace',brushMsg:'{name} brushes in meditative silence',runMsg:'{name} does yoga instead of running!',burpMsg:'*zen burp* Ommmm',showerMsg:'{name} takes a peaceful spa bath',distractMsg:'{name} meditates with the toy',specialAction:'Meditate',specialEmoji:'🧘',specialMsg:'{name} reaches enlightenment! Baby nirvana!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.min(100,s.energy+12);}},
+  {id:'pizza',emoji:'🍕',label:'Pizza Baby',desc:'Pizza pizza!',trait:'Cheesy',traitColor:'#e65100',bonus:{hunger:15},weakness:'teeth',likes:'pizza',hates:'salad',personalNames:['Pepperoni','Cheese','Slice','Crusty'],feedMsg:'{name} demands PIZZA for every meal!',sootheMsg:'{name} hugs a pizza plushie',brushMsg:'Extra brushing needed! All that cheese!',runMsg:'{name} delivers pizza running!',burpMsg:'*PIZZA BURP* Cheesy!',showerMsg:'{name} washes off pizza sauce!',distractMsg:'{name} makes the toy into a pizza!',specialAction:'Pizza Party',specialEmoji:'🍕',specialMsg:'{name} throws a PIZZA PARTY!',specialEffect(s){s.hunger=Math.min(100,s.hunger+20);s.happiness=Math.min(100,s.happiness+12);s.teeth=Math.max(0,s.teeth-5);}},
+  {id:'beach',emoji:'🏖️',label:'Beach Baby',desc:'Sun and sand!',trait:'Tropical',traitColor:'#ffb74d',bonus:{happiness:10},weakness:'hygiene',likes:'sandcastles',hates:'cold weather',personalNames:['Sandy','Wave','Shore','Sunny'],feedMsg:'{name} eats a beach picnic!',sootheMsg:'Ocean waves calm {name}',brushMsg:'{name} uses a sandcastle-shaped brush!',runMsg:'{name} runs on the beach!',burpMsg:'*tropical burp* Aloha!',showerMsg:'{name} plays in the waves!',distractMsg:'{name} builds a sandcastle!',specialAction:'Surf',specialEmoji:'🏄',specialMsg:'{name} catches the perfect wave! Cowabunga!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+8);}},
+  {id:'clock',emoji:'⏰',label:'Clock Baby',desc:'Tick tock!',trait:'Punctual',traitColor:'#5d4037',bonus:{teeth:8},weakness:'happiness',likes:'schedules',hates:'being late',personalNames:['Ticker','Hour','Minute','Clock'],feedMsg:'{name} eats at EXACTLY the right time!',sootheMsg:'{name} is calmed by ticking sounds',brushMsg:'{name} brushes for exactly 2 minutes!',runMsg:'{name} runs like clockwork!',burpMsg:'*tick tock BURP* Right on time!',showerMsg:'{name} takes a precisely timed bath!',distractMsg:'{name} winds up the toy perfectly!',specialAction:'Time Out',specialEmoji:'⏰',specialMsg:'{name} stops time for a perfect moment!',specialEffect(s){s.happiness=Math.min(100,s.happiness+12);s.teeth=Math.min(100,s.teeth+10);}},
+  {id:'snow',emoji:'⛄',label:'Snow Baby',desc:'Let it snow!',trait:'Wintry',traitColor:'#b3e5fc',bonus:{hygiene:10},weakness:'energy',likes:'snowflakes',hates:'summer',personalNames:['Frosty','Snowflake','Winter','Blizzard'],feedMsg:'{name} eats frozen treats!',sootheMsg:'{name} is wrapped in a cozy snow blanket',brushMsg:'{name} uses minty fresh icy toothpaste!',runMsg:'{name} slides across the icy floor!',burpMsg:'*BRRR BURP* Cold!',showerMsg:'{name} makes it snow in the bathroom!',distractMsg:'{name} builds a tiny snowman!',specialAction:'Snowball',specialEmoji:'❄️',specialMsg:'{name} starts an adorable snowball fight!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.hygiene=Math.min(100,s.hygiene+10);}},
+  {id:'music2',emoji:'🥁',label:'Drummer Baby',desc:'Bang bang!',trait:'Rhythmic',traitColor:'#d32f2f',bonus:{energy:12},weakness:'happiness',likes:'drums',hates:'silence',personalNames:['Drumma','Beat','Bongo','Snare'],feedMsg:'{name} drums on the table while eating!',sootheMsg:'{name} falls asleep to soft drumming',brushMsg:'{name} drums with the toothbrush!',runMsg:'{name} runs to a drumbeat!',burpMsg:'*BA DUM BURP TSS!*',showerMsg:'{name} drums on the bath water!',distractMsg:'{name} turns everything into a drum!',specialAction:'Drum Solo',specialEmoji:'🥁',specialMsg:'{name} plays the most epic drum solo!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+10);}},
+  {id:'magic',emoji:'🎩',label:'Magician Baby',desc:'Abracadabra!',trait:'Illusionist',traitColor:'#311b92',bonus:{happiness:10},weakness:'tummy',likes:'tricks',hates:'revealed secrets',personalNames:['Houdini','Magic','Trick','Abra'],feedMsg:'{name} makes the food disappear!',sootheMsg:'{name} pulls a bunny from a hat',brushMsg:'{name} makes the toothbrush float!',runMsg:'{name} vanishes and reappears elsewhere!',burpMsg:'*ABRACADABURP!* Magic!',showerMsg:'{name} turns the bath into a magic show!',distractMsg:'{name} does amazing card tricks!',specialAction:'Magic Trick',specialEmoji:'🎩',specialMsg:'{name} pulls a rabbit from a hat!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.tummy=Math.min(100,s.tummy+8);}},
+  {id:'painter2',emoji:'🖼️',label:'Gallery Baby',desc:'Fine art!',trait:'Refined',traitColor:'#6a1b9a',bonus:{happiness:8,hygiene:5},weakness:'energy',likes:'museums',hates:'ugly things',personalNames:['Monet','Picasso','Canvas','Gallery'],feedMsg:'{name} arranges food like a still life!',sootheMsg:'{name} gazes at beautiful paintings',brushMsg:'{name} paints with toothpaste on the mirror!',runMsg:'{name} runs through an art gallery!',burpMsg:'*artistic burp* That was impressionist!',showerMsg:'{name} takes a watercolor bath!',distractMsg:'{name} critiques the toy\'s design!',specialAction:'Paint',specialEmoji:'🖼️',specialMsg:'{name} paints a gallery masterpiece!',specialEffect(s){s.happiness=Math.min(100,s.happiness+15);s.hygiene=Math.min(100,s.hygiene+5);}},
+  {id:'ocean',emoji:'🐳',label:'Whale Baby',desc:'Splooosh!',trait:'Deep',traitColor:'#006064',bonus:{hygiene:12},weakness:'hunger',likes:'ocean',hates:'dry places',personalNames:['Blue','Moby','Wave','Deep'],feedMsg:'{name} opens wide like a whale! GULP!',sootheMsg:'Whale sounds calm {name}',brushMsg:'{name} uses seawater to rinse!',runMsg:'{name} does the whale swim!',burpMsg:'*WHALE BURP* SPLOOOSH!',showerMsg:'{name} is a whale in the ocean bath!',distractMsg:'{name} spouts water at the toy!',specialAction:'Whale Song',specialEmoji:'🐳',specialMsg:'{name} sings a beautiful whale song!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.hygiene=Math.min(100,s.hygiene+12);}},
+  {id:'moon',emoji:'🌙',label:'Moon Baby',desc:'Goodnight moon!',trait:'Lunar',traitColor:'#fdd835',bonus:{energy:10,happiness:5},weakness:'hunger',likes:'nighttime',hates:'bright days',personalNames:['Luna','Crescent','Moon','Selene'],feedMsg:'{name} eats by moonlight!',sootheMsg:'Moonbeams soothe {name} to sleep',brushMsg:'{name} brushes under the stars!',runMsg:'{name} does a moonwalk!',burpMsg:'*moonlight burp* Ahhhh',showerMsg:'{name} bathes in starlight!',distractMsg:'{name} stacks moon-shaped blocks!',specialAction:'Moonwalk',specialEmoji:'🌙',specialMsg:'{name} does an adorable moonwalk!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+12);}},
+  {id:'circus',emoji:'🎪',label:'Circus Baby',desc:'Roll up roll up!',trait:'Performer',traitColor:'#e64a19',bonus:{happiness:12},weakness:'tummy',likes:'crowds',hates:'empty rooms',personalNames:['Ringmaster','Acrobat','Juggle','Trapeze'],feedMsg:'{name} juggles food and catches it in mouth!',sootheMsg:'{name} gently swings on a baby trapeze',brushMsg:'{name} does acrobatics while brushing!',runMsg:'{name} does flips while running!',burpMsg:'*CIRCUS BURP* The crowd goes wild!',showerMsg:'{name} does a cannonball!',distractMsg:'{name} puts on a circus show!',specialAction:'Acrobat',specialEmoji:'🤸',specialMsg:'{name} does an incredible acrobatic trick!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.energy=Math.max(0,s.energy-5);}},
+  {id:'fox',emoji:'🦊',label:'Fox Baby',desc:'Sneaky and cute!',trait:'Clever',traitColor:'#e65100',bonus:{energy:8,happiness:5},weakness:'hygiene',likes:'hiding',hates:'being found',personalNames:['Fox','Rusty','Sly','Vixen'],feedMsg:'{name} sneakily steals extra food!',sootheMsg:'{name} curls up in a cozy den',brushMsg:'{name} brushes their little fox teeth!',runMsg:'{name} darts around like a fox!',burpMsg:'*sneaky fox burp* Hehe!',showerMsg:'{name} shakes off water like a fox!',distractMsg:'{name} hides the toy and finds it!',specialAction:'Hide & Seek',specialEmoji:'🦊',specialMsg:'{name} wins hide and seek! So clever!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+10);}},
+  {id:'ducky',emoji:'🦆',label:'Duck Baby',desc:'Quack quack!',trait:'Quacky',traitColor:'#fbc02d',bonus:{hygiene:10},weakness:'teeth',likes:'ponds',hates:'cats',personalNames:['Quackers','Donald','Waddles','Duck'],feedMsg:'{name} quacks for bread crumbs!',sootheMsg:'{name} floats peacefully like a duck',brushMsg:'{name} quacks while brushing! QUACK!',runMsg:'{name} waddle-runs! Quack quack!',burpMsg:'*QUACK BURP QUACK!*',showerMsg:'{name} is a duck in water! HAPPY!',distractMsg:'{name} chases the toy going QUACK!',specialAction:'Quack',specialEmoji:'🦆',specialMsg:'{name} does the BIGGEST QUACK! QUAAAACK!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.hygiene=Math.min(100,s.hygiene+10);}},
+  {id:'ladybug',emoji:'🐞',label:'Ladybug Baby',desc:'Lucky!',trait:'Lucky',traitColor:'#c62828',bonus:{happiness:8,teeth:5},weakness:'energy',likes:'gardens',hates:'rain',personalNames:['Lucky','Lady','Dot','Spot'],feedMsg:'{name} nibbles like a tiny ladybug!',sootheMsg:'{name} lands on your finger gently',brushMsg:'{name} polishes their tiny spots!',runMsg:'{name} flies around on tiny wings!',burpMsg:'*tiny ladybug burp* So lucky!',showerMsg:'{name} cleans each little spot!',distractMsg:'{name} counts the spots on the toy!',specialAction:'Fly',specialEmoji:'🐞',specialMsg:'{name} flies around spreading good luck!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.teeth=Math.min(100,s.teeth+8);}},
+  {id:'trophy',emoji:'🏆',label:'Champion Baby',desc:'Always #1!',trait:'Winner',traitColor:'#f9a825',bonus:{happiness:10,energy:5},weakness:'tummy',likes:'winning',hates:'losing',personalNames:['Champ','Winner','Gold','Trophy'],feedMsg:'{name} eats competitively! New record!',sootheMsg:'{name} cuddles their trophy',brushMsg:'{name} brushes to beat their record!',runMsg:'{name} races and always wins!',burpMsg:'*CHAMPION BURP* NEW RECORD!',showerMsg:'{name} takes a victory shower!',distractMsg:'{name} turns every game into a competition!',specialAction:'Victory Lap',specialEmoji:'🏆',specialMsg:'{name} does a victory lap! CHAMPION!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.min(100,s.energy+10);}},
+  {id:'caterpillar',emoji:'🐛',label:'Caterpillar Baby',desc:'Nom nom nom!',trait:'Growing',traitColor:'#7cb342',bonus:{hunger:10},weakness:'energy',likes:'leaves',hates:'birds',personalNames:['Wiggle','Inch','Munch','Cocoon'],feedMsg:'{name} munches through everything!',sootheMsg:'{name} wraps up in a blanket cocoon',brushMsg:'{name} wiggles while brushing!',runMsg:'{name} inchworns across the floor!',burpMsg:'*wiggle burp wiggle* Nom!',showerMsg:'{name} wiggles in the water!',distractMsg:'{name} crawls over every toy!',specialAction:'Transform',specialEmoji:'🦋',specialMsg:'{name} becomes a BEAUTIFUL butterfly!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.energy=Math.min(100,s.energy+10);}},
+  {id:'bee',emoji:'🐝',label:'Bee Baby',desc:'Buzz buzz!',trait:'Busy',traitColor:'#f9a825',bonus:{energy:12},weakness:'happiness',likes:'flowers',hates:'smoke',personalNames:['Buzz','Honey','Bumble','Sting'],feedMsg:'{name} eats honey! Buzz buzz!',sootheMsg:'{name} buzzes softly to sleep',brushMsg:'{name} polishes their stinger... toothbrush!',runMsg:'{name} buzzes around like a busy bee!',burpMsg:'*BUZZ BURP BUZZ* Sweet!',showerMsg:'{name} collects water like nectar!',distractMsg:'{name} buzzes around every toy!',specialAction:'Make Honey',specialEmoji:'🍯',specialMsg:'{name} makes the sweetest honey!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+12);}},
+  {id:'crab',emoji:'🦀',label:'Crab Baby',desc:'Pinch pinch!',trait:'Snappy',traitColor:'#d32f2f',bonus:{teeth:10},weakness:'happiness',likes:'the beach',hates:'seagulls',personalNames:['Pinchy','Claw','Sandy','Snapper'],feedMsg:'{name} pinches the food! Snip snip!',sootheMsg:'{name} buries in sand and relaxes',brushMsg:'{name} brushes sideways!',runMsg:'{name} scuttles sideways super fast!',burpMsg:'*SNIP SNAP BURP!* Pinch!',showerMsg:'{name} LOVES the salt water bath!',distractMsg:'{name} pinches the toy! Careful!',specialAction:'Pinch Dance',specialEmoji:'🦀',specialMsg:'{name} does an epic crab dance!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.teeth=Math.min(100,s.teeth+10);}},
+  {id:'frog',emoji:'🐸',label:'Frog Baby',desc:'Ribbit!',trait:'Jumpy',traitColor:'#2e7d32',bonus:{energy:14},weakness:'hygiene',likes:'lily pads',hates:'dry places',personalNames:['Ribbit','Hoppy','Lily','Toad'],feedMsg:'{name} catches food with their tongue!',sootheMsg:'{name} sits on a lily pad peacefully',brushMsg:'{name} ribbits while brushing!',runMsg:'{name} LEAPS across the room!',burpMsg:'*RIBBIT BURP RIBBIT!*',showerMsg:'{name} is a frog in a pond! Heaven!',distractMsg:'{name} leaps after the toy!',specialAction:'Leap',specialEmoji:'🐸',specialMsg:'{name} does the BIGGEST frog leap!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+14);}},
+  {id:'sun',emoji:'☀️',label:'Sunshine Baby',desc:'Bright and warm!',trait:'Radiant',traitColor:'#ff8f00',bonus:{happiness:15},weakness:'energy',likes:'sunshine',hates:'clouds',personalNames:['Sunny','Ray','Bright','Dawn'],feedMsg:'{name} eats with a sunny smile!',sootheMsg:'{name} glows warmly as they sleep',brushMsg:'{name}\'s smile is blinding!',runMsg:'{name} shines while running!',burpMsg:'*SUNNY BURP* So bright!',showerMsg:'{name} makes the bath glow golden!',distractMsg:'{name} brightens up every toy!',specialAction:'Shine Bright',specialEmoji:'☀️',specialMsg:'{name} lights up the whole room!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.energy=Math.min(100,s.energy+5);}},
+  {id:'tornado2',emoji:'🌪️',label:'Tornado Baby',desc:'Whirlwind!',trait:'Spinning',traitColor:'#78909c',bonus:{energy:18},weakness:'hygiene',likes:'spinning',hates:'standing still',personalNames:['Twister','Spin','Cyclone','Whirl'],feedMsg:'{name} eats while spinning! Food goes flying!',sootheMsg:'The tornado finally calms to a breeze',brushMsg:'{name} spin-brushes at 100mph!',runMsg:'{name} spins into a tornado!',burpMsg:'*TORNADO BURP* Everything flies!',showerMsg:'{name} creates a whirlpool!',distractMsg:'{name} spins the toy into orbit!',specialAction:'Spin',specialEmoji:'🌪️',specialMsg:'{name} becomes a FULL TORNADO! Wheeee!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+15);s.hygiene=Math.max(0,s.hygiene-10);}},
+  {id:'sloth',emoji:'🦥',label:'Sloth Baby',desc:'Soooo slow...',trait:'Relaxed',traitColor:'#8d6e63',bonus:{energy:15,happiness:5},weakness:'hunger',likes:'hanging around',hates:'rushing',personalNames:['Slowmo','Lazy','Hang','Chill'],feedMsg:'{name} takes... 10 minutes... per bite...',sootheMsg:'{name} was already half asleep!',brushMsg:'{name} sloooowly brushes...',runMsg:'{name} slowly walks... that counts right?',burpMsg:'*slow... motion... burp...*',showerMsg:'{name} hangs in the bath for hours!',distractMsg:'{name} stares at the toy... slowly...',specialAction:'Hang Out',specialEmoji:'🦥',specialMsg:'{name} hangs upside down! So chill!',specialEffect(s){s.energy=Math.min(100,s.energy+20);s.happiness=Math.min(100,s.happiness+12);}},
+  {id:'elephant',emoji:'🐘',label:'Elephant Baby',desc:'Never forgets!',trait:'Memory',traitColor:'#757575',bonus:{happiness:8,energy:8},weakness:'teeth',likes:'peanuts',hates:'mice',personalNames:['Dumbo','Trunk','Jumbo','Ellie'],feedMsg:'{name} uses their trunk to eat! Smart!',sootheMsg:'{name} wraps trunk around your finger',brushMsg:'{name} brushes their big tusks!',runMsg:'{name} stampedes around!',burpMsg:'*ELEPHANT TRUMPET BURP* PAAAAAH!',showerMsg:'{name} sprays water from their trunk!',distractMsg:'{name} remembers where every toy is!',specialAction:'Trumpet',specialEmoji:'🐘',specialMsg:'{name} does the loudest baby trumpet!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+10);}},
+  {id:'lion',emoji:'🦁',label:'Lion Baby',desc:'King of babies!',trait:'Royal',traitColor:'#e65100',bonus:{energy:12,happiness:5},weakness:'hygiene',likes:'being the boss',hates:'being told no',personalNames:['Simba','Leo','King','Mane'],feedMsg:'{name} eats like the king of the jungle!',sootheMsg:'{name} purrs like a baby lion',brushMsg:'{name} shows off those lion teeth!',runMsg:'{name} runs like a majestic lion!',burpMsg:'*ROAR BURP* I am the king!',showerMsg:'{name} shakes their mane in the bath!',distractMsg:'{name} pounces on the toy!',specialAction:'ROAR',specialEmoji:'🦁',specialMsg:'{name} does the mightiest baby ROAR!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.energy=Math.min(100,s.energy+12);}},
+  {id:'turtle',emoji:'🐢',label:'Turtle Baby',desc:'Slow and steady!',trait:'Patient',traitColor:'#388e3c',bonus:{teeth:10,hygiene:5},weakness:'energy',likes:'shells',hates:'being flipped',personalNames:['Shelley','Slow','Tank','Turbo'],feedMsg:'{name} slowly but surely eats everything!',sootheMsg:'{name} retreats into their shell to nap',brushMsg:'{name} carefully brushes each tooth!',runMsg:'{name} slowly wins the race!',burpMsg:'*slow and steady burp*',showerMsg:'{name} swims gracefully in the tub!',distractMsg:'{name} carries the toy on their shell!',specialAction:'Shell Hide',specialEmoji:'🐢',specialMsg:'{name} hides in their shell! Peek-a-boo!',specialEffect(s){s.happiness=Math.min(100,s.happiness+12);s.teeth=Math.min(100,s.teeth+10);s.hygiene=Math.min(100,s.hygiene+5);}},
+  {id:'octopus',emoji:'🐙',label:'Octopus Baby',desc:'8 arms!',trait:'Multi-tasker',traitColor:'#e040fb',bonus:{energy:8,happiness:8},weakness:'tummy',likes:'hugging 8 things',hates:'having nothing to hold',personalNames:['Octo','Squid','Inky','Tentacle'],feedMsg:'{name} eats 8 things at once!',sootheMsg:'{name} wraps all 8 arms around you',brushMsg:'{name} brushes 8 teeth at a time!',runMsg:'{name} scurries on 8 legs!',burpMsg:'*8 burps at once?!* BLUB!',showerMsg:'{name} squirts water everywhere!',distractMsg:'{name} plays with 8 toys at once!',specialAction:'Ink Squirt',specialEmoji:'🐙',specialMsg:'{name} squirts ink everywhere! Oops!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.tummy=Math.min(100,s.tummy+10);}},
+  {id:'koala',emoji:'🐨',label:'Koala Baby',desc:'Clingy and cute!',trait:'Cuddler',traitColor:'#9e9e9e',bonus:{happiness:10},weakness:'energy',likes:'eucalyptus',hates:'being put down',personalNames:['Koala','Gummy','Eucalyptus','Joey'],feedMsg:'{name} munches while clinging to you!',sootheMsg:'{name} clings to you and falls asleep',brushMsg:'{name} won\'t let go to brush! One-handed!',runMsg:'{name} clings to your leg while you walk!',burpMsg:'*clingy burp* {name} won\'t let go!',showerMsg:'{name} clings to the rubber duck!',distractMsg:'{name} hugs the toy and won\'t let go!',specialAction:'Koala Hug',specialEmoji:'🐨',specialMsg:'{name} gives the world\'s clingiest hug!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.energy=Math.min(100,s.energy+8);}},
+  {id:'parrot',emoji:'🦜',label:'Parrot Baby',desc:'Copies everything!',trait:'Mimic',traitColor:'#00c853',bonus:{happiness:10},weakness:'teeth',likes:'repeating',hates:'silence',personalNames:['Polly','Echo','Mimic','Cracker'],feedMsg:'{name} says "YUM YUM" after every bite!',sootheMsg:'{name} repeats "shhhh" back to you!',brushMsg:'{name} says "BRUSH BRUSH BRUSH!"',runMsg:'{name} copies your running exactly!',burpMsg:'{name} repeats the burp 5 times!',showerMsg:'{name} says "SPLASH SPLASH!"',distractMsg:'{name} copies everything the toy does!',specialAction:'Copy',specialEmoji:'🦜',specialMsg:'{name} copies everything perfectly! SQUAWK!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.tummy=Math.min(100,s.tummy+5);}},
+  {id:'mushroom',emoji:'🍄',label:'Mushroom Baby',desc:'Magical fungi!',trait:'Mystical',traitColor:'#d32f2f',bonus:{happiness:8,energy:8},weakness:'hygiene',likes:'rain',hates:'sunshine',personalNames:['Shroom','Fungi','Toad','Spore'],feedMsg:'{name} eats magical mushroom soup!',sootheMsg:'{name} shelters under a mushroom cap',brushMsg:'{name} uses a mushroom-shaped brush!',runMsg:'{name} pops up in different spots!',burpMsg:'*magical mushroom burp* Poof!',showerMsg:'{name} loves the rain shower!',distractMsg:'{name} grows tiny mushrooms around the toy!',specialAction:'Grow',specialEmoji:'🍄',specialMsg:'{name} grows a GIANT mushroom! Woah!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+10);}},
+  {id:'crystal',emoji:'💎',label:'Crystal Baby',desc:'Precious gem!',trait:'Sparkling',traitColor:'#00bfa5',bonus:{hygiene:12},weakness:'energy',likes:'shiny things',hates:'dull things',personalNames:['Crystal','Gem','Diamond','Ruby'],feedMsg:'{name} only eats from a crystal bowl!',sootheMsg:'{name} is calmed by crystal chimes',brushMsg:'{name}\'s teeth sparkle like diamonds!',runMsg:'{name} leaves sparkle trails!',burpMsg:'*SPARKLE BURP* Bling!',showerMsg:'{name} takes a crystal-clear bath!',distractMsg:'{name} turns the toy into a gem!',specialAction:'Sparkle',specialEmoji:'💎',specialMsg:'{name} sparkles so bright it\'s blinding!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.hygiene=Math.min(100,s.hygiene+12);}},
+  {id:'lamp',emoji:'💡',label:'Bright Baby',desc:'Full of ideas!',trait:'Inventive',traitColor:'#ffb300',bonus:{happiness:8,teeth:5},weakness:'tummy',likes:'inventing',hates:'boredom',personalNames:['Edison','Bright','Spark','Idea'],feedMsg:'{name} invents a new way to eat!',sootheMsg:'{name} has a brilliant idea for sleep!',brushMsg:'{name} invents a self-brushing toothbrush!',runMsg:'{name} invents roller shoes while running!',burpMsg:'*EUREKA BURP!* Lightbulb moment!',showerMsg:'{name} invents a bath submarine!',distractMsg:'{name} turns the toy into an invention!',specialAction:'Invent',specialEmoji:'💡',specialMsg:'{name} invents something AMAZING! Genius!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.tummy=Math.min(100,s.tummy+8);}},
+  {id:'skeleton',emoji:'💀',label:'Spooky Baby',desc:'Rattle rattle!',trait:'Bony',traitColor:'#616161',bonus:{teeth:15},weakness:'happiness',likes:'Halloween',hates:'dogs',personalNames:['Bones','Skully','Rattle','Spooky'],feedMsg:'{name} eats and you can see it go down!',sootheMsg:'{name} rattles gently to sleep',brushMsg:'SO many teeth to brush!',runMsg:'{name} rattles while running!',burpMsg:'*RATTLE BURP* Spooky!',showerMsg:'{name}\'s bones get extra clean!',distractMsg:'{name} does a spooky skeleton dance!',specialAction:'Spooky Dance',specialEmoji:'💀',specialMsg:'{name} does the spooky scary skeleton dance!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.teeth=Math.min(100,s.teeth+10);}},
+  {id:'popcorn',emoji:'🍿',label:'Popcorn Baby',desc:'Pop pop pop!',trait:'Popping',traitColor:'#ffca28',bonus:{happiness:10},weakness:'teeth',likes:'movies',hates:'quiet',personalNames:['Pop','Kernel','Butter','Corny'],feedMsg:'{name} pops with excitement while eating!',sootheMsg:'{name} watches a movie and calms down',brushMsg:'Extra brushing! All that butter!',runMsg:'{name} pops around the room!',burpMsg:'*POP POP BURP!* Buttery!',showerMsg:'{name} pops in the bubbles!',distractMsg:'{name} makes popcorn noises with the toy!',specialAction:'Movie Time',specialEmoji:'🍿',specialMsg:'{name} watches the best baby movie! Pop pop!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.teeth=Math.max(0,s.teeth-5);}},
+  {id:'robot2',emoji:'🔧',label:'Mechanic Baby',desc:'Fix it!',trait:'Fixer',traitColor:'#546e7a',bonus:{energy:10},weakness:'happiness',likes:'tools',hates:'broken things',personalNames:['Wrench','Bolt','Gear','Fix'],feedMsg:'{name} refuels like a machine!',sootheMsg:'{name} powers down for maintenance',brushMsg:'{name} uses the toothbrush like a wrench!',runMsg:'{name} drives around in a toy car!',burpMsg:'*engine BURP* Vroom!',showerMsg:'{name} goes through the car wash!',distractMsg:'{name} takes the toy apart and rebuilds it!',specialAction:'Fix It',specialEmoji:'🔧',specialMsg:'{name} fixes everything! Good as new!',specialEffect(s){s.happiness=Math.min(100,s.happiness+14);s.energy=Math.min(100,s.energy+10);}},
+  {id:'gummybear',emoji:'🍬🐻',label:'Gummy Bear Baby',desc:'Chewy & sweet!',trait:'Chewy',traitColor:'#e53935',bonus:{happiness:12,hunger:8},weakness:'teeth',likes:'chewing',hates:'being melted',personalNames:['Gummy','Chewy','Bear','Jelly'],feedMsg:'{name} chews and chews and chews!',sootheMsg:'{name} stretches out nice and calm',brushMsg:'Brush those sticky gummy teeth!',runMsg:'{name} bounces like rubber!',burpMsg:'*squishy BURP* so chewy!',showerMsg:'{name} dissolves a little in hot water! Careful!',distractMsg:'{name} wants to chew the toy!',specialAction:'Gummy Bounce',specialEmoji:'🍬',specialMsg:'{name} bounces around in squishy gummy glory!',specialEffect(s){s.happiness=Math.min(100,s.happiness+20);s.energy=Math.min(100,s.energy+10);s.teeth=Math.max(0,s.teeth-6);}},
+  {id:'pancake',emoji:'🥞',label:'Pancake Baby',desc:'Stack em up!',trait:'Fluffy',traitColor:'#ff8a65',bonus:{hunger:15,happiness:5},weakness:'tummy',likes:'syrup',hates:'burnt edges',personalNames:['Flapjack','Maple','Buttercup','Stack'],feedMsg:'{name} pours extra syrup on EVERYTHING!',sootheMsg:'{name} cuddles into a fluffy stack of blankets!',brushMsg:'Brush off the syrup teeth, {name}!',runMsg:'{name} flips like a pancake mid-run!',burpMsg:'*FLUFFY BURP* Tastes like maple!',showerMsg:'{name} washes all the syrup off!',distractMsg:'{name} stares at the round shiny toy like a pancake!',specialAction:'Flip',specialEmoji:'🥞',specialMsg:'{name} does a perfect pancake flip! Yummy!',specialEffect(s){s.happiness=Math.min(100,s.happiness+18);s.hunger=Math.min(100,s.hunger+12);s.tummy=Math.max(0,s.tummy-8);}},
+  {id:'cherry',emoji:'🍒',label:'Cherry Baby',desc:'Sweet pair!',trait:'Sweet',traitColor:'#c62828',bonus:{happiness:10,hunger:5},weakness:'teeth',likes:'fruit',hates:'sour things',personalNames:['Cherry','Berry','Plum','Peach'],feedMsg:'{name} loves fruity food! Yum!',sootheMsg:'{name} is sweet as a cherry when calm',brushMsg:'Brush those fruit-juice teeth!',runMsg:'{name} rolls around like a cherry!',burpMsg:'*fruity burp* Sweet!',showerMsg:'{name} makes the bath smell fruity!',distractMsg:'{name} sorts toy fruits!',specialAction:'Fruit Party',specialEmoji:'🍒',specialMsg:'{name} throws a FRUIT PARTY! Yummy!',specialEffect(s){s.happiness=Math.min(100,s.happiness+16);s.hunger=Math.min(100,s.hunger+10);}},
+];
+
+let selectedBaby=null, chosenBaby=null, babyName='';
+
+// 🤫 Secret bat in the corner - tap 3 times for a cryptic hint
+let _secretTaps=0;
+const _secretHints=['🧛 Vampire babies have a SECRET easy mode... they fear a certain stinky clove...','...cooks use it in their kitchens...','...it begins with G and keeps vampires away...'];
+function revealSecret(){
+  const h=document.getElementById('secret-hint');
+  h.textContent=_secretHints[Math.min(_secretTaps,_secretHints.length-1)];
+  h.style.display='block';
+  _secretTaps++;
+  clearTimeout(window._secretTimer);
+  window._secretTimer=setTimeout(()=>{h.style.display='none';},3500);
+}
+let randomBabies=[]; // current batch of procedurally generated babies
+let showingClassics=false;
+let showingIsle=false;
+let coins=parseInt(localStorage.getItem('babyCoins')||'1000');
+let ownedBabies=JSON.parse(localStorage.getItem('ownedBabies')||'[]');
+function saveCoins(){localStorage.setItem('babyCoins',String(coins));const c=document.getElementById('coins-count');if(c)c.textContent=coins;}
+function saveOwned(){localStorage.setItem('ownedBabies',JSON.stringify(ownedBabies));}
+function priceFor(i){return 50+Math.floor((i*37)%451);} // prices 50-500
+
+// ===================== PROCEDURAL BABY GENERATOR =====================
+// 10 quintillion unique babies via combinatorial generation
+const GEN_EMOJI=['👶','🧒','👼','😀','😄','🤗','😎','🥳','🤠','🤓','🥰','😇','😺','🐶','🐱','🦊','🐻','🐼','🐨','🦁','🐯','🐮','🐷','🐸','🐵','🐔','🐧','🦄','🦋','🐞','🐢','🦀','🐙','🦈','🐬','🐳','🦒','🐘','🦓','🦘','🦥','🦦','🦨','🦡','🐿️','🦔','🧚','🧞','🧜','🧙','🧛','🧟','🦸','🦹','👸','🤴','🥷','👻','🎃','🤖','👽','👾','🐲','🦖','🦕','🦄','🍎','🍊','🍋','🍉','🍇','🍓','🍒','🥑','🌽','🥕','🌶️','🍕','🍔','🌭','🥨','🧀','🥞','🍩','🍪','🎂','🍰','🧁','🍭','🍬','🍫','🍿','🍦','🍨','🍧','☕','🍵','🥤','🧋','🍼','🎤','🎸','🥁','🎹','🎺','🎻','🎷','🪕','🎨','🖌️','🖼️','📚','🎭','🎪','🎢','🎡','🎠','⚽','🏀','🏈','⚾','🎾','🏐','🏓','🎳','🎮','🎲','🧩','🪀','🪁','🎯','🚀','🛸','✈️','🚂','🚗','🏎️','🚤','⛵','🗿','🗽','🏰','⛄','🌞','🌙','⭐','🌈','🔥','💧','❄️','⚡','🌸','🌺','🌻','🌷','🌹','🌼','🍀','🌿','🌴','🌲','🎋','🎍','🌵','🪴','🍄','🐚','💎','👑','🎀','🧸','⚔️','🛡️','🔮','🧪','🧬','🔬','🔭','⚓','🗝️','🎁','🎈','🎊','💫','✨','🌠'];
+const GEN_PREFIX=['Bouncy','Fuzzy','Sparkly','Cheeky','Dizzy','Wobbly','Jumpy','Snuggly','Bubbly','Zippy','Dreamy','Cozy','Feisty','Peppy','Zany','Nifty','Silly','Goofy','Spunky','Loopy','Chunky','Pudgy','Tiny','Mighty','Gentle','Wild','Lazy','Busy','Jolly','Merry','Brave','Sneaky','Clever','Noble','Cheery','Mellow','Spicy','Sweet','Sour','Salty','Shiny','Glowy','Glitzy','Glitter','Rainbow','Cosmic','Magic','Mystic','Epic','Super','Mega','Ultra','Hyper','Nano','Micro','Macro','Turbo','Jet','Rocket','Disco','Funky','Groovy','Retro','Vintage','Royal','Noble','Ancient','Modern','Tiny','Giant','Mini','Maxi','Fluffy','Fuzzy','Silky','Velvet','Cotton','Candy','Sugar','Honey','Maple','Caramel','Mint','Lemon','Cherry','Peachy','Berry','Plum','Nutty','Melty','Cheesy','Buttery','Frosty','Toasty','Crispy','Crunchy','Jammy','Doughy','Saucy','Peppy','Zappy','Snappy','Clappy','Nappy','Happy','Sassy','Classy','Brassy','Sparky','Zesty','Tasty','Dainty','Lovely','Pretty','Fancy','Dazzly','Twinkly','Jingly','Tingly','Springy','Swingy','Bouncy','Hopping','Skipping','Prancing','Dancing','Singing','Humming','Buzzing','Fizzing','Whirly','Twirly','Curly','Swirly','Pearly','Shimmery','Glimmery','Flickery','Glittery','Bubbly','Giggly','Wiggly','Jiggly','Squiggly','Snickerdoodle','Gummy','Jelly','Jolly','Bouncy','Frisky','Perky','Plucky','Cuddly','Snuggly','Nuzzly','Fuzzy','Scruffy','Puffy','Floofy','Poofy','Lumpy','Bumpy','Clumpy','Dumpy','Frumpy','Grumpy','Humpy','Jumpy','Lumpy','Mumpy','Numpy','Pumpy','Rumpy','Sumpy','Tumpy'];
+const GEN_THEME=[{s:'Star',c:'#ffb300',e:'⭐',lo:'the night sky',ha:'cloudy days',sa:'Wish',se:'✨',sm:'{name} makes a wish come true!',tb:'happiness',tv:18},{s:'Cloud',c:'#90a4ae',e:'☁️',lo:'floating',ha:'being grounded',sa:'Float',se:'☁️',sm:'{name} floats away peacefully!',tb:'energy',tv:15},{s:'Ocean',c:'#0277bd',e:'🌊',lo:'the sea',ha:'being dry',sa:'Wave Ride',se:'🌊',sm:'{name} surfs a giant wave!',tb:'happiness',tv:18},{s:'Forest',c:'#2e7d32',e:'🌲',lo:'the woods',ha:'cities',sa:'Tree Hug',se:'🌳',sm:'{name} hugs a tall tree!',tb:'energy',tv:14},{s:'Thunder',c:'#5e35b1',e:'⚡',lo:'storms',ha:'silence',sa:'Zap',se:'⚡',sm:'ZAP! {name} electrifies the room!',tb:'energy',tv:20},{s:'Snow',c:'#b3e5fc',e:'❄️',lo:'winter',ha:'heat',sa:'Snowball',se:'❄️',sm:'{name} throws a giant snowball!',tb:'happiness',tv:15},{s:'Sun',c:'#ff6f00',e:'☀️',lo:'bright days',ha:'the dark',sa:'Sunshine',se:'☀️',sm:'{name} shines like the sun!',tb:'happiness',tv:18},{s:'Moon',c:'#455a64',e:'🌙',lo:'nighttime',ha:'bedtime',sa:'Moonbeam',se:'🌙',sm:'{name} rides a moonbeam!',tb:'energy',tv:16},{s:'Rainbow',c:'#e91e63',e:'🌈',lo:'colors',ha:'gray',sa:'Rainbow',se:'🌈',sm:'{name} makes a double rainbow!',tb:'happiness',tv:20},{s:'Flower',c:'#ec407a',e:'🌸',lo:'gardens',ha:'winter',sa:'Bloom',se:'🌺',sm:'{name} blooms beautifully!',tb:'happiness',tv:16},{s:'Honey',c:'#f9a825',e:'🍯',lo:'sweets',ha:'sour',sa:'Sweet',se:'🍯',sm:'{name} shares some honey!',tb:'hunger',tv:18},{s:'Berry',c:'#8e24aa',e:'🫐',lo:'fruit',ha:'veggies',sa:'Berry Pop',se:'🫐',sm:'{name} pops a sweet berry!',tb:'hunger',tv:14},{s:'Candy',c:'#d81b60',e:'🍬',lo:'sugar',ha:'bedtime',sa:'Sugar Rush',se:'🍭',sm:'{name} has a BIG sugar rush!',tb:'happiness',tv:22},{s:'Bubble',c:'#00acc1',e:'🫧',lo:'bubbles',ha:'pop',sa:'Bubble Storm',se:'🫧',sm:'{name} creates a bubble storm!',tb:'hygiene',tv:18},{s:'Glitter',c:'#ab47bc',e:'💖',lo:'sparkly things',ha:'boring stuff',sa:'Sparkle',se:'✨',sm:'{name} sparkles everywhere!',tb:'happiness',tv:16},{s:'Pirate',c:'#795548',e:'🏴‍☠️',lo:'treasure',ha:'landlubbers',sa:'Treasure',se:'💰',sm:'Arr! {name} finds buried treasure!',tb:'happiness',tv:17},{s:'Ninja',c:'#263238',e:'🥷',lo:'stealth',ha:'noise',sa:'Vanish',se:'💨',sm:'*poof* {name} vanishes and reappears!',tb:'energy',tv:15},{s:'Wizard',c:'#4527a0',e:'🧙',lo:'magic',ha:'science',sa:'Spell',se:'🪄',sm:'{name} casts a magic spell!',tb:'happiness',tv:18},{s:'Knight',c:'#546e7a',e:'🛡️',lo:'quests',ha:'dragons',sa:'Charge',se:'⚔️',sm:'{name} charges into battle!',tb:'energy',tv:18},{s:'Astronaut',c:'#1a237e',e:'👨‍🚀',lo:'stars',ha:'gravity',sa:'Blast Off',se:'🚀',sm:'3...2...1... BLAST OFF! {name} flies to space!',tb:'energy',tv:20},{s:'Robot',c:'#37474f',e:'🤖',lo:'circuits',ha:'water',sa:'Reboot',se:'⚙️',sm:'Beep boop! {name} reboots with fresh code!',tb:'energy',tv:18},{s:'Alien',c:'#00c853',e:'👽',lo:'space',ha:'earth food',sa:'Beam Up',se:'🛸',sm:'{name} beams up to the mothership!',tb:'happiness',tv:16},{s:'Dragon',c:'#c62828',e:'🐲',lo:'fire',ha:'water',sa:'Flame',se:'🔥',sm:'{name} breathes colorful flames!',tb:'energy',tv:20},{s:'Unicorn',c:'#e91e63',e:'🦄',lo:'rainbows',ha:'mud',sa:'Horn Magic',se:'🦄',sm:'{name} unleashes unicorn magic!',tb:'happiness',tv:22},{s:'Fairy',c:'#ba68c8',e:'🧚',lo:'dust',ha:'iron',sa:'Pixie Dust',se:'💫',sm:'{name} sprinkles pixie dust everywhere!',tb:'happiness',tv:20},{s:'Mermaid',c:'#26c6da',e:'🧜',lo:'the sea',ha:'dry land',sa:'Sea Song',se:'🎶',sm:'{name} sings a beautiful sea song!',tb:'happiness',tv:17},{s:'Ghost',c:'#b0bec5',e:'👻',lo:'haunting',ha:'sunlight',sa:'Boo',se:'👻',sm:'BOO! {name} gives a friendly scare!',tb:'energy',tv:15},{s:'Vampire',c:'#880e4f',e:'🧛',lo:'nighttime',ha:'garlic',sa:'Bat Form',se:'🦇',sm:'{name} turns into a tiny bat!',tb:'energy',tv:16},{s:'Mummy',c:'#8d6e63',e:'🧟',lo:'tombs',ha:'being unwrapped',sa:'Wrap',se:'🧻',sm:'{name} wraps up cozy!',tb:'energy',tv:14},{s:'Zombie',c:'#33691e',e:'🧟‍♂️',lo:'brains',ha:'gym',sa:'Shamble',se:'🧟',sm:'{name} shambles adorably!',tb:'happiness',tv:12}];
+const GEN_FIRST_NAMES=['Alex','Avery','Bailey','Cameron','Casey','Charlie','Dakota','Drew','Eden','Finley','Frankie','Gray','Harper','Hayden','Jamie','Jordan','Kai','Kendall','Lane','Logan','Micah','Morgan','Noah','Parker','Peyton','Quinn','Reese','Remi','Riley','River','Robin','Rowan','Sage','Sam','Sawyer','Sky','Skyler','Taylor','Toby','Wren','Zion','Aria','Beau','Bodhi','Cleo','Ellis','Indi','Juno','Koa','Lux','Milo','Nova','Onyx','Opal','Pax','Rio','Saige','Tate','Vale','Winter','Zara','Ash','Birch','Cedar','Cove','Dune','Echo','Fable','Glen','Haven','Isle','Jade','Kite','Lark','Moss','Nook','Ocean','Pine','Quill','Ray','Sol','Thyme','Umber','Vesta','Wish','Xen','Yarrow','Zeph','Bay','Clay','Dove','Ever','Flint','Gale','Hazel','Ivy','Juniper','Koi'];
+const GEN_FEED=['{name} munches away happily!','Chomp chomp! {name} loves this!','{name} makes a big mess eating!','{name} slurps and smacks!','{name} gobbles it up fast!','{name} savors every bite!','{name} eats with both hands!','{name} drools at the sight of food!'];
+const GEN_SHOWER=['Splish splash! {name} is clean!','{name} plays with the bubbles!','{name} splashes water everywhere!','{name} sings in the bath!','{name} blows bubble mustaches!','{name} hides under the towel!','{name} makes bath soup!','{name} wiggles in the warm water!'];
+const GEN_BRUSH=['{name} says AHHHH and brushes!','{name} gives you a minty smile!','{name} plays tug with the toothbrush!','{name} spits like a pro!','{name} sparkles those little teeth!','{name} shows off clean teeth!','{name} tastes the toothpaste!','{name} brushes every tooth twice!'];
+const GEN_SOOTHE=['{name} calms down in your arms.','Shhh... {name} quiets down.','{name} melts into a cuddle.','{name} stops fussing and sighs.','{name} leans in for comfort.','{name} feels safe and cozy.','{name} takes a deep breath.','{name} relaxes completely.'];
+const GEN_DISTRACT=['{name} is fascinated by the toy!','{name} stops crying in amazement!','{name} wants to grab the shiny thing!','Ooh! {name} forgets what they were upset about!','{name} stares in wonder!','{name} giggles at the funny toy!','{name} reaches for the distraction!','{name} lights up with curiosity!'];
+const GEN_RUN=['{name} runs around like a tornado!','{name} sprints in tiny circles!','{name} races you and wins!','{name} zooms around the room!','{name} does a little jog!','{name} chases their shadow!','{name} runs and falls and laughs!','{name} bounces everywhere!'];
+const GEN_BURP=['*BURP* {name} giggles!','*tiny burp* So cute!','*BUURRRP* Whoa, big one!','*burp* {name} looks proud!','*hic-burp!* {name} hiccups!','Hiiccup *burp*!','*BWAARP* {name} is shocked!','*pop burp* Bubbles come out!'];
+
+// Seeded deterministic RNG so the same seed produces the same baby
+function seededRng(seed){let s=seed>>>0;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+function pick(arr,r){return arr[Math.floor(r()*arr.length)];}
+function fmtMsg(t,name){return t.replace(/\{name\}/g,name);}
+
+function generateRandomBaby(seed){
+  const r=seededRng(seed+1);
+  const theme=pick(GEN_THEME,r);
+  const pre=pick(GEN_PREFIX,r);
+  const em=r()<0.6?theme.e:pick(GEN_EMOJI,r);
+  const trait=pre;
+  const label=`${pre} ${theme.s} Baby`;
+  const descTemplates=[
+    `Loves ${theme.lo}!`,
+    `So ${pre.toLowerCase()} and ${theme.s.toLowerCase()}!`,
+    `${pre} as can be!`,
+    `A ${theme.s.toLowerCase()}-loving cutie!`,
+    `Hates ${theme.ha}!`,
+    `Born ${pre.toLowerCase()}!`,
+    `Wild for ${theme.lo}!`,
+    `Super ${pre.toLowerCase()}!`,
+    `${theme.s} energy all day!`,
+    `Tiny but ${pre.toLowerCase()}!`
+  ];
+  const desc=`Rare #${seed.toLocaleString()} — ${pick(descTemplates,r)}`;
+  const personalNames=[pick(GEN_FIRST_NAMES,r),pick(GEN_FIRST_NAMES,r),pick(GEN_FIRST_NAMES,r),pick(GEN_FIRST_NAMES,r)];
+  // Vampire babies always get "Garlic" as a name option (hehe)
+  if(theme.sa==='Bat Form')personalNames[3]='Garlic';
+  const bonus={};bonus[['hunger','hygiene','teeth','happiness','energy'][Math.floor(r()*5)]]=8+Math.floor(r()*10);
+  const weakness=['hunger','hygiene','teeth','happiness','energy','tummy'][Math.floor(r()*6)];
+  const effect=function(s){
+    s[theme.tb]=Math.min(100,(s[theme.tb]||0)+theme.tv);
+    const other=['happiness','energy','hunger','hygiene'][Math.floor((seed*7)%4)];
+    s[other]=Math.min(100,(s[other]||0)+6);
+  };
+  return {
+    id:'gen_'+seed,
+    emoji:em,label,desc,trait,traitColor:theme.c,
+    bonus,weakness,
+    likes:theme.lo,hates:theme.ha,
+    personalNames,
+    feedMsg:pick(GEN_FEED,r),
+    showerMsg:pick(GEN_SHOWER,r),
+    brushMsg:pick(GEN_BRUSH,r),
+    sootheMsg:pick(GEN_SOOTHE,r),
+    distractMsg:pick(GEN_DISTRACT,r),
+    runMsg:pick(GEN_RUN,r),
+    burpMsg:pick(GEN_BURP,r),
+    specialAction:theme.sa,specialEmoji:theme.se,
+    specialMsg:theme.sm,
+    specialEffect:effect
+  };
+}
+
+function rollRandomBabies(n){
+  randomBabies=[];
+  for(let i=0;i<n;i++){
+    // seed from astronomically huge space — effectively infinite unique babies
+    const seed=Math.floor(Math.random()*9e15)+Math.floor(Math.random()*9e12)+Math.floor(Math.random()*9e9)+Math.floor(Math.random()*9e6);
+    randomBabies.push(generateRandomBaby(seed));
+  }
+}
+
+function shuffleBabies(){
+  rollRandomBabies(100);
+  showingClassics=false;showingIsle=false;
+  document.getElementById('show-all-btn').textContent='📋 Classic 100';
+  buildAdoptScreen();
+}
+
+function toggleAllBabies(){
+  showingIsle=false;
+  showingClassics=!showingClassics;
+  document.getElementById('show-all-btn').textContent=showingClassics?'🎲 Back to Random':'📋 Classic 100';
+  buildAdoptScreen();
+}
+
+function getCurrentBabyList(){
+  if(showingIsle){
+    // 790 deterministic isle babies
+    const list=[];
+    for(let i=1;i<=790;i++){
+      const b=generateRandomBaby(i*777+42); // deterministic seeds
+      b.id='isle_'+i;
+      b.price=priceFor(i);
+      b.isleIndex=i;
+      list.push(b);
+    }
+    return list;
+  }
+  if(showingClassics)return BABIES;
+  return randomBabies.length?randomBabies:(rollRandomBabies(100),randomBabies);
+}
+
+function findBabyById(id){
+  return BABIES.find(b=>b.id===id)||randomBabies.find(b=>b.id===id)||getCurrentBabyList().find(b=>b.id===id);
+}
+
+function openMoneyIsle(){
+  showingIsle=true; showingClassics=false;
+  buildAdoptScreen();
+}
+function closeMoneyIsle(){
+  showingIsle=false;
+  buildAdoptScreen();
+}
+
+function buildAdoptScreen(){
+  const grid=document.getElementById('baby-grid');
+  grid.innerHTML='';
+  const list=getCurrentBabyList();
+  saveCoins();
+  list.forEach(b=>{
+    const c=document.createElement('div');
+    c.className='baby-card'; c.dataset.id=b.id;
+    const isIsle=showingIsle&&b.price!=null;
+    const owned=isIsle&&ownedBabies.indexOf(b.id)>=0;
+    const locked=isIsle&&!owned;
+    let priceTag='';
+    if(isIsle){
+      if(owned)priceTag=`<div style="font-size:.65rem;color:#2e7d32;font-weight:700;margin-top:2px">✓ OWNED</div>`;
+      else priceTag=`<div style="font-size:.7rem;color:#ff6f00;font-weight:700;margin-top:2px">💰 ${b.price}</div>`;
+    }
+    c.innerHTML=`<span class="emoji"${locked?' style="filter:grayscale(1);opacity:0.6"':''}>${b.emoji}</span><div class="label">${b.label}</div><div class="desc">${b.desc}</div><span class="trait-badge" style="background:${b.traitColor}">${b.trait}</span>${priceTag}`;
+    c.onclick=()=>{
+      if(locked){
+        if(coins>=b.price){
+          if(confirm(`Buy ${b.label} for ${b.price} coins? You have ${coins}.`)){
+            coins-=b.price; ownedBabies.push(b.id);
+            saveCoins(); saveOwned();
+            buildAdoptScreen();
+            selectBaby(b.id);
+          }
+        }else{
+          alert(`Not enough coins! Need ${b.price}, you have ${coins}.\n\nPlay the game to earn more coins! 💰`);
+        }
+      }else{
+        selectBaby(b.id);
+      }
+    };
+    grid.appendChild(c);
+  });
+}
+
+function selectBaby(id){
+  selectedBaby=findBabyById(id);
+  document.querySelectorAll('.baby-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelector(`.baby-card[data-id="${id}"]`).classList.add('selected');
+  // Info panel
+  const info=document.getElementById('baby-info'); info.classList.add('show');
+  document.getElementById('bi-emoji').textContent=selectedBaby.emoji;
+  document.getElementById('bi-name').textContent=selectedBaby.label+' — '+selectedBaby.trait;
+  document.getElementById('bi-desc').textContent=selectedBaby.desc;
+  document.getElementById('bi-likes').textContent='Loves: '+selectedBaby.likes;
+  document.getElementById('bi-hates').textContent='Hates: '+selectedBaby.hates;
+  document.getElementById('bi-special').innerHTML=`<span class="trait-badge" style="background:${selectedBaby.traitColor}">Special: ${selectedBaby.specialAction} ${selectedBaby.specialEmoji}</span>`;
+  // Names
+  const sug=document.getElementById('name-suggestions'); sug.innerHTML='';
+  selectedBaby.personalNames.forEach(n=>{
+    const el=document.createElement('span'); el.className='name-sug'; el.textContent=n;
+    el.onclick=()=>{document.getElementById('baby-name-input').value=n;};
+    sug.appendChild(el);
+  });
+}
+
+function adoptBaby(){
+  const nameVal=document.getElementById('baby-name-input').value.trim();
+  const err=document.getElementById('adopt-error');
+  if(!selectedBaby){err.textContent='Pick a baby first!';return;}
+  if(!nameVal){err.textContent='Give your baby a name!';return;}
+  err.textContent=''; chosenBaby=selectedBaby; babyName=nameVal;
+  document.getElementById('adopt-screen').classList.add('hide');
+  document.getElementById('game-screen').classList.add('show');
+  const isVampire=chosenBaby.specialAction==='Bat Form'||chosenBaby.specialAction==='Bat Mode';
+  const garlicMode=babyName.toLowerCase().trim()==='garlic';
+  let modeBadge='';
+  if(isVampire&&garlicMode)modeBadge=' <span style="color:#1b5e20;font-weight:800;background:#c8e6c9;padding:2px 8px;border-radius:8px;margin-left:6px">🧄 EASY MODE</span>';
+  else if(isVampire)modeBadge=' <span style="color:#fff;font-weight:800;background:linear-gradient(135deg,#b71c1c,#000);padding:2px 8px;border-radius:8px;margin-left:6px">💀 IMPOSSIBLE MODE 💀</span>';
+  document.getElementById('baby-name-display').innerHTML=`${chosenBaby.emoji} ${babyName} the ${chosenBaby.trait} Baby${modeBadge}`;
+  buildActions();
+  startGame();
+}
+
+function buildActions(){
+  const a=document.getElementById('actions');
+  a.innerHTML=`
+    <button class="btn btn-feed" onclick="doAction('feed')"><span>&#x1F37C;</span> Feed</button>
+    <button class="btn btn-shower" onclick="doAction('shower')"><span>&#x1F6BF;</span> Shower</button>
+    <button class="btn btn-teeth" onclick="doAction('teeth')"><span>&#x1FAA5;</span> Brush</button>
+    <button class="btn btn-soothe" onclick="doAction('soothe')"><span>&#x1F917;</span> Soothe</button>
+    <button class="btn btn-distract" onclick="doAction('distract')"><span>&#x1F3B2;</span> Distract</button>
+    <button class="btn btn-run" onclick="doAction('run')"><span>&#x1F3C3;</span> Run</button>
+    <button class="btn btn-burp" onclick="doAction('burp')"><span>&#x1F4A8;</span> Burp</button>
+    <button class="btn btn-special" onclick="doAction('special')"><span>${chosenBaby.specialEmoji}</span> ${chosenBaby.specialAction}</button>
+  `;
+}
+
+// ===================== GAME STATE =====================
+let state={};
+const TICK=1000;
+let tickTimer,scoreTimer;
+
+function initState(){
+  const s={hunger:80,hygiene:80,teeth:80,happiness:80,energy:70,tummy:90,
+    score:0,level:1,crying:false,gameOver:false,
+    cooldowns:{feed:0,shower:0,teeth:0,soothe:0,distract:0,run:0,burp:0,special:0},tickCount:0};
+  if(chosenBaby&&chosenBaby.bonus) for(let k in chosenBaby.bonus) s[k]=Math.min(100,Math.max(0,s[k]+chosenBaby.bonus[k]));
+  return s;
+}
+
+function startGame(){
+  state=initState();
+  clearInterval(tickTimer);clearInterval(scoreTimer);
+  // IMPOSSIBLE MODE = INSTANT LOSE (unless garlic secret)
+  const isVampire=chosenBaby&&(chosenBaby.specialAction==='Bat Form'||chosenBaby.specialAction==='Bat Mode');
+  const garlicMode=babyName&&babyName.toLowerCase().trim()==='garlic';
+  if(isVampire&&!garlicMode){
+    state.hunger=0; // die of hunger
+    state.vampireInstantLose=true;
+    updateUI();endGame();
+    return;
+  }
+  tickTimer=setInterval(tick,TICK);
+  scoreTimer=setInterval(()=>{if(!state.gameOver)state.score+=state.level;},2000);
+  updateUI();
+  if(!musicPlaying)toggleMusic();
+}
+function restartGame(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('minigame').classList.remove('show');
+  startGame();
+}
+function backToAdopt(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('minigame').classList.remove('show');
+  document.getElementById('game-screen').classList.remove('show');
+  document.getElementById('adopt-screen').classList.remove('hide');
+  if(musicPlaying)toggleMusic();
+  clearInterval(tickTimer);clearInterval(scoreTimer);
+  selectedBaby=null;
+  document.querySelectorAll('.baby-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('baby-name-input').value='';
+  document.getElementById('name-suggestions').innerHTML='';
+  document.getElementById('baby-info').classList.remove('show');
+}
+
+// ===================== TICK =====================
+function tick(){
+  if(state.gameOver)return;
+  state.tickCount++;
+  // Vampire / Bat Form babies = IMPOSSIBLE MODE (3.5x decay!)
+  // SECRET: name your baby "garlic" (vampires hate garlic!) for SUPER EASY mode (0.15x + no weakness)
+  const isVampire=chosenBaby&&(chosenBaby.specialAction==='Bat Form'||chosenBaby.specialAction==='Bat Mode');
+  const garlicMode=isVampire&&babyName&&babyName.toLowerCase().trim()==='garlic';
+  let hardMult=1;
+  if(garlicMode)hardMult=0.15;
+  else if(isVampire)hardMult=3.5;
+  const decay=(1+state.level*0.3)*hardMult;
+  const w=chosenBaby?chosenBaby.weakness:'';
+  const wM=garlicMode?1:1.6; // garlic removes weakness penalty
+  state.hunger=Math.max(0,state.hunger-0.5*decay*(w==='hunger'?wM:1));
+  state.hygiene=Math.max(0,state.hygiene-0.35*decay*(w==='hygiene'?wM:1));
+  state.teeth=Math.max(0,state.teeth-0.25*decay*(w==='teeth'?wM:1));
+  state.happiness=Math.max(0,state.happiness-0.4*decay*(w==='happiness'?wM:1));
+  state.energy=Math.max(0,state.energy-0.2*decay*(w==='energy'?wM:1));
+  state.tummy=Math.max(0,state.tummy-0.3*decay*(w==='tummy'?wM:1));
+  for(let k in state.cooldowns)if(state.cooldowns[k]>0)state.cooldowns[k]-=TICK;
+  if(state.tummy<30)state.happiness=Math.max(0,state.happiness-0.3*decay);
+  state.crying=state.hunger<25||state.happiness<20||state.hygiene<20||state.teeth<15||state.tummy<15;
+  if(state.tickCount%60===0&&state.level<10)state.level++;
+  if(state.hunger<=0||state.happiness<=0||state.hygiene<=0||state.teeth<=0||state.energy<=0||state.tummy<=0){endGame();return;}
+  updateUI();
+}
+
+// ===================== ACTIONS =====================
+function doAction(type){
+  if(state.gameOver||state.cooldowns[type]>0)return;
+  const b=chosenBaby;
+  const n=babyName;
+  let msg='', emoji='', anim='bounce';
+
+  switch(type){
+    case 'feed':
+      state.hunger=Math.min(100,state.hunger+25);
+      state.happiness=Math.min(100,state.happiness+5);
+      state.tummy=Math.max(0,state.tummy-15);
+      state.score+=10; state.cooldowns.feed=3000;
+      emoji='🍼'; msg=b.feedMsg.replace('{name}',n);
+      break;
+    case 'shower':
+      state.hygiene=Math.min(100,state.hygiene+30);
+      state.happiness=Math.min(100,state.happiness+5);
+      state.score+=10; state.cooldowns.shower=4000;
+      emoji='🫧'; msg=b.showerMsg.replace('{name}',n);
+      break;
+    case 'teeth':
+      state.teeth=Math.min(100,state.teeth+30);
+      state.hygiene=Math.min(100,state.hygiene+5);
+      state.happiness=Math.min(100,state.happiness+3);
+      state.score+=10; state.cooldowns.teeth=4000;
+      emoji='🦷'; msg=b.brushMsg.replace('{name}',n);
+      break;
+    case 'soothe':
+      state.happiness=Math.min(100,state.happiness+20);
+      state.score+=10; state.cooldowns.soothe=3000;
+      emoji='💕'; msg=b.sootheMsg.replace('{name}',n);
+      break;
+    case 'distract':
+      state.cooldowns.distract=6000;
+      msg=b.distractMsg.replace('{name}',n);
+      emoji='🎲';
+      showActionText(msg);
+      startMinigame(); return;
+    case 'run':
+      state.energy=Math.min(100,state.energy+30);
+      state.happiness=Math.min(100,state.happiness+8);
+      state.hunger=Math.max(0,state.hunger-5);
+      state.score+=10; state.cooldowns.run=3500;
+      emoji='💨'; anim='run'; msg=b.runMsg.replace('{name}',n);
+      break;
+    case 'burp':
+      state.tummy=Math.min(100,state.tummy+35);
+      state.happiness=Math.min(100,state.happiness+5);
+      state.score+=10; state.cooldowns.burp=3000;
+      emoji='💨'; anim='wiggle'; msg=b.burpMsg.replace('{name}',n);
+      playBurpSound();
+      break;
+    case 'special':
+      b.specialEffect(state);
+      state.score+=15; state.cooldowns.special=5000;
+      emoji=b.specialEmoji; msg=b.specialMsg.replace('{name}',n);
+      // Bat Form transformation — vampire babies (and any "Bat Form") turn into a bat!
+      if(b.specialAction==='Bat Form'||b.specialAction==='Bat Mode'){
+        const babyEl=document.getElementById('baby');
+        babyEl.textContent='🦇';
+        babyEl.classList.add('wiggle');
+        state.transformed=true;
+        clearTimeout(state.transformTimer);
+        state.transformTimer=setTimeout(()=>{state.transformed=false;updateUI();},4000);
+      }
+      break;
+  }
+  floatEmoji(emoji); animBaby(anim); showActionText(msg); updateUI();
+}
+
+function showActionText(msg){
+  const el=document.getElementById('action-text');
+  el.textContent=msg;
+  setTimeout(()=>{if(el.textContent===msg)el.textContent='';},3000);
+}
+
+let audioCtx=null;
+function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+
+function playBurpSound(){
+  try{
+    const ctx=getAudioCtx(),t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='sawtooth';o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(60,t+.15);
+    g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.001,t+.25);
+    o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.3);
+  }catch(e){}
+}
+
+// ===================== MINIGAME =====================
+function startMinigame(){
+  const titles=['Peek-a-boo!',`Find ${babyName}!`,'Which one?'];
+  const descs=[`Tap ${babyName}!`,`One of these is ${babyName}!`,`Quick, find ${babyName}!`];
+  const i=Math.floor(Math.random()*titles.length);
+  document.getElementById('mg-title').textContent=titles[i];
+  document.getElementById('mg-desc').textContent=descs[i];
+  const decoys=['🧸','🎀','🧦','🍼','🧷','🎁','🐻','🌟','🎈','🧩','🎪','🎠'];
+  const count=Math.min(3+state.level,9);
+  const pos=Math.floor(Math.random()*count);
+  const tgt=document.getElementById('mg-targets');tgt.innerHTML='';
+  for(let j=0;j<count;j++){
+    const el=document.createElement('span');el.className='mg-target';
+    if(j===pos){el.textContent=chosenBaby.emoji;el.onclick=()=>mgWin();}
+    else{el.textContent=decoys[Math.floor(Math.random()*decoys.length)];el.onclick=()=>mgLose();}
+    tgt.appendChild(el);
+  }
+  document.getElementById('minigame').classList.add('show');
+  state._mgT=setTimeout(()=>mgLose(),4000);
+}
+function mgWin(){
+  clearTimeout(state._mgT);
+  state.happiness=Math.min(100,state.happiness+30);state.score+=25;
+  floatEmoji('⭐');animBaby('bounce');
+  showActionText(chosenBaby.distractMsg.replace('{name}',babyName));
+  document.getElementById('minigame').classList.remove('show');updateUI();
+}
+function mgLose(){
+  clearTimeout(state._mgT);
+  state.happiness=Math.max(0,state.happiness-5);
+  document.getElementById('minigame').classList.remove('show');
+  floatEmoji('😅');updateUI();
+}
+
+// ===================== GAME OVER =====================
+function endGame(){
+  state.gameOver=true;clearInterval(tickTimer);clearInterval(scoreTimer);
+  let r=`${babyName} is too upset!`;
+  if(state.vampireInstantLose){
+    const jokes=[
+      `${babyName} is STARVING! 🧛 Why won't they eat? Hmm... maybe they wanted something STINKY on their pizza? 🍕`,
+      `${babyName} fainted from hunger! 🦇 Vampires are picky eaters — they hate one smelly white bulb from Italian food...`,
+      `${babyName} is too hungry! 🧄 ...wait, did I just say that? I mean, uhh, nothing. Try a different NAME maybe? 👀`,
+      `${babyName} starved instantly! 🩸 Psst... vampires get scared of a certain stinky herb. Rhymes with "parlic"...`
+    ];
+    document.getElementById('go-msg').textContent=jokes[Math.floor(Math.random()*jokes.length)];
+    document.getElementById('go-score').innerHTML='💀 IMPOSSIBLE MODE = INSTANT LOSE 💀<br>Try a <i>special name</i> to survive... 🤫';
+    document.getElementById('overlay').classList.add('show');
+    return;
+  }
+  if(state.hunger<=0)r=`${babyName} is starving! 😢`;
+  else if(state.hygiene<=0)r=`${babyName} needs a bath! 🛁`;
+  else if(state.teeth<=0)r=`${babyName}'s teeth need brushing! 🦷`;
+  else if(state.energy<=0)r=`${babyName} ran out of energy! 😴`;
+  else if(state.tummy<=0)r=`${babyName}'s tummy is too gassy! 💨`;
+  else if(state.happiness<=0)r=`${babyName} won't stop crying! 😭`;
+  document.getElementById('go-msg').textContent=r;
+  // Earn coins based on score (and 2x for vampire impossible mode!)
+  const isVamp=chosenBaby&&(chosenBaby.specialAction==='Bat Form'||chosenBaby.specialAction==='Bat Mode');
+  const garlic=babyName.toLowerCase().trim()==='garlic';
+  const earned=Math.floor(state.score/2)*(isVamp&&!garlic?2:1);
+  coins+=earned; saveCoins();
+  document.getElementById('go-score').innerHTML='Final Score: '+state.score+'<br>💰 Earned: '+earned+' coins (Total: '+coins+')';
+  document.getElementById('overlay').classList.add('show');
+}
+
+// ===================== UI =====================
+function updateUI(){
+  updateBar('hunger',state.hunger,'#ff9800','#e65100');
+  updateBar('hygiene',state.hygiene,'#29b6f6','#01579b');
+  updateBar('teeth',state.teeth,'#26c6da','#00838f');
+  updateBar('happiness',state.happiness,'#ec407a','#880e4f');
+  updateBar('energy',state.energy,'#66bb6a','#2e7d32');
+  updateBar('tummy',state.tummy,'#ffa726','#e65100');
+  document.getElementById('score').textContent=state.score;
+  document.getElementById('level').textContent=state.level;
+  const ages=['Newborn','Newborn','1 month','3 months','6 months','9 months','1 year','1.5 years','2 years','3 years','Toddler'];
+  document.getElementById('age').textContent=ages[state.level]||'Toddler';
+  const mood=document.getElementById('mood-text');
+  if(state.crying){mood.textContent=`Waaah! ${babyName} is crying! 😭`;mood.style.color='#d32f2f';}
+  else if(state.tummy<25){mood.textContent=`${babyName}'s tummy is gurgly... 💨`;mood.style.color='#e65100';}
+  else if(state.happiness>70&&state.hunger>50){mood.textContent=`${babyName} is happy! 😊`;mood.style.color='#2e7d32';}
+  else if(state.happiness>40){mood.textContent=`${babyName} is content.`;mood.style.color='#e91e63';}
+  else{mood.textContent=`${babyName} seems fussy... 😟`;mood.style.color='#f57c00';}
+  const baby=document.getElementById('baby');
+  if(state.crying){baby.innerHTML='&#x1F62D;';baby.classList.add('shake');}
+  else if(state.transformed){baby.textContent='🦇';}
+  else{baby.textContent=chosenBaby?chosenBaby.emoji:'👶';}
+  updateBtn('.btn-feed',state.cooldowns.feed,3000);
+  updateBtn('.btn-shower',state.cooldowns.shower,4000);
+  updateBtn('.btn-teeth',state.cooldowns.teeth,4000);
+  updateBtn('.btn-soothe',state.cooldowns.soothe,3000);
+  updateBtn('.btn-distract',state.cooldowns.distract,6000);
+  updateBtn('.btn-run',state.cooldowns.run,3500);
+  updateBtn('.btn-burp',state.cooldowns.burp,3000);
+  updateBtn('.btn-special',state.cooldowns.special,5000);
+}
+function updateBar(n,v,cH,cL){
+  const b=document.getElementById('bar-'+n),val=document.getElementById('val-'+n),p=Math.round(v);
+  b.style.width=p+'%';b.style.background=v<30?cL:cH;val.textContent=p;
+}
+function updateBtn(sel,cd,mx){
+  const btn=document.querySelector(sel);if(!btn)return;btn.disabled=cd>0;
+  let cb=btn.querySelector('.cd-bar');
+  if(!cb){cb=document.createElement('div');cb.className='cd-bar';btn.appendChild(cb);}
+  cb.style.width=cd>0?((cd/mx)*100)+'%':'0%';
+}
+function floatEmoji(e){
+  const c=document.getElementById('floating-effects'),el=document.createElement('div');
+  el.className='float-emoji';el.textContent=e;
+  el.style.left=(25+Math.random()*50)+'%';el.style.top='50%';
+  c.appendChild(el);setTimeout(()=>el.remove(),1300);
+}
+function animBaby(cls){
+  const b=document.getElementById('baby');
+  b.classList.remove('bounce','shake','run','wiggle');void b.offsetWidth;
+  b.classList.add(cls);setTimeout(()=>b.classList.remove(cls),600);
+}
+
+// ===================== MUSIC - REAL DUCK SONG =====================
+let musicPlaying=false;
+let ytPlayer=null;
+let ytReady=false;
+
+// Load YouTube IFrame API
+const ytScript=document.createElement('script');
+ytScript.src='https://www.youtube.com/iframe_api';
+document.head.appendChild(ytScript);
+
+// Hidden YT player container
+const ytDiv=document.createElement('div');
+ytDiv.id='yt-player';
+ytDiv.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
+document.body.appendChild(ytDiv);
+
+function onYouTubeIframeAPIReady(){
+  ytPlayer=new YT.Player('yt-player',{
+    height:'1',width:'1',
+    videoId:'MtN1YnoL46Q', // The Duck Song by Bryant Oden
+    playerVars:{autoplay:0,loop:1,playlist:'MtN1YnoL46Q',controls:0},
+    events:{
+      onReady:function(){ ytReady=true; },
+      onStateChange:function(e){
+        // When video ends, loop it
+        if(e.data===YT.PlayerState.ENDED && musicPlaying){
+          ytPlayer.playVideo();
+        }
+        // Update lyrics display based on playback
+        if(e.data===YT.PlayerState.PLAYING && musicPlaying){
+          updateLyrics();
+        }
+      }
+    }
+  });
+}
+
+// Lyrics synced roughly to the song timestamps
+const LYRICS_SYNC=[
+  {t:0,text:"🦆 A duck walked up to a lemonade stand..."},
+  {t:6,text:"🦆 And he said to the man, running the stand..."},
+  {t:10,text:"🦆 Hey! Bum bum bum! Got any grapes?"},
+  {t:16,text:"🍋 No, we just sell lemonade..."},
+  {t:22,text:"🍋 But it's cold and it's fresh and it's all homemade!"},
+  {t:27,text:"🦆 The duck said, I'll pass."},
+  {t:30,text:"🦆 Then he waddled away... waddle waddle waddle"},
+  {t:36,text:"🦆 Til the very next day! Bum bum bum bum bum ba dum!"},
+  {t:44,text:"🦆 A duck walked up to a lemonade stand..."},
+  {t:50,text:"🦆 Hey! Bum bum bum! Got any grapes?"},
+  {t:56,text:"🍋 No, like I said yesterday..."},
+  {t:62,text:"🍋 We just sell lemonade, OK? Why not give it a try?"},
+  {t:67,text:"🦆 The duck said, Goodbye!"},
+  {t:70,text:"🦆 Waddle waddle waddle..."},
+  {t:76,text:"🦆 Til the very next day! Bum bum bum!"},
+  {t:84,text:"🦆 Got any grapes?!"},
+  {t:90,text:"🍋 This is getting old..."},
+  {t:96,text:"🍋 Lemonade's all I've ever sold!"},
+  {t:101,text:"🦆 The duck said, How about... no."},
+  {t:105,text:"🦆 Waddle waddle waddle..."},
+  {t:113,text:"🦆 Got any grapes?!?!"},
+  {t:118,text:"🍋 THAT'S IT!"},
+  {t:121,text:"🍋 If you don't stay away, duck..."},
+  {t:125,text:"🍋 I'll glue you to a tree and leave you there all day!"},
+  {t:131,text:"🦆 The duck said, Adios!"},
+  {t:135,text:"🦆 Waddle waddle waddle..."},
+  {t:143,text:"🦆 Hey! Got any glue?"},
+  {t:148,text:"🍋 What? No, why would I—"},
+  {t:152,text:"🦆 ...Got any GRAPES?!"},
+  {t:157,text:"🦆 Then he waddled away. Waddle waddle waddle. 🍋🦆"},
+];
+
+let lyricsInterval=null;
+function updateLyrics(){
+  clearInterval(lyricsInterval);
+  lyricsInterval=setInterval(()=>{
+    if(!musicPlaying||!ytPlayer||!ytPlayer.getCurrentTime) { clearInterval(lyricsInterval); return; }
+    const t=ytPlayer.getCurrentTime();
+    let current='🦆🍋 The Duck Song';
+    for(let i=LYRICS_SYNC.length-1;i>=0;i--){
+      if(t>=LYRICS_SYNC[i].t){ current=LYRICS_SYNC[i].text; break; }
+    }
+    document.getElementById('lyrics').textContent=current;
+  },500);
+}
+
+function toggleMusic(){
+  const btn=document.getElementById('music-btn');
+  if(musicPlaying){
+    musicPlaying=false;
+    btn.classList.add('off');
+    btn.innerHTML='&#x1F507;';
+    if(ytPlayer&&ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+    clearInterval(lyricsInterval);
+    document.getElementById('lyrics').textContent='';
+  } else {
+    musicPlaying=true;
+    btn.classList.remove('off');
+    btn.innerHTML='&#x1F3B5;';
+    if(ytReady&&ytPlayer&&ytPlayer.playVideo){
+      ytPlayer.playVideo();
+      updateLyrics();
+    } else {
+      // Wait for YT to be ready
+      const check=setInterval(()=>{
+        if(ytReady&&ytPlayer&&ytPlayer.playVideo){
+          clearInterval(check);
+          ytPlayer.playVideo();
+          updateLyrics();
+        }
+      },300);
+    }
+  }
+}
+
+// ===================== DAILY REWARDS =====================
+// Infinite days! Day 1-7 hand-picked, then grows forever
+function rewardForDay(day){
+  const base=[100,150,200,250,300,400,500];
+  if(day<=7)return base[day-1];
+  // After day 7: starts at 500 and adds 100 per day, with milestone bonuses
+  let r=500+(day-7)*100;
+  if(day%30===0)r+=5000; // monthly mega bonus!
+  if(day%100===0)r+=50000; // 100-day legendary bonus!!
+  if(day%365===0)r+=500000; // yearly ULTIMATE bonus
+  return r;
+}
+function buildRewardCalendar(currentStreak,claimedToday){
+  // Show 7-day window centered on current streak
+  const start=Math.max(1,currentStreak-2);
+  let html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0">';
+  for(let i=0;i<7;i++){
+    const day=start+i;
+    const reward=rewardForDay(day);
+    const claimed=day<currentStreak||(day===currentStreak&&claimedToday);
+    const isToday=day===currentStreak&&!claimedToday;
+    let bg='#fff',border='#e0e0e0',color='#888',mark='';
+    if(claimed){bg='#c8e6c9';border='#2e7d32';color='#1b5e20';mark='✓';}
+    else if(isToday){bg='#fff3e0';border='#ff9800';color='#e65100';mark='⭐';}
+    let badge='';
+    if(day%365===0)badge='🏆';
+    else if(day%100===0)badge='💎';
+    else if(day%30===0)badge='🌟';
+    html+=`<div style="background:${bg};border:2px solid ${border};border-radius:8px;padding:6px 2px;text-align:center;font-size:.65rem">
+      <div style="font-weight:700;color:${color}">Day ${day}${badge}</div>
+      <div style="font-size:.95rem">${mark||'🎁'}</div>
+      <div style="color:#ff6f00;font-weight:700;font-size:.65rem">💰${reward.toLocaleString()}</div>
+    </div>`;
+  }
+  html+='</div>';
+  html+=`<div style="font-size:.7rem;color:#7b1fa2;font-weight:600;margin-top:4px">🌟 Every 30 days = +5,000 bonus<br>💎 Every 100 days = +50,000 bonus<br>🏆 Every 365 days = +500,000 bonus!</div>`;
+  return html;
+}
+
+function showDailyPopup(streak,reward,justClaimed){
+  const popup=document.createElement('div');
+  popup.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#fff8e1,#fff3e0);border:4px solid #ffb300;border-radius:20px;padding:20px;text-align:center;z-index:1000;box-shadow:0 10px 40px rgba(0,0,0,.3);max-width:96%;width:380px';
+  popup.innerHTML=`
+    <div style="font-size:3rem">🎁</div>
+    <h2 style="color:#e65100;margin:6px 0">Daily Rewards</h2>
+    <div style="font-size:1rem;color:#7b1fa2;font-weight:600">Day ${streak} streak 🔥</div>
+    ${justClaimed?`<div style="font-size:1.4rem;color:#ff6f00;font-weight:800;margin:8px 0">+${reward} coins claimed!</div>`:`<div style="font-size:.9rem;color:#666;margin:6px 0">Already claimed today ✓</div>`}
+    ${buildRewardCalendar(streak,justClaimed||localStorage.getItem('lastDailyClaim')===new Date().toDateString())}
+    <div style="font-size:.75rem;color:#888;margin-bottom:10px">Come back every day for bigger rewards!</div>
+    <button onclick="this.parentNode.remove()" style="padding:10px 28px;font-size:1rem;font-weight:700;border:none;border-radius:12px;background:linear-gradient(135deg,#ff9800,#e65100);color:#fff;cursor:pointer;box-shadow:0 4px 12px rgba(255,111,0,.4)">Close</button>
+  `;
+  document.body.appendChild(popup);
+}
+
+function checkDailyReward(){
+  const today=new Date().toDateString();
+  const last=localStorage.getItem('lastDailyClaim');
+  let streak=parseInt(localStorage.getItem('dailyStreak')||'0');
+  if(last===today){return;} // already claimed today, don't auto-popup
+  const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+  if(last===yesterday.toDateString())streak++;else streak=1;
+  const reward=rewardForDay(streak);
+  coins+=reward;saveCoins();
+  localStorage.setItem('lastDailyClaim',today);
+  localStorage.setItem('dailyStreak',String(streak));
+  showDailyPopup(streak,reward,true);
+}
+
+function viewRewards(){
+  const today=new Date().toDateString();
+  const last=localStorage.getItem('lastDailyClaim');
+  const streak=parseInt(localStorage.getItem('dailyStreak')||'0');
+  const claimedToday=last===today;
+  showDailyPopup(streak||1,0,false);
+}
+
+// ===================== GAME VAULT =====================
+let vaultUnlocked=localStorage.getItem('vaultUnlocked')==='true';
+const VAULT_REWARDS=[
+  {name:'Newbie Bonus',reward:1000,emoji:'👶'},
+  {name:'Stack Bonus',reward:3000,emoji:'🥞'},
+  {name:'The Duck Reward',reward:2500,emoji:'🦆'},
+  {name:'Cosmic Stash',reward:5000,emoji:'🌌'},
+  {name:'Vampire Slayer',reward:7777,emoji:'🧄'},
+  {name:'Infinity Pack',reward:99999,emoji:'♾️'}
+];
+const MASTER_CODE='THIS GAME IS FUN';
+function openVault(){
+  const popup=document.createElement('div');
+  popup.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#263238,#37474f);color:#fff;border:4px solid #ffd54f;border-radius:20px;padding:20px;text-align:center;z-index:1000;box-shadow:0 10px 40px rgba(0,0,0,.6);max-width:96%;width:360px';
+  const total=VAULT_REWARDS.reduce((a,r)=>a+r.reward,0);
+  const rewardList=VAULT_REWARDS.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;background:${vaultUnlocked?'#1b5e20':'#1c2429'};padding:6px 10px;margin:4px 0;border-radius:8px;border:1px solid ${vaultUnlocked?'#4caf50':'#455a64'}">
+    <span style="font-size:.85rem"><span style="font-size:1.2rem;margin-right:6px">${r.emoji}</span>${r.name}</span>
+    <span style="font-weight:700;color:#ffd54f">💰${r.reward.toLocaleString()}${vaultUnlocked?' ✓':''}</span>
+  </div>`).join('');
+  popup.innerHTML=`
+    <div style="font-size:3rem">🔐</div>
+    <h2 style="color:#ffd54f;margin:6px 0">Secret Vault</h2>
+    <div style="font-size:.85rem;color:#cfd8dc;margin-bottom:8px">All ${VAULT_REWARDS.length} rewards (Total: 💰${total.toLocaleString()})</div>
+    <div style="text-align:left;max-height:240px;overflow:auto">${rewardList}</div>
+    ${vaultUnlocked?`<div style="margin:10px 0;color:#69f0ae;font-weight:700;font-size:1rem">🎉 ALL UNLOCKED! 🎉</div>`:`
+    <div style="margin-top:10px;font-size:.8rem;color:#cfd8dc">Type the secret phrase:</div>
+    <input id="vault-input" type="text" placeholder="secret phrase..." style="padding:10px;font-size:.9rem;border-radius:10px;border:2px solid #ffd54f;width:90%;text-align:center;background:#fff;color:#000;font-weight:600;margin:6px 0" maxlength="40">
+    <div id="vault-msg" style="min-height:18px;font-size:.85rem;color:#ffd54f;font-weight:600"></div>
+    <button onclick="tryVaultCode()" style="padding:10px 24px;font-size:1rem;font-weight:700;border:none;border-radius:12px;background:linear-gradient(135deg,#ffd54f,#ffa000);color:#000;cursor:pointer;box-shadow:0 4px 12px rgba(255,193,7,.4);margin-top:6px">🔓 Unlock Vault</button>
+    `}
+    <button onclick="this.parentNode.remove()" style="padding:6px 16px;font-size:.8rem;font-weight:600;border:none;border-radius:10px;background:#455a64;color:#fff;cursor:pointer;margin-top:10px">Close</button>
+  `;
+  document.body.appendChild(popup);
+  if(!vaultUnlocked)setTimeout(()=>{const i=document.getElementById('vault-input');if(i)i.focus();},50);
+}
+function tryVaultCode(){
+  const inp=document.getElementById('vault-input');
+  const code=inp.value.trim().toUpperCase();
+  const msg=document.getElementById('vault-msg');
+  if(!code){msg.textContent='Type the phrase!';msg.style.color='#ff8a65';return;}
+  if(code!==MASTER_CODE){msg.textContent='❌ Not quite... try again!';msg.style.color='#ff5252';return;}
+  vaultUnlocked=true;localStorage.setItem('vaultUnlocked','true');
+  const total=VAULT_REWARDS.reduce((a,r)=>a+r.reward,0);
+  coins+=total;saveCoins();
+  msg.innerHTML=`🎉 VAULT UNLOCKED! +${total.toLocaleString()} coins!`;
+  msg.style.color='#69f0ae';
+  setTimeout(()=>{document.querySelectorAll('div').forEach(d=>{if(d.style&&d.style.zIndex==='1000')d.remove();});openVault();},1500);
+}
+
+// ===================== HIDDEN LOLLIPOP =====================
+function addLollipop(){
+  // ULTRA hidden — invisible 4x4 pixel area in random corner each load
+  // Requires 10 clicks within 1.5s of each, AND must hit the right corner
+  const lolli=document.createElement('div');
+  lolli.id='secret-lolli';
+  lolli.textContent='🍭';
+  lolli.title='';
+  // Pick one of the 4 corners randomly each page load
+  const corners=[
+    'top:0;left:0;',
+    'top:0;right:0;',
+    'bottom:0;left:0;',
+    'bottom:0;right:0;'
+  ];
+  const corner=corners[Math.floor(Math.random()*4)];
+  // 4x4 invisible hit area
+  lolli.style.cssText=`position:fixed;${corner}width:4px;height:4px;font-size:0;color:transparent;cursor:default;z-index:30;opacity:0;user-select:none;transition:opacity .2s,font-size .2s`;
+  let clickCount=0;let resetT=null;
+  lolli.onclick=(e)=>{
+    e.stopPropagation();
+    clickCount++;
+    clearTimeout(resetT);
+    resetT=setTimeout(()=>{clickCount=0;lolli.style.opacity='0';lolli.style.fontSize='0';lolli.style.color='transparent';},1500);
+    // Only reveals slightly after 8 clicks
+    if(clickCount===8){lolli.style.opacity='0.15';lolli.style.fontSize='10px';lolli.style.color='#880e4f';}
+    if(clickCount===9){lolli.style.opacity='0.4';lolli.style.fontSize='14px';}
+    if(clickCount>=10){
+      lolli.style.opacity='1';lolli.style.fontSize='24px';
+      const tip=document.createElement('div');
+      tip.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#fce4ec,#f8bbd0);border:3px solid #ec407a;border-radius:14px;padding:14px 18px;z-index:1001;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:280px;font-size:.85rem;color:#880e4f;font-weight:600;text-align:center';
+      tip.innerHTML=`🍭 <i>The lollipop whispers...</i><br><br>"Try this in the 🔐 Secret Vault:"<br><b style="color:#c2185b;font-size:1.1rem;letter-spacing:1px">"this game is fun"</b><br><br><button onclick="this.parentNode.remove()" style="padding:6px 16px;border:none;border-radius:8px;background:#ec407a;color:#fff;font-weight:700;cursor:pointer;margin-top:6px">Got it!</button>`;
+      document.body.appendChild(tip);
+      clickCount=0;
+      setTimeout(()=>{lolli.style.opacity='0';lolli.style.fontSize='0';lolli.style.color='transparent';},3000);
+    }
+  };
+  document.body.appendChild(lolli);
+}
+
+// ===================== INIT =====================
+rollRandomBabies(100);
+buildAdoptScreen();
+saveCoins();
+checkDailyReward();
+addLollipop();
+</script>
+</body>
+</html>

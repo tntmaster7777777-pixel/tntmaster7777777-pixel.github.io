@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>The Weird Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; cursor: crosshair;
+    font-family: 'Courier New', monospace; color: #fff;
+    background: #111;
+  }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .scene {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at var(--mx,50%) var(--my,50%), #4a006b, #110022 70%);
+    transition: background .3s;
+  }
+  h1 {
+    font-size: 36px; letter-spacing: 6px; z-index: 2;
+    text-shadow: 0 0 20px #ff00ff;
+    animation: flicker 4s infinite;
+  }
+  @keyframes flicker {
+    0%,100% { opacity: 1 }
+    47% { opacity: 1 }
+    48% { opacity: 0.2 }
+    49% { opacity: 1 }
+    70% { opacity: 0.8 }
+    71% { opacity: 0.1 }
+    72% { opacity: 1 }
+  }
+  .sub { font-size: 12px; letter-spacing: 4px; color: #ff99ff; margin-top: 8px; z-index: 2; }
+
+  /* The Eye */
+  #eye {
+    position: absolute; top: 50%; left: 50%;
+    width: 220px; height: 220px;
+    background: #f8f8f0;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 80px rgba(255,255,255,.3), inset 0 0 30px rgba(0,0,0,.4);
+    cursor: pointer;
+    z-index: 3;
+    border: 6px solid #ff00ff;
+  }
+  #pupil {
+    position: absolute; top: 50%; left: 50%;
+    width: 70px; height: 70px;
+    background: radial-gradient(circle at 30% 30%, #ff00ff, #000 60%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform .05s ease-out;
+  }
+  #eye.blink { animation: blink .25s ease-out; }
+  @keyframes blink {
+    0%, 100% { transform: translate(-50%, -50%) scaleY(1) }
+    50%      { transform: translate(-50%, -50%) scaleY(0.05) }
+  }
+
+  /* Floating weird creatures */
+  .thing {
+    position: absolute; font-size: 40px; pointer-events: none;
+    animation: float 8s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+  @keyframes float {
+    0%,100% { transform: translate(0,0) rotate(0) }
+    25%     { transform: translate(40px,-30px) rotate(20deg) }
+    50%     { transform: translate(-20px,30px) rotate(-15deg) }
+    75%     { transform: translate(30px,20px) rotate(10deg) }
+  }
+
+  /* Messages */
+  #msg {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    font-size: 18px; letter-spacing: 2px; text-align: center;
+    background: rgba(0,0,0,.5); padding: 10px 20px; border-radius: 10px;
+    z-index: 4; max-width: 80%;
+  }
+  #counter {
+    position: absolute; top: 20px; right: 20px;
+    font-size: 14px; color: #ff99ff; z-index: 4;
+  }
+  .back { position: absolute; top: 20px; left: 20px; color: #ff99ff;
+    text-decoration: none; font-size: 12px; z-index: 4; letter-spacing: 2px; }
+  .back:hover { color: #fff; }
+
+  /* Scanline overlay */
+  body::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+    background: repeating-linear-gradient(0deg, rgba(255,0,255,.03) 0 2px, transparent 2px 4px);
+  }
+
+  /* The screen distorts more as you click */
+  .weird-1 { filter: hue-rotate(40deg); }
+  .weird-2 { filter: hue-rotate(80deg) saturate(1.5); }
+  .weird-3 { filter: hue-rotate(120deg) saturate(2) blur(.5px); }
+  .weird-4 { filter: hue-rotate(180deg) saturate(2) invert(.2); }
+  .weird-5 { filter: hue-rotate(220deg) saturate(2) invert(.4) blur(1px); }
+</style>
+</head>
+<body>
+  <div class="scene"></div>
+  <a class="back" href="../index.html">← back</a>
+  <div id="counter">Clicks: 0</div>
+
+  <h1>THE WEIRD GAME</h1>
+  <div class="sub">click the eye. don't stop.</div>
+
+  <div id="eye"><div id="pupil"></div></div>
+
+  <div id="msg">it sees you.</div>
+
+<script>
+  const eye = document.getElementById('eye');
+  const pupil = document.getElementById('pupil');
+  const msg = document.getElementById('msg');
+  const counter = document.getElementById('counter');
+  const body = document.body;
+  let clicks = 0;
+  let mx = innerWidth/2, my = innerHeight/2;
+
+  // Pupil follows mouse
+  document.addEventListener('mousemove', (e) => {
+    mx = e.clientX; my = e.clientY;
+    const r = eye.getBoundingClientRect();
+    const cx = r.left + r.width/2;
+    const cy = r.top + r.height/2;
+    const dx = mx - cx, dy = my - cy;
+    const dist = Math.min(40, Math.hypot(dx, dy));
+    const ang = Math.atan2(dy, dx);
+    pupil.style.transform = `translate(${-50 + Math.cos(ang)*30}%, ${-50 + Math.sin(ang)*30}%)`;
+    document.querySelector('.scene').style.setProperty('--mx', (mx/innerWidth*100) + '%');
+    document.querySelector('.scene').style.setProperty('--my', (my/innerHeight*100) + '%');
+  });
+
+  // Random eye blinks
+  setInterval(() => {
+    eye.classList.add('blink');
+    setTimeout(() => eye.classList.remove('blink'), 250);
+  }, 3000 + Math.random() * 4000);
+
+  const MESSAGES = [
+    "it sees you.","why are you here.","keep clicking. it likes that.",
+    "stop looking at it.","it remembers.","the room is upside down.","you blinked.",
+    "the eye is hungry.","you are inside the eye.","it's been watching all along.",
+    "stop.","stop.","STOP.","or don't.","you've gone too far.","welcome home.",
+    "the floor is breathing.","time is a worm.","you are the eye now.",
+    "press any key. or don't.","blue.","blue blue blue blue blue."
+  ];
+
+  const CREATURES = ['👁','🦷','🐛','🌀','🥚','🦷','👃','👂','🐙','🦠','🪱','🍄','🧠','🦷','💀'];
+
+  let ac;
+  function weirdSound() {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const t = ac.currentTime;
+    const f = 100 + Math.random() * 600;
+    const o = ac.createOscillator(); const g = ac.createGain();
+    o.type = ['sine','square','triangle','sawtooth'][Math.floor(Math.random()*4)];
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.exponentialRampToValueAtTime(f * (0.3 + Math.random()*2), t + 0.4);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.15, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    o.connect(g).connect(ac.destination);
+    o.start(t); o.stop(t + 0.5);
+  }
+
+  function spawnCreature() {
+    const c = document.createElement('div');
+    c.className = 'thing';
+    c.textContent = CREATURES[Math.floor(Math.random()*CREATURES.length)];
+    c.style.left = Math.random() * 90 + '%';
+    c.style.top  = Math.random() * 90 + '%';
+    c.style.color = `hsl(${Math.random()*360}, 100%, 70%)`;
+    c.style.animationDelay = (Math.random()*-8) + 's';
+    body.appendChild(c);
+    setTimeout(() => c.remove(), 8000);
+  }
+
+  eye.addEventListener('click', () => {
+    clicks++;
+    counter.textContent = `Clicks: ${clicks}`;
+    msg.textContent = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
+    weirdSound();
+    spawnCreature();
+
+    // Eye grows weirder
+    body.className = '';
+    if (clicks > 5)  body.classList.add('weird-1');
+    if (clicks > 15) body.classList.replace('weird-1','weird-2');
+    if (clicks > 30) body.classList.replace('weird-2','weird-3');
+    if (clicks > 50) body.classList.replace('weird-3','weird-4');
+    if (clicks > 80) body.classList.replace('weird-4','weird-5');
+
+    // Eye grows
+    const size = Math.min(400, 220 + clicks * 2);
+    eye.style.width = size + 'px';
+    eye.style.height = size + 'px';
+
+    if (clicks === 100) {
+      msg.textContent = "🎉 YOU WIN. you are now the eye.";
+      document.title = "👁 you";
+    }
+  });
+</script>
+</body>
+</html>

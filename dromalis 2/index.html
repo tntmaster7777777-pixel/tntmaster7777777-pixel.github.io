@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DROMALIS 2 — REVOLUTIONARY ADVENTURE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0202;color:#fff;font-family:'Courier New',monospace;
+  min-height:100vh;overflow-x:hidden}
+.back{position:fixed;top:14px;left:14px;z-index:50;color:#ff6600;text-decoration:none;
+  background:rgba(0,0,0,.8);padding:6px 14px;border:1px solid #ff6600;border-radius:6px;
+  font-size:11px;letter-spacing:2px;font-weight:700}
+.back:hover{background:#ff6600;color:#000}
+
+header{text-align:center;padding:24px 20px 8px;
+  background:linear-gradient(180deg,#3a0a0a,transparent)}
+header h1{font-size:42px;font-weight:900;letter-spacing:8px;
+  background:linear-gradient(135deg,#ff0033,#ff6600,#ffcc00);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px rgba(255,40,40,.6))}
+header p{font-size:12px;letter-spacing:5px;color:#ff9966;margin-top:4px}
+
+/* HUD */
+.hud{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:8px 14px 12px;
+  max-width:1300px;margin:0 auto}
+.stat{background:rgba(40,10,10,.9);border:2px solid #8b0000;border-radius:8px;
+  padding:6px 14px;text-align:center;min-width:100px}
+.stat .l{font-size:9px;letter-spacing:2px;color:#ff9966}
+.stat .v{font-size:18px;font-weight:900;color:#ff6600;margin-top:2px;
+  text-shadow:0 0 8px rgba(255,80,80,.4)}
+.stat.gold .v{color:#ffd700}
+.stat.food .v{color:#88ff88}
+.stat.weap .v{color:#88ddff}
+.stat.troop .v{color:#ff9966}
+.stat.morale .v{color:#ff66cc}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:1fr 320px;gap:14px;max-width:1300px;margin:0 auto;
+  padding:0 14px 30px}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}}
+
+/* Camp view */
+.camp{background:
+    linear-gradient(180deg,
+      #2a2010 0%,
+      #3a2a18 35%,
+      #4a3a1e 65%,
+      #2a1a08 100%);
+  border:3px solid #8b0000;border-radius:14px;height:540px;position:relative;overflow:hidden;
+  box-shadow:inset 0 0 50px rgba(0,0,0,.6)}
+/* Sky */
+.camp::before{content:'';position:absolute;top:0;left:0;right:0;height:35%;
+  background:linear-gradient(180deg,#3a1a1a 0%,#5a2828 50%,#2a1410 100%)}
+.camp::after{content:'☼';position:absolute;top:14px;right:30px;font-size:34px;
+  color:#ff6600;filter:drop-shadow(0 0 12px #ff8800);z-index:1}
+/* Distant fortress */
+.fortress{position:absolute;top:35%;right:20px;width:120px;height:80px;z-index:1;
+  background:linear-gradient(180deg,#3a0808 0%,#5a1010 60%,#2a0404 100%);
+  clip-path:polygon(0 100%, 0 30%, 10% 30%, 10% 0, 20% 0, 20% 30%, 30% 30%, 30% 0, 40% 0, 40% 30%, 60% 30%, 60% 0, 70% 0, 70% 30%, 80% 30%, 80% 0, 90% 0, 90% 30%, 100% 30%, 100% 100%);
+  border-bottom:3px solid #1a0202;
+  transform:translateZ(0);
+  opacity:.85}
+.fortress::after{content:'⚑';position:absolute;top:-22px;left:45%;
+  font-size:24px;color:#ff0033;animation:wave 2s ease-in-out infinite;
+  filter:drop-shadow(0 0 6px #ff0033)}
+@keyframes wave{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+/* Distant fortress label */
+.fortress-label{position:absolute;top:35%;right:30px;font-size:9px;letter-spacing:2px;
+  color:#ff6666;z-index:2;margin-top:-12px;text-shadow:0 0 4px #000}
+
+/* Ground grid for placing buildings */
+.field{position:absolute;left:14px;right:14px;bottom:14px;top:55%;z-index:2;
+  display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(3,1fr);gap:6px}
+.plot{background:rgba(0,0,0,.25);border:1px dashed rgba(255,150,80,.2);
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .15s;position:relative;font-size:10px;color:#888}
+.plot:hover{background:rgba(255,150,80,.15);border-color:#ff9966}
+.plot.building{cursor:default;background:rgba(0,0,0,.5);border:2px solid #8b0000}
+.plot.building:hover{background:rgba(0,0,0,.5);border-color:#ffd700}
+.plot.placing{outline:2px solid #ffd700;outline-offset:-1px}
+
+/* Building visuals */
+.b-icon{font-size:36px;line-height:1;text-shadow:0 0 8px rgba(0,0,0,.8)}
+.b-name{position:absolute;bottom:2px;left:2px;right:2px;font-size:8px;letter-spacing:1px;
+  color:#ffd700;text-align:center;font-weight:900;text-shadow:0 0 4px #000}
+.b-prog{position:absolute;top:2px;left:2px;right:2px;height:3px;
+  background:rgba(0,0,0,.6);border-radius:2px;overflow:hidden}
+.b-prog .f{height:100%;background:linear-gradient(90deg,#ff6600,#ffd700);transition:width .2s}
+.b-lvl{position:absolute;top:2px;right:2px;background:#ffd700;color:#000;
+  font-size:8px;font-weight:900;padding:1px 3px;border-radius:2px;letter-spacing:0}
+
+/* ===== 3D SOLDIER ===== */
+.soldier{position:absolute;width:36px;height:54px;z-index:5;
+  perspective:240px;transition:left .4s linear;pointer-events:none}
+.soldier::after{content:'';position:absolute;bottom:-2px;left:50%;
+  transform:translateX(-50%);width:26px;height:6px;
+  background:radial-gradient(ellipse,rgba(0,0,0,.7),transparent 70%);
+  pointer-events:none;z-index:0;filter:blur(1px)}
+.soldier-3d{position:absolute;inset:0;transform-style:preserve-3d;
+  transform-origin:50% 100%;
+  animation:soldSpin 5s ease-in-out infinite alternate}
+@keyframes soldSpin{
+  0%   {transform:scale(1.3) rotateX(-12deg) rotateY(15deg)}
+  100% {transform:scale(1.3) rotateX(-12deg) rotateY(50deg)}
+}
+.soldier.flip .soldier-3d{
+  animation:soldSpinFlip 5s ease-in-out infinite alternate}
+@keyframes soldSpinFlip{
+  0%   {transform:scale(1.3) rotateX(-12deg) rotateY(-15deg)}
+  100% {transform:scale(1.3) rotateX(-12deg) rotateY(-50deg)}
+}
+.soldier.marching{animation:march3d .35s alternate infinite}
+@keyframes march3d{from{transform:translateY(0)}to{transform:translateY(-2px)}}
+
+/* Soldier cuboid base */
+.cuS{position:absolute;left:50%;bottom:0;width:0;height:0;
+  transform-style:preserve-3d}
+.cuS .f{position:absolute;box-sizing:border-box;border:1px solid rgba(0,0,0,.4)}
+.cuS .ft,.cuS .bk{width:calc(var(--w)*1px);height:calc(var(--h)*1px);
+  left:calc(var(--w)*-.5px);top:calc(var(--h)*-.5px)}
+.cuS .ft{background:var(--col,#888);transform:translateZ(calc(var(--d)*.5px))}
+.cuS .bk{background:var(--cdk,#444);transform:rotateY(180deg) translateZ(calc(var(--d)*.5px))}
+.cuS .rt,.cuS .lf{width:calc(var(--d)*1px);height:calc(var(--h)*1px);
+  left:calc(var(--d)*-.5px);top:calc(var(--h)*-.5px)}
+.cuS .rt{background:var(--csi,#666);transform:rotateY(90deg) translateZ(calc(var(--w)*.5px))}
+.cuS .lf{background:var(--csi,#666);transform:rotateY(-90deg) translateZ(calc(var(--w)*.5px))}
+.cuS .tp,.cuS .bt{width:calc(var(--w)*1px);height:calc(var(--d)*1px);
+  left:calc(var(--w)*-.5px);top:calc(var(--d)*-.5px)}
+.cuS .tp{background:var(--ctp,#aaa);transform:rotateX(90deg) translateZ(calc(var(--h)*.5px))}
+.cuS .bt{background:var(--cbt,#333);transform:rotateX(-90deg) translateZ(calc(var(--h)*.5px))}
+
+/* Soldier body parts */
+.cuS.helmS{--w:12;--h:5;--d:12;
+  --col:#999;--cdk:#222;--csi:#555;--ctp:#ccc;--cbt:#111;
+  transform:translate3d(0,-34px,0)}
+.cuS.helmS .ft{background:linear-gradient(180deg,#bbb 0 30%,#666 30% 60%,#999 60%)}
+.cuS.helmS .tp{background:radial-gradient(ellipse,#ddd,#999)}
+.cuS.headS{--w:9;--h:9;--d:9;
+  --col:#f4c79b;--cdk:#9a6438;--csi:#c4925a;--ctp:#ffd9b0;--cbt:#6a3818;
+  transform:translate3d(0,-26px,0)}
+.cuS.headS .ft{background:
+  radial-gradient(circle at 30% 40%,#1a0a05 0 1px,transparent 1.2px),
+  radial-gradient(circle at 70% 40%,#1a0a05 0 1px,transparent 1.2px),
+  #f4c79b}
+.cuS.torsoS{--w:13;--h:13;--d:7;
+  --col:#8b1010;--cdk:#3a0404;--csi:#5a0a0a;--ctp:#aa2828;--cbt:#1a0202;
+  transform:translate3d(0,-15px,0)}
+.cuS.torsoS .ft{background:linear-gradient(180deg,#8b1010 0 30%,#ffd700 30% 40%,#8b1010 40%)}
+.cuS.armS-l{--w:3;--h:11;--d:3;
+  --col:#8b1010;--cdk:#3a0404;--csi:#5a0a0a;--ctp:#aa2828;--cbt:#1a0202;
+  transform:translate3d(-8px,-16px,0)}
+.cuS.legS-l{--w:4;--h:9;--d:4;
+  --col:#2a2010;--cdk:#0a0500;--csi:#1a1008;--ctp:#4a3a18;--cbt:#000;
+  transform:translate3d(-3px,-4.5px,0)}
+.cuS.legS-r{--w:4;--h:9;--d:4;
+  --col:#2a2010;--cdk:#0a0500;--csi:#1a1008;--ctp:#4a3a18;--cbt:#000;
+  transform:translate3d(3px,-4.5px,0)}
+
+/* Right arm + sword (rotates around shoulder) */
+.shoulderS-pos{position:absolute;left:50%;bottom:0;width:0;height:0;
+  transform-style:preserve-3d;transform:translate3d(8px,-21px,0)}
+.shoulderS-rot{position:absolute;width:0;height:0;
+  transform-style:preserve-3d}
+.cuS.armS-r{--w:3;--h:11;--d:3;
+  --col:#8b1010;--cdk:#3a0404;--csi:#5a0a0a;--ctp:#aa2828;--cbt:#1a0202}
+.shoulderS-rot .cuS.armS-r{transform:translate3d(0,5.5px,0)}
+.cuS.sword-h{--w:2;--h:3;--d:2;
+  --col:#8b4513;--cdk:#3a2010;--csi:#5a2d0a;--ctp:#aa5c1a;--cbt:#1a0a00}
+.shoulderS-rot .cuS.sword-h{transform:translate3d(0,11px,3px)}
+.cuS.sword-b{--w:2;--h:14;--d:1;
+  --col:#e8e8e8;--cdk:#666;--csi:#aaa;--ctp:#fff;--cbt:#444}
+.cuS.sword-b .ft{background:linear-gradient(180deg,#fff,#ddd 50%,#888)}
+.shoulderS-rot .cuS.sword-b{transform:translate3d(0,3px,3px)}
+
+.soldier.attacking .shoulderS-rot{
+  animation:swordSwing .3s ease-in-out alternate infinite}
+@keyframes swordSwing{
+  from{transform:rotateX(-30deg)}
+  to{transform:rotateX(80deg)}
+}
+
+/* Enemy soldier color overrides (blue uniform) */
+.soldier.enemy .cuS.torsoS{--col:#1a1a4a;--cdk:#000;--csi:#0a0a2a;--ctp:#3a3a7a;--cbt:#000}
+.soldier.enemy .cuS.torsoS .ft{background:linear-gradient(180deg,#1a1a4a 0 30%,#888 30% 40%,#1a1a4a 40%)}
+.soldier.enemy .cuS.armS-l,.soldier.enemy .cuS.armS-r{
+  --col:#1a1a4a;--cdk:#000;--csi:#0a0a2a;--ctp:#3a3a7a;--cbt:#000}
+.soldier.enemy .cuS.helmS{--col:#555;--cdk:#000;--csi:#222;--ctp:#777;--cbt:#000}
+.soldier.enemy .cuS.helmS .ft{background:linear-gradient(180deg,#777 0 30%,#222 30% 60%,#555 60%)}
+
+/* ===== VICTORY AFTER-FIGHT SCENE ===== */
+#victoryScene{position:fixed;inset:0;z-index:90;display:none;overflow:hidden;
+  font-family:'Courier New',monospace}
+#victoryScene.show{display:block;animation:vFade .5s}
+@keyframes vFade{from{opacity:0}to{opacity:1}}
+.vsky{position:absolute;inset:0;
+  background:linear-gradient(180deg,
+    #88c4f7 0%,
+    #aae0ff 30%,
+    #fef3c0 47%,
+    #9ed870 50%,
+    #7ac050 60%)}
+.vsun{position:absolute;top:40px;right:90px;font-size:80px;
+  filter:drop-shadow(0 0 35px #ffd700);z-index:1;
+  animation:vSunSpin 25s linear infinite,vSunPulse 3s ease-in-out infinite}
+@keyframes vSunSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes vSunPulse{0%,100%{filter:drop-shadow(0 0 25px #ffd700)}50%{filter:drop-shadow(0 0 55px #fff599)}}
+.vcloud{position:absolute;font-size:54px;color:#fff;opacity:.95;z-index:2;
+  text-shadow:0 0 18px rgba(255,255,255,.7);
+  animation:vCloudMove 40s linear infinite}
+.vcloud.c1{top:50px;animation-delay:0s}
+.vcloud.c2{top:110px;font-size:42px;animation-delay:-15s}
+.vcloud.c3{top:170px;font-size:36px;animation-delay:-28s}
+@keyframes vCloudMove{
+  from{left:-100px}
+  to{left:calc(100vw + 100px)}
+}
+.vmountains{position:absolute;left:0;right:0;top:38%;height:80px;z-index:1;
+  background:linear-gradient(180deg,#6a7a8a,#3a4a5a);
+  clip-path:polygon(0 100%, 0 60%, 8% 40%, 15% 70%, 22% 30%, 30% 60%, 38% 20%, 48% 65%, 55% 35%, 65% 55%, 72% 25%, 80% 50%, 88% 35%, 100% 60%, 100% 100%);
+  opacity:.7}
+.vtrees{position:absolute;top:44%;left:0;right:0;display:flex;
+  justify-content:space-around;font-size:60px;z-index:2;pointer-events:none;
+  text-shadow:0 6px 12px rgba(0,0,0,.4)}
+.vgrass{position:absolute;top:50%;left:0;right:0;bottom:24%;z-index:3;
+  background:
+    radial-gradient(ellipse 90px 14px at 18% 28%,rgba(50,90,30,.4) 0%,transparent 70%),
+    radial-gradient(ellipse 70px 11px at 48% 58%,rgba(50,90,30,.4) 0%,transparent 70%),
+    radial-gradient(ellipse 110px 16px at 78% 38%,rgba(50,90,30,.4) 0%,transparent 70%),
+    radial-gradient(ellipse 80px 13px at 35% 78%,rgba(50,90,30,.4) 0%,transparent 70%),
+    linear-gradient(180deg,#8ad560 0%,#6bb540 60%,#4a9a28 100%)}
+.vgrass::before{content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(
+    90deg,transparent 0 7px,
+    rgba(80,140,60,.35) 7px 8px,
+    transparent 8px 16px);
+  opacity:.6}
+.vgrass::after{content:'🌸  🌼  🌺  🌻  🌷  🌸  🌼';position:absolute;
+  font-size:22px;letter-spacing:50px;
+  top:35%;left:5%;opacity:.9;white-space:nowrap}
+.vwater{position:absolute;bottom:0;left:0;right:0;height:24%;z-index:3;
+  background:linear-gradient(180deg,#6abce0 0%,#3a8fd0 35%,#1a5f9a 100%);
+  box-shadow:inset 0 6px 18px rgba(0,0,0,.3),0 -10px 24px rgba(0,0,0,.4)}
+.vwater::before{content:'';position:absolute;top:-5px;left:0;right:0;height:9px;
+  background:repeating-linear-gradient(90deg,
+    transparent 0 12px,
+    rgba(255,255,255,.75) 12px 20px,
+    transparent 20px 30px);
+  animation:vWave1 3s linear infinite}
+.vwater::after{content:'';position:absolute;top:18px;left:0;right:0;height:6px;
+  background:repeating-linear-gradient(90deg,
+    transparent 0 16px,
+    rgba(255,255,255,.45) 16px 24px,
+    transparent 24px 36px);
+  animation:vWave2 4s linear infinite}
+@keyframes vWave1{from{background-position:0 0}to{background-position:60px 0}}
+@keyframes vWave2{from{background-position:0 0}to{background-position:-72px 0}}
+.vsoldier-area{position:absolute;top:50%;left:0;right:0;bottom:24%;z-index:4;
+  pointer-events:none}
+.vsoldier-area .soldier{position:absolute}
+.vboat{position:absolute;bottom:12%;font-size:36px;z-index:5;
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,.4));
+  animation:vBoatBob 5s ease-in-out infinite}
+@keyframes vBoatBob{
+  0%,100%{transform:translate(0,0) rotate(-2deg)}
+  50%{transform:translate(50px,-4px) rotate(2deg)}
+}
+.vbird{position:absolute;font-size:24px;z-index:4;
+  animation:vBirdFly 14s linear infinite}
+@keyframes vBirdFly{
+  from{left:-30px;transform:translateY(0)}
+  50%{transform:translateY(-25px)}
+  to{left:calc(100vw + 30px);transform:translateY(15px)}
+}
+.vbanner{position:absolute;top:8%;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,#ff6600,#ffd700);color:#000;
+  padding:20px 40px;border-radius:18px;border:4px solid #fff;
+  box-shadow:0 0 60px rgba(255,200,0,.8),inset 0 2px 8px rgba(255,255,255,.5);
+  text-align:center;z-index:20;
+  animation:vBannerPop .6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes vBannerPop{
+  0%{transform:translateX(-50%) scale(0) rotate(-30deg);opacity:0}
+  60%{transform:translateX(-50%) scale(1.15) rotate(4deg);opacity:1}
+  100%{transform:translateX(-50%) scale(1) rotate(0);opacity:1}
+}
+.vbanner h2{font-size:36px;letter-spacing:8px;margin-bottom:8px;
+  text-shadow:0 2px 4px rgba(255,255,255,.5)}
+.vbanner p{font-size:13px;margin-bottom:14px;line-height:1.6;letter-spacing:1px;
+  font-weight:700}
+.vbanner button{background:#1a5f9a;color:#fff;border:none;
+  padding:12px 32px;font-family:inherit;font-weight:900;letter-spacing:3px;
+  cursor:pointer;border-radius:8px;font-size:13px;
+  box-shadow:0 4px 14px rgba(0,0,0,.4);transition:all .15s}
+.vbanner button:hover{background:#3a8fd0;transform:translateY(-2px);
+  box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.confetti{position:absolute;width:9px;height:14px;
+  pointer-events:none;animation:vConfetti 4s linear forwards;z-index:30}
+@keyframes vConfetti{
+  0%{transform:translateY(-50px) rotate(0);opacity:1}
+  100%{transform:translateY(110vh) rotate(720deg);opacity:0}
+}
+
+/* Smoke / fire above buildings */
+.smoke{position:absolute;width:6px;height:6px;background:rgba(255,150,80,.6);
+  border-radius:50%;pointer-events:none;animation:smokeup 2s ease-out forwards}
+@keyframes smokeup{
+  from{transform:translateY(0) scale(1);opacity:.8}
+  to{transform:translateY(-40px) scale(2);opacity:0}
+}
+
+/* Battle field overlay */
+.battle{position:absolute;inset:0;z-index:8;background:rgba(20,0,0,.6);display:none;
+  align-items:center;justify-content:center}
+.battle.show{display:flex}
+.battle .arena{width:100%;height:100%;position:relative}
+.battle .label{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  font-size:14px;letter-spacing:4px;color:#ffd700;font-weight:900;
+  background:rgba(0,0,0,.8);padding:6px 16px;border-radius:6px;border:1px solid #ff6600}
+
+/* Sidebar */
+.sidebar{display:flex;flex-direction:column;gap:10px}
+.panel{background:rgba(20,5,5,.9);border:2px solid #8b0000;border-radius:10px;padding:10px}
+.panel h3{font-size:11px;letter-spacing:3px;color:#ff6600;margin-bottom:8px;
+  border-bottom:1px solid #8b0000;padding-bottom:4px}
+
+.build-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.build-btn{background:linear-gradient(135deg,#3a0808,#5a1010);border:1px solid #ff3333;
+  color:#fff;padding:8px 6px;border-radius:6px;cursor:pointer;font-family:inherit;
+  font-size:10px;letter-spacing:1px;text-align:center;transition:all .2s;line-height:1.3}
+.build-btn:hover:not(:disabled){background:linear-gradient(135deg,#5a1010,#8b1818);
+  border-color:#ffd700}
+.build-btn:disabled{opacity:.4;cursor:not-allowed}
+.build-btn.selected{background:linear-gradient(135deg,#ff6600,#ffd700);color:#000;
+  font-weight:900;border-color:#ffd700}
+.build-btn .ico{font-size:20px;display:block;margin-bottom:2px}
+.build-btn .cost{display:block;color:#ffd700;font-size:9px;margin-top:2px}
+
+.act-btn{width:100%;background:linear-gradient(135deg,#ff0033,#ff6600);color:#000;
+  border:none;padding:9px;border-radius:6px;cursor:pointer;font-weight:900;
+  font-family:inherit;font-size:11px;letter-spacing:2px;margin-bottom:5px;
+  box-shadow:0 0 10px rgba(255,80,0,.3)}
+.act-btn:hover:not(:disabled){background:linear-gradient(135deg,#ff6600,#ffd700);
+  box-shadow:0 0 20px rgba(255,200,0,.5)}
+.act-btn:disabled{opacity:.4;cursor:not-allowed;background:#4a2020;color:#888}
+
+/* District list */
+.district{display:flex;justify-content:space-between;align-items:center;padding:7px;
+  margin-bottom:4px;background:rgba(0,0,0,.4);border-radius:6px;
+  border:1px solid #4a2020;font-size:11px}
+.district.captured{border-color:#ff0033;background:linear-gradient(135deg,#3a0808,#5a1010)}
+.district.captured .n b{color:#ffd700}
+.district .n b{display:block;color:#ff9966;font-size:12px}
+.district .n span{font-size:9px;color:#aaa}
+.district button{background:linear-gradient(135deg,#8b0000,#ff0033);color:#fff;
+  border:none;padding:5px 9px;border-radius:5px;cursor:pointer;font-family:inherit;
+  font-size:9px;font-weight:900;letter-spacing:1px}
+.district button:hover:not(:disabled){background:linear-gradient(135deg,#ff0033,#ff6600);color:#000}
+.district button:disabled{background:#3a2020;color:#666;cursor:not-allowed}
+.district.captured button{display:none}
+.district .flag{font-size:18px}
+
+/* Log */
+.log{max-height:120px;overflow-y:auto;font-size:10px;line-height:1.7;
+  background:rgba(0,0,0,.5);padding:8px;border-radius:6px;border:1px solid #4a2020}
+.log .l{padding:2px 0;border-bottom:1px dashed rgba(255,80,80,.1)}
+.log .victory{color:#88ff88;font-weight:900}
+.log .danger{color:#ff3333}
+.log .info{color:#ff9966}
+.log .glory{color:#ffd700;font-weight:900}
+
+/* End overlay */
+#endOverlay{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:20px}
+#endOverlay.show{display:flex}
+#endBox{background:linear-gradient(135deg,#3a0808,#1a0202);border:4px solid #ff0033;
+  padding:36px;border-radius:18px;max-width:520px;text-align:center;
+  box-shadow:0 0 80px rgba(255,0,50,.5)}
+#endBox h2{font-size:32px;letter-spacing:6px;margin-bottom:12px;color:#ffd700;
+  text-shadow:0 0 20px #ffd700}
+#endBox.lose h2{color:#ff3333;text-shadow:0 0 20px #ff3333}
+#endBox p{color:#e8d0c0;margin-bottom:18px;line-height:1.6;font-size:13px}
+#endBox button{background:#ff0033;color:#fff;border:none;padding:12px 24px;
+  font-family:inherit;font-weight:900;letter-spacing:2px;cursor:pointer;border-radius:8px;
+  font-size:12px;margin:4px}
+#endBox button.gold{background:linear-gradient(135deg,#ffd700,#ff6600);color:#000}
+
+/* Floating combat text */
+.combat-text{position:absolute;color:#ff3333;font-weight:900;font-size:14px;
+  pointer-events:none;z-index:10;animation:floatup 1s ease-out forwards;
+  text-shadow:0 0 6px #000}
+@keyframes floatup{
+  from{transform:translateY(0);opacity:1}
+  to{transform:translateY(-40px);opacity:0}
+}
+
+/* Build mode banner */
+.build-banner{position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:6;
+  background:rgba(0,0,0,.8);border:1px solid #ffd700;padding:4px 14px;border-radius:20px;
+  font-size:10px;letter-spacing:2px;color:#ffd700;display:none}
+.build-banner.show{display:block}
+</style>
+</head>
+<body>
+
+<a class="back" href="../index.html">← VAULT</a>
+
+<header>
+  <h1>⚔ DROMALIS 2</h1>
+  <p>REVOLUTIONARY ADVENTURE — REBEL CAMP</p>
+</header>
+
+<div class="hud">
+  <div class="stat gold"><div class="l">💰 GOLD</div><div class="v" id="rGold">100</div></div>
+  <div class="stat food"><div class="l">🌾 FOOD</div><div class="v" id="rFood">50</div></div>
+  <div class="stat weap"><div class="l">⚔ WEAPONS</div><div class="v" id="rWeap">10</div></div>
+  <div class="stat troop"><div class="l">🪖 SOLDIERS</div><div class="v" id="rTroop">5</div></div>
+  <div class="stat morale"><div class="l">📣 MORALE</div><div class="v" id="rMorale">60</div></div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="camp" id="camp">
+      <div class="fortress"></div>
+      <div class="fortress-label">⚑ TYRANT</div>
+      <div class="build-banner" id="buildBanner">CLICK A PLOT TO PLACE</div>
+      <div class="field" id="field"></div>
+      <div class="battle" id="battle"><div class="arena" id="arena"></div></div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="panel">
+      <h3>🏗 BUILD STRUCTURE</h3>
+      <div class="build-grid" id="buildMenu"></div>
+    </div>
+
+    <div class="panel">
+      <h3>⚔ WAR ROOM</h3>
+      <button class="act-btn" id="trainBtn">🪖 TRAIN SOLDIER (10🌾 + 5⚔)</button>
+      <button class="act-btn" id="forgeBtn">⚔ FORGE WEAPONS (20💰)</button>
+      <button class="act-btn" id="feastBtn">🍖 FEAST (30🌾 → +morale)</button>
+    </div>
+
+    <div class="panel">
+      <h3>🏰 DISTRICTS TO TAKE</h3>
+      <div id="districts"></div>
+    </div>
+
+    <div class="panel">
+      <h3>📜 CHRONICLE</h3>
+      <div class="log" id="log"><div class="l info">⚑ Your camp is small. The tyrant rules. Build your army.</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="endOverlay">
+  <div id="endBox">
+    <h2 id="endTitle"></h2>
+    <p id="endText"></p>
+    <button onclick="location.reload()">RISE AGAIN</button>
+    <button class="gold" onclick="location.href='../index.html'">VAULT</button>
+  </div>
+</div>
+
+<!-- ===== AFTER-FIGHT VICTORY SCENE ===== -->
+<div id="victoryScene">
+  <div class="vsky"></div>
+  <div class="vsun">☀</div>
+  <div class="vcloud c1">☁</div>
+  <div class="vcloud c2">☁</div>
+  <div class="vcloud c3">☁</div>
+  <div class="vmountains"></div>
+  <div class="vtrees">
+    <span>🌳</span><span>🌲</span><span>🌳</span><span>🌴</span><span>🌳</span><span>🌲</span><span>🌳</span>
+  </div>
+  <div class="vbird" style="top:24%;animation-delay:0s">🦅</div>
+  <div class="vbird" style="top:30%;font-size:18px;animation-delay:-6s">🐦</div>
+  <div class="vgrass"></div>
+  <div class="vsoldier-area" id="vsoldierArea"></div>
+  <div class="vwater"></div>
+  <div class="vboat" style="left:15%">⛵</div>
+  <div class="vboat" style="left:55%;animation-delay:-2.5s;bottom:14%">🚣</div>
+  <div class="vbanner">
+    <h2 id="vTitle">⚑ VICTORY ⚑</h2>
+    <p id="vMsg"></p>
+    <button onclick="closeVictoryScene()">CONTINUE THE REVOLUTION</button>
+  </div>
+</div>
+
+<script>
+const state = {
+  gold: 100,
+  food: 50,
+  weap: 10,
+  troops: 5,
+  morale: 60,
+  buildings: {}, // plotIdx -> {type, level, progress}
+  soldiers: [], // visible wandering soldiers
+  placingType: null,
+  districts: [
+    {id:0, name:'⚒ Slums',       desc:'Where it began', captured:true,  garrison:0,  reward:{gold:0,food:0}},
+    {id:1, name:'🏪 Market',      desc:'Heart of trade', captured:false, garrison:8,  reward:{gold:80, food:30}},
+    {id:2, name:'⛪ Cathedral',   desc:'Spiritual core', captured:false, garrison:14, reward:{gold:60, weap:20, morale:15}},
+    {id:3, name:'🗼 Watchtower',  desc:'Eyes of king',   captured:false, garrison:22, reward:{gold:120, weap:10}},
+    {id:4, name:'🏛 Senate',      desc:'Voice of power', captured:false, garrison:30, reward:{gold:200, food:50, morale:20}},
+    {id:5, name:'👑 Royal Palace',desc:'Tyrant\'s seat', captured:false, garrison:50, reward:{gold:500, morale:50}},
+  ],
+};
+
+const BUILDINGS = {
+  barracks: {icon:'🏚', name:'Barracks',  cost:{gold:50,food:0,weap:5},  produces:'soldier slots', desc:'+5 soldier cap'},
+  farm:     {icon:'🌾', name:'Farm',      cost:{gold:30,food:0,weap:0},  produces:'food/sec',     desc:'+1 food/3s'},
+  forge:    {icon:'🔨', name:'Forge',     cost:{gold:60,food:0,weap:0},  produces:'weapons/sec',  desc:'+1 weapon/4s'},
+  mine:     {icon:'⛏', name:'Mine',       cost:{gold:40,food:0,weap:0},  produces:'gold/sec',     desc:'+2 gold/3s'},
+  wall:     {icon:'🧱', name:'Wall',       cost:{gold:25,food:0,weap:0},  produces:'defense',      desc:'+5 defense'},
+  watchtower:{icon:'🗼',name:'Watchtower', cost:{gold:80,food:0,weap:10}, produces:'morale',       desc:'+10 max morale, scouts'},
+};
+const MAX_TROOPS_BASE = 10;
+
+const campEl = document.getElementById('camp');
+const fieldEl = document.getElementById('field');
+
+// ----- Build field plots -----
+function initField(){
+  fieldEl.innerHTML='';
+  for(let i=0;i<18;i++){
+    const p = document.createElement('div');
+    p.className='plot';
+    p.dataset.idx = i;
+    p.addEventListener('click', ()=>placeBuilding(i));
+    fieldEl.appendChild(p);
+  }
+}
+
+function placeBuilding(idx){
+  if(!state.placingType){
+    // Show building info if clicked on existing
+    const b = state.buildings[idx];
+    if(b){
+      log(`🏚 ${BUILDINGS[b.type].name} Lv.${b.level} — ${BUILDINGS[b.type].desc}`,'info');
+    }
+    return;
+  }
+  if(state.buildings[idx]) {
+    log('🚫 Plot occupied.','danger'); return;
+  }
+  const def = BUILDINGS[state.placingType];
+  if(state.gold < def.cost.gold || state.weap < (def.cost.weap||0) || state.food < (def.cost.food||0)){
+    log('🚫 Not enough resources.','danger'); return;
+  }
+  state.gold -= def.cost.gold;
+  state.food -= def.cost.food||0;
+  state.weap -= def.cost.weap||0;
+  state.buildings[idx] = {type: state.placingType, level:1, progress:0};
+  renderField();
+  log(`🏗 Built ${def.name}.`,'victory');
+  state.placingType = null;
+  document.getElementById('buildBanner').classList.remove('show');
+  renderBuildMenu();
+  updateHud();
+}
+
+function renderField(){
+  const plots = fieldEl.querySelectorAll('.plot');
+  plots.forEach((p,i)=>{
+    p.innerHTML='';
+    p.classList.remove('building','placing');
+    const b = state.buildings[i];
+    if(b){
+      p.classList.add('building');
+      const def = BUILDINGS[b.type];
+      p.innerHTML = `
+        <div class="b-icon">${def.icon}</div>
+        <div class="b-name">${def.name.toUpperCase()}</div>
+        <div class="b-prog"><div class="f" style="width:${b.progress}%"></div></div>
+        <div class="b-lvl">${b.level}</div>
+      `;
+      // Upgrade on click
+      p.addEventListener('click', (e)=>{
+        if(state.placingType) return;
+        const upCost = 30 * b.level;
+        if(state.gold >= upCost){
+          state.gold -= upCost;
+          b.level++;
+          log(`⚒ ${def.name} upgraded to Lv.${b.level}.`,'glory');
+          updateHud();
+          renderField();
+        } else {
+          log(`💰 Need $${upCost} to upgrade ${def.name}.`,'info');
+        }
+      },{once:true});
+    }
+    if(state.placingType) p.classList.add('placing');
+  });
+}
+
+// ----- Build menu -----
+function renderBuildMenu(){
+  const menu = document.getElementById('buildMenu');
+  menu.innerHTML='';
+  Object.entries(BUILDINGS).forEach(([key, def])=>{
+    const btn = document.createElement('button');
+    btn.className = 'build-btn' + (state.placingType===key?' selected':'');
+    const can = state.gold >= def.cost.gold && state.weap >= (def.cost.weap||0);
+    btn.disabled = !can;
+    btn.innerHTML = `
+      <span class="ico">${def.icon}</span>
+      <b>${def.name.toUpperCase()}</b>
+      <span class="cost">$${def.cost.gold}${def.cost.weap?' · '+def.cost.weap+'⚔':''}</span>
+    `;
+    btn.addEventListener('click', ()=>{
+      state.placingType = state.placingType===key ? null : key;
+      document.getElementById('buildBanner').classList.toggle('show', !!state.placingType);
+      document.getElementById('buildBanner').textContent = state.placingType ? `CLICK A PLOT TO PLACE ${def.name.toUpperCase()}` : '';
+      renderBuildMenu();
+      renderField();
+    });
+    menu.appendChild(btn);
+  });
+}
+
+// ----- 3D Soldier inner HTML helper -----
+const _cuS = (cls) => `<div class="cuS ${cls}"><div class="f ft"></div><div class="f bk"></div><div class="f rt"></div><div class="f lf"></div><div class="f tp"></div><div class="f bt"></div></div>`;
+function soldier3DInner(){
+  return `<div class="soldier-3d">
+    ${_cuS('helmS')}
+    ${_cuS('headS')}
+    ${_cuS('torsoS')}
+    ${_cuS('armS-l')}
+    ${_cuS('legS-l')}
+    ${_cuS('legS-r')}
+    <div class="shoulderS-pos"><div class="shoulderS-rot">
+      ${_cuS('armS-r')}
+      ${_cuS('sword-h')}
+      ${_cuS('sword-b')}
+    </div></div>
+  </div>`;
+}
+
+// ----- Soldiers visualization -----
+function spawnSoldier(enemy=false){
+  const s = {
+    id: Math.random().toString(36).slice(2),
+    x: enemy ? campEl.clientWidth-44 : 20 + Math.random()*100,
+    y: 70 + Math.random()*40,
+    facing: enemy ? -1 : 1,
+    target: null,
+    enemy,
+    hp: enemy ? 8 : 10,
+  };
+  state.soldiers.push(s);
+  const el = document.createElement('div');
+  el.className = 'soldier marching' + (enemy?' enemy':'') + (s.facing<0?' flip':'');
+  el.id = 's'+s.id;
+  el.innerHTML = soldier3DInner();
+  el.style.left = s.x+'px';
+  el.style.bottom = s.y+'px';
+  campEl.appendChild(el);
+}
+
+function tickSoldiers(){
+  state.soldiers.forEach(s=>{
+    const el = document.getElementById('s'+s.id);
+    if(!el) return;
+    // Random wander on our side
+    if(!s.target){
+      if(Math.random()<0.02){
+        s.tx = 20 + Math.random()*(campEl.clientWidth - 60);
+      }
+    }
+    if(s.tx !== undefined){
+      const dx = s.tx - s.x;
+      if(Math.abs(dx)<3){ s.tx = undefined; }
+      else {
+        s.x += Math.sign(dx)*1.2;
+        s.facing = Math.sign(dx);
+        el.classList.toggle('flip', s.facing<0);
+        el.style.left = s.x+'px';
+      }
+    }
+  });
+  // Cap visible to actual troop count
+  while(state.soldiers.length < Math.min(state.troops, 14)){
+    spawnSoldier(false);
+  }
+  while(state.soldiers.length > Math.min(state.troops,14)){
+    const s = state.soldiers.pop();
+    const el = document.getElementById('s'+s.id);
+    if(el) el.remove();
+  }
+}
+
+// ----- Production -----
+let prodTick = 0;
+function produce(){
+  prodTick++;
+  Object.values(state.buildings).forEach(b=>{
+    const lvl = b.level;
+    if(b.type==='farm' && prodTick%3===0) state.food += 1*lvl;
+    if(b.type==='mine' && prodTick%3===0) state.gold += 2*lvl;
+    if(b.type==='forge' && prodTick%4===0) state.weap += 1*lvl;
+  });
+  // Soldiers eat
+  if(prodTick%6===0){
+    const eat = Math.ceil(state.troops/4);
+    state.food -= eat;
+    if(state.food < 0){
+      state.food = 0;
+      state.morale = Math.max(0, state.morale-3);
+      log('🍞 Soldiers starving! Morale dropping.','danger');
+    }
+  }
+  updateHud();
+}
+
+// ----- Actions -----
+document.getElementById('trainBtn').addEventListener('click', ()=>{
+  const maxT = MAX_TROOPS_BASE + countBuildings('barracks')*5;
+  if(state.troops>=maxT){ log(`🪖 At cap (${maxT}). Build more barracks.`,'info'); return }
+  if(state.food<10 || state.weap<5){ log('🚫 Need 10 food + 5 weapons.','danger'); return }
+  state.food-=10; state.weap-=5; state.troops++;
+  log('🪖 New soldier trained.','victory');
+  updateHud();
+});
+document.getElementById('forgeBtn').addEventListener('click', ()=>{
+  if(state.gold<20){ log('🚫 Need $20.','danger'); return }
+  state.gold-=20; state.weap+=3;
+  log('⚔ Forged 3 weapons.','victory');
+  updateHud();
+});
+document.getElementById('feastBtn').addEventListener('click', ()=>{
+  if(state.food<30){ log('🚫 Need 30 food.','danger'); return }
+  state.food-=30;
+  state.morale = Math.min(maxMorale(), state.morale+25);
+  log('🍖 Great feast! Morale soars.','glory');
+  updateHud();
+});
+
+function countBuildings(type){
+  return Object.values(state.buildings).filter(b=>b.type===type).length;
+}
+function maxMorale(){
+  return 100 + countBuildings('watchtower')*10;
+}
+
+// ----- Districts -----
+function renderDistricts(){
+  const d = document.getElementById('districts');
+  d.innerHTML='';
+  state.districts.forEach((dist,i)=>{
+    if(i===0) return; // skip slums
+    const div = document.createElement('div');
+    div.className = 'district' + (dist.captured?' captured':'');
+    div.innerHTML = `
+      <div class="n"><b>${dist.name}</b><span>${dist.captured?'CAPTURED':`${dist.garrison} guards`}</span></div>
+      ${dist.captured? '<span class="flag">⚑</span>' : `<button>ATTACK</button>`}
+    `;
+    if(!dist.captured){
+      const btn = div.querySelector('button');
+      btn.addEventListener('click', ()=>startBattle(dist));
+      if(state.troops < Math.floor(dist.garrison*0.6)) btn.disabled = true;
+    }
+    d.appendChild(div);
+  });
+}
+
+// ----- Battle =====
+function startBattle(dist){
+  // Run battle in arena overlay
+  const battle = document.getElementById('battle');
+  const arena = document.getElementById('arena');
+  arena.innerHTML = `<div class="label">⚔ ASSAULT ON ${dist.name}</div>`;
+  battle.classList.add('show');
+
+  let myTroops = state.troops;
+  let enemyTroops = dist.garrison;
+  const weaponBonus = Math.min(myTroops, state.weap);
+  const moraleBonus = Math.floor((state.morale/100) * myTroops * 0.5);
+  let myPower = myTroops + weaponBonus*0.5 + moraleBonus;
+  let enemyPower = enemyTroops * 1.1;
+
+  log(`⚔ Charging ${dist.name}! Power ${Math.floor(myPower)} vs ${Math.floor(enemyPower)}.`,'glory');
+
+  // Place soldiers visually in battle
+  const myUnits = Math.min(myTroops, 10);
+  const enemyUnits = Math.min(enemyTroops, 10);
+  const myEls = [], enemyEls = [];
+  for(let i=0;i<myUnits;i++){
+    const s = document.createElement('div');
+    s.className='soldier marching';
+    s.innerHTML = soldier3DInner();
+    s.style.left = (20 + (i%5)*40)+'px';
+    s.style.bottom = (40 + Math.floor(i/5)*60)+'px';
+    arena.appendChild(s);
+    myEls.push(s);
+  }
+  for(let i=0;i<enemyUnits;i++){
+    const s = document.createElement('div');
+    s.className='soldier marching enemy flip';
+    s.innerHTML = soldier3DInner();
+    s.style.right = (20 + (i%5)*40)+'px';
+    s.style.bottom = (40 + Math.floor(i/5)*60)+'px';
+    arena.appendChild(s);
+    enemyEls.push(s);
+  }
+
+  // Animate clash
+  setTimeout(()=>{
+    myEls.forEach(e=>{e.style.transition='left 1.5s';e.style.left=(parseFloat(e.style.left)+150)+'px'});
+    enemyEls.forEach(e=>{e.style.transition='right 1.5s';e.style.right=(parseFloat(e.style.right)+150)+'px';});
+  },300);
+
+  setTimeout(()=>{
+    myEls.forEach(e=>e.classList.add('attacking'));
+    enemyEls.forEach(e=>e.classList.add('attacking'));
+    // Combat text
+    for(let i=0;i<8;i++){
+      setTimeout(()=>{
+        const c = document.createElement('div');
+        c.className='combat-text';
+        c.textContent = '-' + (1+Math.floor(Math.random()*5));
+        c.style.left = (30 + Math.random()*70)+'%';
+        c.style.bottom = (40 + Math.random()*60)+'px';
+        arena.appendChild(c);
+        setTimeout(()=>c.remove(), 1000);
+      }, i*200);
+    }
+  },1800);
+
+  // Resolve
+  setTimeout(()=>{
+    battle.classList.remove('show');
+    arena.innerHTML='';
+    if(myPower > enemyPower){
+      // Victory
+      const losses = Math.floor(enemyTroops*0.3 + Math.random()*5);
+      state.troops = Math.max(1, state.troops - losses);
+      dist.captured = true;
+      // Rewards
+      if(dist.reward.gold) state.gold += dist.reward.gold;
+      if(dist.reward.food) state.food += dist.reward.food;
+      if(dist.reward.weap) state.weap += dist.reward.weap;
+      if(dist.reward.morale) state.morale = Math.min(maxMorale(), state.morale + dist.reward.morale);
+      log(`🏆 ${dist.name} CAPTURED! Lost ${losses} men.`,'victory');
+      // Show the after-fight celebration scene (endGame check happens on close)
+      showVictoryScene(dist, losses);
+    } else {
+      // Defeat
+      const losses = Math.floor(myTroops*0.5);
+      state.troops = Math.max(0, state.troops - losses);
+      state.morale = Math.max(0, state.morale-20);
+      log(`💀 Assault on ${dist.name} repelled. Lost ${losses} men.`,'danger');
+      if(state.troops<=0){
+        endGame(false);
+      }
+    }
+    updateHud();
+  }, 3500);
+}
+
+function endGame(win){
+  const ov = document.getElementById('endOverlay');
+  const box = document.getElementById('endBox');
+  const t = document.getElementById('endTitle');
+  const tx = document.getElementById('endText');
+  box.classList.toggle('lose', !win);
+  if(win){
+    t.textContent = '👑 LONG LIVE DROMALIS';
+    tx.innerHTML = 'The tyrant\'s head rolls. The Royal Palace burns.<br>The people hoist you on their shoulders.<br><br><i>The revolution has won. Now the hard work begins.</i>';
+  } else {
+    t.textContent = '💀 CRUSHED';
+    tx.innerHTML = 'Your army is broken. Your camp burns.<br>In a thousand years, someone will find your bones.<br><br><i>The tyrant rules another day.</i>';
+  }
+  ov.classList.add('show');
+}
+
+function log(msg, cls=''){
+  const l = document.getElementById('log');
+  const d = document.createElement('div');
+  d.className='l '+cls;
+  d.textContent = msg;
+  l.insertBefore(d, l.firstChild);
+  while(l.children.length>40) l.removeChild(l.lastChild);
+}
+
+function updateHud(){
+  state.gold = Math.floor(state.gold);
+  state.food = Math.floor(state.food);
+  state.weap = Math.floor(state.weap);
+  document.getElementById('rGold').textContent = state.gold;
+  document.getElementById('rFood').textContent = state.food;
+  document.getElementById('rWeap').textContent = state.weap;
+  document.getElementById('rTroop').textContent = state.troops + '/' + (MAX_TROOPS_BASE + countBuildings('barracks')*5);
+  document.getElementById('rMorale').textContent = state.morale;
+  renderBuildMenu();
+  renderField();
+  renderDistricts();
+}
+
+// ===== AFTER-FIGHT VICTORY SCENE =====
+function showVictoryScene(dist, losses){
+  const scene = document.getElementById('victoryScene');
+  const area = document.getElementById('vsoldierArea');
+  area.innerHTML = '';
+
+  // Spawn surviving soldiers wandering on the grass
+  const visible = Math.min(state.troops, 14);
+  for(let i=0;i<visible;i++){
+    const s = document.createElement('div');
+    const facingLeft = Math.random() < 0.4;
+    s.className = 'soldier marching' + (facingLeft?' flip':'');
+    s.innerHTML = soldier3DInner();
+    const xPct = 5 + Math.random()*88;
+    const yPct = 10 + Math.random()*70;
+    s.style.left = xPct + '%';
+    s.style.bottom = yPct + '%';
+    s.style.animationDelay = (-Math.random()*0.35)+'s';
+    // Randomize the 3D spin phase so they don't all wobble in sync
+    const sd = s.querySelector('.soldier-3d');
+    if(sd) sd.style.animationDelay = (-Math.random()*5)+'s';
+    area.appendChild(s);
+  }
+
+  // JS-driven wandering across the grass
+  if(scene._wanderInt) clearInterval(scene._wanderInt);
+  scene._wanderInt = setInterval(()=>{
+    if(!scene.classList.contains('show')){ clearInterval(scene._wanderInt); return; }
+    area.querySelectorAll('.soldier').forEach(s=>{
+      if(Math.random()<0.4){
+        const cur = parseFloat(s.style.left);
+        const delta = (Math.random()-0.5)*18;
+        const newL = Math.max(2, Math.min(94, cur + delta));
+        s.classList.toggle('flip', newL < cur);
+        s.style.transition = 'left 1.2s linear';
+        s.style.left = newL + '%';
+      }
+      if(Math.random()<0.15){
+        // Occasional sword raise / celebration
+        s.classList.add('attacking');
+        setTimeout(()=>s.classList.remove('attacking'), 600);
+      }
+    });
+  }, 1100);
+
+  // Build reward message
+  const rew = [];
+  if(dist.reward.gold)   rew.push(`+${dist.reward.gold}💰`);
+  if(dist.reward.food)   rew.push(`+${dist.reward.food}🌾`);
+  if(dist.reward.weap)   rew.push(`+${dist.reward.weap}⚔`);
+  if(dist.reward.morale) rew.push(`+${dist.reward.morale}📣`);
+  const rewardLine = rew.length ? `Spoils: <b>${rew.join(' · ')}</b>` : '';
+  document.getElementById('vTitle').innerHTML = `⚑ ${dist.name.toUpperCase()} TAKEN ⚑`;
+  document.getElementById('vMsg').innerHTML =
+    `Your army rests by the river.<br>` +
+    `Fallen: <b>${losses}</b> brave souls. Standing: <b>${state.troops}</b>.<br>` +
+    rewardLine;
+
+  // Confetti
+  const colors = ['#ffd700','#ff6600','#ff0033','#00ccff','#fff','#7fff7f','#ff66cc'];
+  for(let i=0;i<60;i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random()*100+'%';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDelay = (Math.random()*3)+'s';
+    c.style.animationDuration = (3 + Math.random()*3)+'s';
+    scene.appendChild(c);
+    setTimeout(()=>c.remove(), 7000);
+  }
+
+  scene.classList.add('show');
+}
+
+function closeVictoryScene(){
+  document.getElementById('victoryScene').classList.remove('show');
+  updateHud();
+  // If every district is captured, the war is won — trigger end game
+  if(state.districts.every(d=>d.captured)){
+    setTimeout(()=>endGame(true), 400);
+  }
+}
+
+// Init
+initField();
+updateHud();
+// Spawn initial soldiers
+for(let i=0;i<state.troops;i++) spawnSoldier(false);
+
+// Loops
+setInterval(produce, 1000);
+setInterval(tickSoldiers, 200);
+
+// Random ambient events
+setInterval(()=>{
+  if(Math.random()<0.1){
+    const evt = Math.random();
+    if(evt<0.3 && state.troops>2){
+      const desertion = Math.floor(Math.random()*2)+1;
+      if(state.morale<30){
+        state.troops -= desertion;
+        log(`🌫 ${desertion} soldier(s) deserted!`,'danger');
+      }
+    } else if(evt<0.5){
+      const wanderer = Math.floor(Math.random()*3)+1;
+      state.troops += wanderer;
+      log(`🚶 ${wanderer} peasants joined your cause.`,'victory');
+    } else if(evt<0.7){
+      state.gold += 10;
+      log(`💰 Sympathizers send gold.`,'victory');
+    }
+    updateHud();
+  }
+}, 5000);
+</script>
+</body>
+</html>

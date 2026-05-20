@@ -1,0 +1,3655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>HELP PLEASE</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #111; color: #eee;
+               font-family: 'Trebuchet MS', sans-serif; user-select: none; }
+  canvas { display: block; }
+
+  /* ---------- Screens ---------- */
+  .screen {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: radial-gradient(ellipse at center, #2a3550 0%, #0a0e1a 100%);
+    z-index: 10;
+    overflow-y: auto; padding: 20px 16px;
+  }
+  /* The pick-powers screen has 3 sections — let it scroll instead of centering */
+  #pick-powers { justify-content: flex-start; }
+  .hidden { display: none !important; }
+
+  h1.title {
+    font-size: 96px; letter-spacing: 6px; color: #ffe066;
+    text-shadow: 4px 4px 0 #c0392b, 8px 8px 20px rgba(0,0,0,0.8);
+    transform: rotate(-3deg); margin-bottom: 12px;
+  }
+  h1.title .sub { font-size: 0.4em; display: block; color: #fff; letter-spacing: 2px;
+                  text-shadow: 2px 2px 0 #000; margin-top: -10px; transform: rotate(3deg); }
+
+  input[type="text"] {
+    font-size: 24px; padding: 10px 16px; border-radius: 8px;
+    border: 3px solid #ffe066; background: #1a1f2e; color: #fff; width: 320px; text-align: center;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: #f39c12; box-shadow: 0 0 12px #f39c12; }
+
+  button.big {
+    font-size: 28px; padding: 14px 40px; border-radius: 10px; border: none;
+    background: linear-gradient(180deg, #ffd24d, #c0392b); color: #fff;
+    text-shadow: 2px 2px 0 #000; cursor: pointer;
+    box-shadow: 0 6px 0 #6b1c10, 0 8px 14px rgba(0,0,0,0.5);
+    letter-spacing: 2px; font-weight: bold;
+    transition: transform 0.05s;
+  }
+  button.big:hover { filter: brightness(1.1); }
+  button.big:active { transform: translateY(3px); box-shadow: 0 3px 0 #6b1c10; }
+
+  /* ---------- Customize screen ---------- */
+  #customize { gap: 12px; }
+  #customize h2 { font-size: 36px; color: #ffe066; text-shadow: 2px 2px 0 #000; }
+  .row { display: flex; gap: 10px; align-items: center; justify-content: center; }
+  .label { font-size: 18px; min-width: 130px; text-align: right; color: #bcd; }
+  .swatch {
+    width: 36px; height: 36px; border-radius: 6px; border: 3px solid #fff;
+    cursor: pointer; transition: transform 0.1s;
+  }
+  .swatch:hover { transform: scale(1.1); }
+  .swatch.sel { border-color: #ffe066; box-shadow: 0 0 10px #ffe066; transform: scale(1.15); }
+  .opt {
+    padding: 8px 16px; border-radius: 6px; border: 2px solid #555; background: #1a1f2e;
+    color: #fff; cursor: pointer; font-size: 16px; min-width: 80px;
+  }
+  .opt.sel { border-color: #ffe066; background: #3a2f1e; color: #ffe066; }
+
+  #preview-canvas {
+    width: 320px; height: 320px; background: #1a1f2e;
+    border: 3px solid #444; border-radius: 12px;
+  }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: absolute; top: 10px; left: 10px; z-index: 5; pointer-events: none;
+    font-size: 16px; text-shadow: 2px 2px 0 #000;
+  }
+  #hud .player-name { font-size: 22px; color: #ffe066; }
+  #hud .hp-bar-bg {
+    width: 240px; height: 18px; background: #222; border: 2px solid #fff; border-radius: 4px;
+    margin-top: 4px; overflow: hidden;
+  }
+  #hud .hp-bar {
+    height: 100%; background: linear-gradient(180deg, #2ecc71, #16a085);
+    transition: width 0.2s;
+  }
+  #hud .stat { margin-top: 4px; }
+
+  #controls-help {
+    position: absolute; bottom: 10px; left: 10px; z-index: 5; pointer-events: none;
+    font-size: 14px; color: #aab; text-shadow: 1px 1px 0 #000; line-height: 1.5;
+    background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px;
+  }
+
+  /* ---------- Right panel: fight requests ---------- */
+  #fight-panel {
+    position: absolute; top: 10px; right: 10px; z-index: 5;
+    width: 280px; max-height: 80vh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .fight-req {
+    background: linear-gradient(180deg, #2c3e50, #1a252f);
+    border: 2px solid #ffe066; border-radius: 8px; padding: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    animation: slideIn 0.3s ease-out;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .fight-req .who { font-weight: bold; color: #ffe066; font-size: 16px; }
+  .fight-req .msg { font-size: 13px; color: #bcd; margin: 4px 0 8px 0; }
+  .fight-req .btns { display: flex; gap: 6px; }
+  .fight-req button {
+    flex: 1; padding: 6px; border: none; border-radius: 4px; cursor: pointer;
+    font-weight: bold; font-size: 13px;
+  }
+  .fight-req .accept { background: #27ae60; color: #fff; }
+  .fight-req .accept:hover { background: #2ecc71; }
+  .fight-req .decline { background: #7f8c8d; color: #fff; }
+  .fight-req .decline:hover { background: #95a5a6; }
+
+  /* ---------- Floating damage numbers ---------- */
+  .dmg {
+    position: absolute; pointer-events: none; z-index: 4;
+    font-weight: bold; font-size: 24px; color: #ff5252;
+    text-shadow: 2px 2px 0 #000;
+    animation: floatUp 0.9s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0%   { transform: translate(-50%, 0); opacity: 1; }
+    100% { transform: translate(-50%, -60px); opacity: 0; }
+  }
+
+  /* ---------- Loading screen ---------- */
+  #loader { transition: opacity 0.5s ease-out; }
+  #load-bar-bg {
+    width: 360px; height: 24px; background: #222;
+    border: 3px solid #ffe066; border-radius: 6px; overflow: hidden;
+  }
+  #load-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #ffe066 0%, #ff9800 50%, #ff5252 100%);
+    transition: width 1.6s ease-out;
+  }
+  #load-text {
+    font-size: 18px; color: #ffe066; letter-spacing: 4px; font-weight: bold;
+    text-shadow: 2px 2px 0 #000;
+  }
+
+  /* ---------- Pick Powers screen ---------- */
+  #pick-powers { gap: 10px; }
+  #pick-powers h2 { font-size: 30px; color: #ffe066; text-shadow: 2px 2px 0 #000; margin-top: 6px; }
+  .pick-section { margin-bottom: 4px; }
+  #pick-counter {
+    font-size: 18px; color: #88ddff; letter-spacing: 2px; font-weight: bold;
+    background: rgba(0,0,0,0.45); padding: 4px 14px; border-radius: 18px;
+    border: 2px solid #4a6fa5; transition: all 0.15s;
+  }
+  #pick-counter.full {
+    color: #ffe066; border-color: #ffe066;
+    box-shadow: 0 0 10px rgba(255,224,102,0.6);
+  }
+  #pick-counter.full-flash {
+    background: rgba(255,80,80,0.35); border-color: #ff5252; color: #fff;
+  }
+  button.big:disabled {
+    background: linear-gradient(180deg, #555, #333) !important;
+    box-shadow: 0 6px 0 #1a1a1a !important;
+    color: #888 !important; cursor: not-allowed;
+  }
+  .pick-section { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .pick-section-title {
+    font-size: 14px; letter-spacing: 3px; color: #88aacc; font-weight: bold;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .pick-section-title.special { color: #ffd24d; }
+  .pick-cards { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 720px; }
+  .pick-card {
+    position: relative; width: 130px; padding: 10px;
+    background: rgba(20, 30, 50, 0.85);
+    border: 3px solid #4a6fa5; border-radius: 8px;
+    cursor: pointer; transition: transform 0.08s;
+    text-align: center;
+  }
+  .pick-card:hover { transform: translateY(-2px); }
+  .pick-card.special {
+    border-color: #ffd24d;
+    background: linear-gradient(180deg, #4a3010, #2a1a00);
+  }
+  .pick-card.talent {
+    border-color: #a070ff;
+    background: linear-gradient(180deg, #2a1a4a, #1a0a30);
+  }
+  .pick-card.hardmode {
+    border-color: #ff66ff;
+    background: linear-gradient(180deg, #4a0f4a, #200020);
+  }
+  .pick-section-title.talent { color: #c8a8ff; }
+  #talent-counter {
+    font-size: 14px; color: #c8a8ff; letter-spacing: 2px; font-weight: bold;
+    background: rgba(0,0,0,0.4); padding: 3px 12px; border-radius: 14px;
+    border: 2px solid #a070ff; margin: 4px 0; transition: all 0.15s;
+  }
+  #talent-counter.full {
+    color: #ffe066; border-color: #ffe066;
+    box-shadow: 0 0 8px rgba(255,224,102,0.5);
+  }
+  #talent-counter.full-flash {
+    background: rgba(255,80,80,0.35); border-color: #ff5252; color: #fff;
+  }
+  .pick-card.sel::after {
+    content: ''; position: absolute; top: 4px; right: 6px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #4ade80; color: #000; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; line-height: 1;
+  }
+  .pick-card.sel::after { content: '\2713'; }
+  .pick-card:not(.sel) { opacity: 0.45; filter: grayscale(0.7); }
+  .pcard-name { font-weight: bold; color: #fff; font-size: 14px; }
+  .pcard-key { font-size: 11px; color: #ffe066; margin: 3px 0; }
+  .pcard-desc { font-size: 11px; color: #bcd; line-height: 1.3; }
+
+  /* ---------- Powers bar ---------- */
+  #powers-bar {
+    position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+    z-index: 5; display: flex; flex-direction: column; gap: 8px; align-items: center;
+    pointer-events: none;
+  }
+  .pwr-row { display: flex; gap: 8px; justify-content: center; }
+  .pwr-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .pwr-title {
+    font-size: 12px; color: #88aacc; letter-spacing: 3px; font-weight: bold;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .pwr-title.special { color: #ffd24d; }
+  .pwr-title .sub {
+    font-size: 10px; color: #aab; font-weight: normal; letter-spacing: 1px;
+    margin-left: 6px;
+  }
+  .pwr {
+    position: relative; width: 64px; height: 64px;
+    background: rgba(20, 30, 50, 0.85);
+    border: 3px solid #4a6fa5; border-radius: 8px;
+    color: #fff; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; user-select: none;
+    text-shadow: 1px 1px 0 #000;
+  }
+  .pwr .key {
+    position: absolute; top: 1px; right: 4px;
+    font-size: 12px; color: #ffe066; font-weight: bold;
+  }
+  .pwr .name { font-size: 12px; font-weight: bold; }
+  .pwr.special {
+    border-color: #ffd24d;
+    background: linear-gradient(180deg, #4a3010, #2a1a00);
+    box-shadow: 0 0 12px rgba(255, 210, 77, 0.4);
+  }
+  .pwr.cooldown::before {
+    content: attr(data-cd); position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: bold; color: #fff;
+    pointer-events: none;
+  }
+  .pwr.used::before {
+    content: 'USED'; position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: bold; color: #ff5252;
+    letter-spacing: 1px;
+  }
+  .pwr.ready { box-shadow: 0 0 8px rgba(80, 220, 120, 0.5); }
+  .pwr.special.ready { box-shadow: 0 0 16px rgba(255, 210, 77, 0.7); }
+
+  /* Time Shake button — appears only when the talent is picked */
+  #time-shake-btn {
+    position: absolute; top: 200px; left: 10px; z-index: 5;
+    padding: 8px 14px; font-size: 13px; font-weight: bold;
+    background: linear-gradient(180deg, #6f3aa0, #3a1f60);
+    color: #fff; border: 2px solid #c8a8ff; border-radius: 6px;
+    cursor: pointer; letter-spacing: 1px;
+    box-shadow: 0 0 10px rgba(200,168,255,0.4);
+    text-shadow: 1px 1px 0 #000;
+  }
+  #time-shake-btn:hover { filter: brightness(1.15); }
+  #time-shake-btn:disabled {
+    opacity: 0.45; cursor: not-allowed;
+    background: linear-gradient(180deg, #444, #222);
+    border-color: #666;
+  }
+
+  /* Hidden hard-mode code in the corner — small but actually visible */
+  #hard-mode-code {
+    position: absolute; bottom: 10px; right: 12px; z-index: 11;
+    font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold;
+    color: #ffaa00; cursor: pointer; user-select: none;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 2px dashed #ffaa00; border-radius: 4px;
+    letter-spacing: 2px; transition: all 0.2s;
+    text-shadow: 1px 1px 0 #000;
+  }
+  #hard-mode-code:hover {
+    color: #ffe066; border-color: #ffe066; border-style: solid;
+    background: rgba(0, 0, 0, 0.75);
+    box-shadow: 0 0 14px rgba(255,224,102,0.7);
+    transform: scale(1.05);
+  }
+  #hard-mode-code.activated {
+    color: #ff66ff; border-color: #d040ff; border-style: solid;
+    box-shadow: 0 0 16px rgba(208,64,255,0.9);
+  }
+  #sv-code {
+    position: absolute; bottom: 10px; right: 130px; z-index: 11;
+    font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold;
+    color: #00ddff; cursor: pointer; user-select: none;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 2px dashed #00ddff; border-radius: 4px;
+    letter-spacing: 2px; transition: all 0.2s;
+    text-shadow: 1px 1px 0 #000;
+  }
+  #sv-code:hover {
+    color: #aaffff; border-color: #aaffff; border-style: solid;
+    background: rgba(0, 0, 0, 0.75);
+    box-shadow: 0 0 14px rgba(0,221,255,0.7);
+    transform: scale(1.05);
+  }
+  #sv-code.activated {
+    color: #aaffff; border-color: #aaffff; border-style: solid;
+    box-shadow: 0 0 16px rgba(170,255,255,0.9);
+  }
+  #xr-code {
+    position: absolute; bottom: 10px; right: 252px; z-index: 11;
+    font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold;
+    color: #80ff40; cursor: pointer; user-select: none;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 2px dashed #80ff40; border-radius: 4px;
+    letter-spacing: 2px; transition: all 0.2s;
+    text-shadow: 1px 1px 0 #000;
+  }
+  #xr-code:hover {
+    color: #ccff80; border-color: #ccff80; border-style: solid;
+    background: rgba(0, 0, 0, 0.75);
+    box-shadow: 0 0 14px rgba(128,255,64,0.7);
+    transform: scale(1.05);
+  }
+  #xr-code.activated {
+    color: #ccff80; border-color: #ccff80; border-style: solid;
+    box-shadow: 0 0 16px rgba(204,255,128,0.9);
+  }
+  .pick-card.xray {
+    border-color: #80ff40;
+    background: linear-gradient(180deg, #1a4a1a, #0a200a);
+  }
+  #back-to-regular {
+    position: absolute; bottom: 50px; right: 12px; z-index: 11;
+    font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold;
+    color: #6eccff; cursor: pointer; user-select: none;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 2px dashed #6eccff; border-radius: 4px;
+    letter-spacing: 2px; transition: all 0.2s;
+    text-shadow: 1px 1px 0 #000;
+  }
+  #back-to-regular:hover {
+    color: #aaeeff; border-color: #aaeeff; border-style: solid;
+    background: rgba(0, 0, 0, 0.75);
+    box-shadow: 0 0 14px rgba(110,204,255,0.7);
+    transform: scale(1.05);
+  }
+  #back-to-regular.activated {
+    color: #aaeeff; border-color: #aaeeff; border-style: solid;
+    box-shadow: 0 0 16px rgba(170,238,255,0.9);
+  }
+  #fact-code {
+    position: absolute; bottom: 50px; right: 110px; z-index: 11;
+    font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold;
+    color: #ffaa20; cursor: pointer; user-select: none;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 2px dashed #ffaa20; border-radius: 4px;
+    letter-spacing: 2px; transition: all 0.2s;
+    text-shadow: 1px 1px 0 #000;
+  }
+  #fact-code:hover {
+    color: #ffdd80; border-color: #ffdd80; border-style: solid;
+    box-shadow: 0 0 14px rgba(255,170,32,0.7);
+    transform: scale(1.05);
+  }
+  #fact-code.activated {
+    color: #ffdd80; border-color: #ffdd80; border-style: solid;
+    box-shadow: 0 0 16px rgba(255,221,128,0.9);
+  }
+  #fact-score {
+    position: absolute; top: 60px; right: 12px; z-index: 11;
+    font-family: 'Courier New', monospace; font-size: 14px; font-weight: bold;
+    color: #ffe066; padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.78);
+    border: 3px solid #ffaa20; border-radius: 6px;
+    letter-spacing: 1px; line-height: 1.6;
+    text-shadow: 2px 2px 0 #000;
+    box-shadow: 0 0 14px rgba(255,170,32,0.5);
+    min-width: 220px;
+  }
+  #fact-score .label { color: #aab; }
+  #fact-score .v { color: #ffe066; font-size: 16px; }
+  #fact-score .goal { color: #80ff80; }
+  #fact-tip {
+    position: absolute; top: 50%; left: 50%; transform: translateX(-50%);
+    z-index: 11; padding: 6px 14px;
+    background: rgba(0,0,0,0.7); color: #ffcc40;
+    border: 2px solid #ffaa20; border-radius: 4px;
+    font-family: 'Courier New', monospace; font-size: 13px;
+    letter-spacing: 1px; text-shadow: 1px 1px 0 #000;
+    pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  }
+  #fact-tip.show { opacity: 1; }
+  #fact-exit {
+    position: absolute; bottom: 100px; right: 12px; z-index: 11;
+    padding: 10px 18px; font-size: 14px; font-weight: bold;
+    background: linear-gradient(180deg, #aa5500, #663300);
+    color: #fff; border: 2px solid #ffaa20; border-radius: 6px;
+    cursor: pointer; letter-spacing: 1px;
+    text-shadow: 1px 1px 0 #000;
+  }
+  #fact-exit:hover { filter: brightness(1.15); }
+
+  /* Hard mode indicator */
+  #hard-mode-indicator {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 6; padding: 6px 16px;
+    background: linear-gradient(180deg, #b020c0, #501060);
+    color: #fff; font-weight: bold; font-size: 18px; letter-spacing: 4px;
+    border: 2px solid #ffaaff; border-radius: 6px;
+    text-shadow: 2px 2px 0 #000;
+    box-shadow: 0 0 16px rgba(255,80,255,0.6);
+  }
+
+  /* Buff indicator (apotheosis / flesh sacrifice / etc) */
+  #buff-indicator {
+    position: absolute; top: 100px; left: 10px; z-index: 5;
+    padding: 6px 12px; border-radius: 6px;
+    color: #ffe; font-weight: bold; font-size: 14px; letter-spacing: 2px;
+    text-shadow: 1px 1px 0 #000;
+  }
+  #buff-indicator.flesh {
+    background: rgba(180, 30, 30, 0.85);
+    box-shadow: 0 0 12px rgba(255, 80, 80, 0.7);
+  }
+  #buff-indicator.apotheosis {
+    background: rgba(220, 170, 40, 0.92);
+    box-shadow: 0 0 16px rgba(255, 220, 80, 0.9);
+    color: #fff;
+  }
+
+  /* ---------- Game over ---------- */
+  #gameover { background: rgba(10, 0, 0, 0.85); }
+  #gameover h1 { font-size: 84px; color: #ff5252; text-shadow: 4px 4px 0 #000; letter-spacing: 4px; }
+  #gameover .stats { font-size: 22px; color: #ffe066; }
+</style>
+</head>
+<body>
+
+<!-- Loading screen (shown briefly on first load) -->
+<div id="loader" class="screen" style="z-index: 100;">
+  <h1 class="title" style="font-size: 72px;">HELP PLEASE<span class="sub">~ loading ~</span></h1>
+  <div id="load-bar-bg"><div id="load-bar"></div></div>
+  <div id="load-text">LOADING<span id="load-dots">...</span></div>
+</div>
+
+<!-- Title screen -->
+<div id="title" class="screen">
+  <h1 class="title">HELP PLEASE<span class="sub">~ a fighting game ~</span></h1>
+  <div style="font-size: 18px; color: #bcd;">What's your name, fighter?</div>
+  <input type="text" id="name-input" maxlength="16" placeholder="Type your name..." />
+  <button class="big" id="to-customize">CUSTOMIZE</button>
+</div>
+
+<!-- Customize screen -->
+<div id="customize" class="screen hidden">
+  <h2>Make Yourself</h2>
+  <canvas id="preview-canvas"></canvas>
+
+  <div class="row">
+    <span class="label">Body color:</span>
+    <div id="body-colors"></div>
+  </div>
+  <div class="row">
+    <span class="label">Head color:</span>
+    <div id="head-colors"></div>
+  </div>
+  <div class="row">
+    <span class="label">Size:</span>
+    <button class="opt" data-size="0.7">Small</button>
+    <button class="opt sel" data-size="1.0">Medium</button>
+    <button class="opt" data-size="1.3">Big</button>
+  </div>
+  <div class="row">
+    <span class="label">Head shape:</span>
+    <button class="opt sel" data-shape="sphere">Round</button>
+    <button class="opt" data-shape="cube">Square</button>
+    <button class="opt" data-shape="cone">Pointy</button>
+  </div>
+
+  <button class="big" id="start-fight">FIGHT!</button>
+</div>
+
+<!-- Pick Powers screen -->
+<div id="pick-powers" class="screen hidden">
+  <h2>Pick Your Powers</h2>
+  <div id="pick-counter">0 / 8 picked</div>
+
+  <div class="pick-section">
+    <h3 class="pick-section-title">POWERS &mdash; I &nbsp; (combat skills, cooldown)</h3>
+    <div class="pick-cards">
+      <div class="pick-card" data-power="phoenixDive">
+        <div class="pcard-name">PHOENIX DIVE</div>
+        <div class="pcard-key">key: Q</div>
+        <div class="pcard-desc">Leap forward in flame</div>
+      </div>
+      <div class="pick-card" data-power="battleStomp">
+        <div class="pcard-name">BATTLE STOMP</div>
+        <div class="pcard-key">key: E</div>
+        <div class="pcard-desc">Heavy strike, hits all enemies in front</div>
+      </div>
+      <div class="pick-card" data-power="whirlwind">
+        <div class="pcard-name">WHIRLWIND</div>
+        <div class="pcard-key">key: R</div>
+        <div class="pcard-desc">Spin attack, hits everyone around you</div>
+      </div>
+      <div class="pick-card" data-power="tacticalRetreat">
+        <div class="pcard-name">TACTICAL RETREAT</div>
+        <div class="pcard-key">key: F</div>
+        <div class="pcard-desc">Leap backward to safety</div>
+      </div>
+      <div class="pick-card" data-power="cloakAndDagger">
+        <div class="pcard-name">CLOAK & DAGGER</div>
+        <div class="pcard-key">key: C</div>
+        <div class="pcard-desc">Short teleport forward</div>
+      </div>
+      <div class="pick-card" data-power="adrenaline">
+        <div class="pcard-name">ADRENALINE</div>
+        <div class="pcard-key">key: T</div>
+        <div class="pcard-desc">Reset every other combat cooldown</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pick-section">
+    <h3 class="pick-section-title special">SPECIAL POWERS &mdash; II &nbsp; (once per day each)</h3>
+    <div class="pick-cards">
+      <div class="pick-card special" data-power="bitterCold">
+        <div class="pcard-name">BITTER COLD</div>
+        <div class="pcard-key">key: 1</div>
+        <div class="pcard-desc">Freeze and damage every enemy</div>
+      </div>
+      <div class="pick-card special" data-power="soulWolf">
+        <div class="pcard-name">SOUL WOLF</div>
+        <div class="pcard-key">key: 2</div>
+        <div class="pcard-desc">Summon a ghostly wolf to fight (15s) &mdash; once per minute</div>
+      </div>
+      <div class="pick-card special" data-power="fleshSacrifice">
+        <div class="pcard-name">FLESH SACRIFICE</div>
+        <div class="pcard-key">key: 3</div>
+        <div class="pcard-desc">Pay 30 HP for triple damage (12s)</div>
+      </div>
+      <div class="pick-card special" data-power="apotheosis">
+        <div class="pcard-name">APOTHEOSIS</div>
+        <div class="pcard-key">key: 4</div>
+        <div class="pcard-desc">Godlike: invincible, 4&times; stats (8s)</div>
+      </div>
+      <div class="pick-card special" data-power="skinGraft">
+        <div class="pcard-name">SKIN GRAFT</div>
+        <div class="pcard-key">key: 5</div>
+        <div class="pcard-desc">Heal full HP + reset all cooldowns</div>
+      </div>
+      <div class="pick-card special" data-power="timeWarp">
+        <div class="pcard-name">TIME WARP</div>
+        <div class="pcard-key">key: 6</div>
+        <div class="pcard-desc">All enemies move at half speed (8s)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pick-section">
+    <h3 class="pick-section-title talent">TALENTS &mdash; III &nbsp; (passive perk &mdash; pick 1 to start)</h3>
+    <div id="talent-counter">0 / 1 talent picked</div>
+    <div class="pick-cards">
+      <div class="pick-card talent" data-talent="loneWolf">
+        <div class="pcard-name">LONE WOLF</div>
+        <div class="pcard-desc">+50% max HP &mdash; but Soul Wolf is disabled</div>
+      </div>
+      <div class="pick-card talent" data-talent="glassCannon">
+        <div class="pcard-name">GLASS CANNON</div>
+        <div class="pcard-desc">+50% damage dealt &mdash; and +50% damage taken</div>
+      </div>
+      <div class="pick-card talent" data-talent="hothead">
+        <div class="pcard-name">HOTHEAD</div>
+        <div class="pcard-desc">+30% damage while at full HP</div>
+      </div>
+      <div class="pick-card talent" data-talent="thePawn">
+        <div class="pcard-name">THE PAWN</div>
+        <div class="pcard-desc">+30% walk speed</div>
+      </div>
+      <div class="pick-card talent" data-talent="comebackKid">
+        <div class="pcard-name">COMEBACK KID</div>
+        <div class="pcard-desc">Revive once at 25% HP when killed</div>
+      </div>
+      <div class="pick-card talent" data-talent="opportunist">
+        <div class="pcard-name">OPPORTUNIST</div>
+        <div class="pcard-desc">+30% damage to enemies under 30% HP</div>
+      </div>
+      <div class="pick-card talent" data-talent="livingArmour">
+        <div class="pcard-name">LIVING ARMOUR</div>
+        <div class="pcard-desc">Regenerate 1 HP per second</div>
+      </div>
+      <div class="pick-card talent" data-talent="executioner">
+        <div class="pcard-name">EXECUTIONER</div>
+        <div class="pcard-desc">All combat cooldowns reset on KO</div>
+      </div>
+      <div class="pick-card talent" data-talent="oneMoreTime">
+        <div class="pcard-name">ONE MORE TIME</div>
+        <div class="pcard-desc">+100 max HP &mdash; revive once with full HP &mdash; and ALL powers reset (even today's specials)</div>
+      </div>
+      <div class="pick-card talent" data-talent="helpPeople">
+        <div class="pcard-name">HELP PEOPLE!</div>
+        <div class="pcard-desc">Get every baddie &mdash; heal 25 HP for each KO you land</div>
+      </div>
+      <div class="pick-card talent" data-talent="timeShake">
+        <div class="pcard-name">TIME SHAKE</div>
+        <div class="pcard-desc">Press Y (or click the button) to rewind 12 sec into the past &mdash; restores HP and position</div>
+      </div>
+      <div class="pick-card talent" data-talent="voidBanish">
+        <div class="pcard-name">VOID BANISH</div>
+        <div class="pcard-desc">20% chance per hit to teleport the bad guy into the void (instant KO)</div>
+      </div>
+      <div class="pick-card talent" data-talent="greatIfan">
+        <div class="pcard-name">GREAT GREAT IFAN</div>
+        <div class="pcard-desc">Ifan joins you with his Soul Wolf &mdash; both fight beside you forever</div>
+      </div>
+      <div class="pick-card talent" data-talent="imUnstoppable">
+        <div class="pcard-name">I'M UNSTOPPABLE</div>
+        <div class="pcard-desc">Punches can't hurt you &mdash; only spells &mdash; each spell hit gives +1 max HP &mdash; and a punch while you're almost dead FULLY HEALS you</div>
+      </div>
+      <div class="pick-card talent" data-talent="supervision">
+        <div class="pcard-name">SUPERVISION</div>
+        <div class="pcard-desc">See anything you want &mdash; HP bars above every enemy, no fog, wider view</div>
+      </div>
+      <div class="pick-card talent" data-talent="petPal">
+        <div class="pcard-name">PET PAL</div>
+        <div class="pcard-desc">A loyal pet dog joins you and fights enemies forever</div>
+      </div>
+      <div class="pick-card talent" data-talent="torturer">
+        <div class="pcard-name">TORTURER</div>
+        <div class="pcard-desc">Your punches set enemies on fire &mdash; 3 dmg/sec for 3 sec</div>
+      </div>
+      <div class="pick-card talent" data-talent="bloodMoon">
+        <div class="pcard-name">BLOOD MOON</div>
+        <div class="pcard-desc">When under 30% HP: +100% damage and +50% speed</div>
+      </div>
+      <div class="pick-card talent" data-talent="reactiveArmor">
+        <div class="pcard-name">REACTIVE ARMOR</div>
+        <div class="pcard-desc">When a spell hits you, the caster takes 30 damage back</div>
+      </div>
+      <div class="pick-card talent" data-talent="midasTouch">
+        <div class="pcard-name">MIDAS TOUCH</div>
+        <div class="pcard-desc">Each KO drops a golden healing orb (+25 HP on pickup)</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="big" id="confirm-powers">FIGHT!</button>
+</div>
+
+<!-- HUD shown during gameplay -->
+<div id="hud" class="hidden">
+  <div class="player-name" id="hud-name">YOU</div>
+  <div class="hp-bar-bg"><div class="hp-bar" id="hud-hp"></div></div>
+  <div class="stat">HP: <span id="hud-hp-num">100 / 100</span></div>
+  <div class="stat">KOs: <span id="hud-kos">0</span></div>
+  <div class="stat">Enemies nearby: <span id="hud-enemies">0</span></div>
+  <div class="stat" id="hud-talent" style="color:#c8a8ff;"></div>
+</div>
+
+<div id="controls-help" class="hidden">
+  WASD / Arrows = move &nbsp; · &nbsp; Hold Right-click + mouse = turn &nbsp; · &nbsp; Wheel = zoom &nbsp; · &nbsp; Left-click / SPACE = punch<br>
+  Powers I: Q E R F C T &nbsp; · &nbsp; Specials II: 1&hellip;6 &nbsp; (only the ones you picked are usable)
+</div>
+
+<!-- Powers bar -->
+<div id="powers-bar" class="hidden">
+  <div class="pwr-group">
+    <div class="pwr-title">POWERS &mdash; I</div>
+    <div class="pwr-row">
+      <div class="pwr" id="pwr-phoenixDive"><span class="key">Q</span><div class="name">PHOENIX DIVE</div></div>
+      <div class="pwr" id="pwr-battleStomp"><span class="key">E</span><div class="name">BATTLE STOMP</div></div>
+      <div class="pwr" id="pwr-whirlwind"><span class="key">R</span><div class="name">WHIRLWIND</div></div>
+      <div class="pwr" id="pwr-tacticalRetreat"><span class="key">F</span><div class="name">RETREAT</div></div>
+      <div class="pwr" id="pwr-cloakAndDagger"><span class="key">C</span><div class="name">CLOAK</div></div>
+      <div class="pwr" id="pwr-adrenaline"><span class="key">T</span><div class="name">ADRENALINE</div></div>
+    </div>
+  </div>
+  <div class="pwr-group">
+    <div class="pwr-title special">SPECIAL POWERS &mdash; II <span class="sub">(once a day; Soul Wolf = once / minute)</span></div>
+    <div class="pwr-row">
+      <div class="pwr special" id="pwr-bitterCold"><span class="key">1</span><div class="name">BITTER COLD</div></div>
+      <div class="pwr special" id="pwr-soulWolf"><span class="key">2</span><div class="name">SOUL WOLF</div></div>
+      <div class="pwr special" id="pwr-fleshSacrifice"><span class="key">3</span><div class="name">FLESH SACR.</div></div>
+      <div class="pwr special" id="pwr-apotheosis"><span class="key">4</span><div class="name">APOTHEOSIS</div></div>
+      <div class="pwr special" id="pwr-skinGraft"><span class="key">5</span><div class="name">SKIN GRAFT</div></div>
+      <div class="pwr special" id="pwr-timeWarp"><span class="key">6</span><div class="name">TIME WARP</div></div>
+      <div class="pwr special" id="pwr-mindBlast"><span class="key">7</span><div class="name">MIND BLAST</div></div>
+      <div class="pwr special" id="pwr-chainLightning"><span class="key">8</span><div class="name">CHAIN LITE</div></div>
+      <div class="pwr special" id="pwr-meteor"><span class="key">9</span><div class="name">METEOR</div></div>
+      <div class="pwr special" id="pwr-demonForm"><span class="key">0</span><div class="name">DEMON FORM</div></div>
+      <div class="pwr special" id="pwr-hellspawn"><span class="key">H</span><div class="name">HELLSPAWN</div></div>
+      <div class="pwr special" id="pwr-soulDrain"><span class="key">J</span><div class="name">SOUL DRAIN</div></div>
+      <div class="pwr special" id="pwr-boneShatter"><span class="key">K</span><div class="name">BONE SHTR</div></div>
+      <div class="pwr special" id="pwr-xrayBeam"><span class="key">L</span><div class="name">X-RAY BEAM</div></div>
+      <div class="pwr special" id="pwr-vitalStrike"><span class="key">M</span><div class="name">VITAL STR</div></div>
+      <div class="pwr special" id="pwr-deathWire"><span class="key">N</span><div class="name">DEATH WIRE</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Buff indicator (apotheosis / flesh sacrifice / etc) -->
+<div id="buff-indicator" class="hidden"></div>
+
+<!-- Time Shake rewind button (only visible if you picked the talent) -->
+<button id="time-shake-btn" class="hidden">REWIND TIME (Y)</button>
+
+<!-- Hidden hard-mode code in the corner — click it to summon a portal -->
+<div id="hard-mode-code" class="hidden" title="Click for hard mode">DOSII-X9</div>
+
+<!-- Super Vision code — only visible / clickable if you picked the SUPERVISION talent -->
+<div id="sv-code" class="hidden" title="Open Super Vision Portal (needs SUPERVISION talent)">SV-007</div>
+
+<!-- X-Ray code — third portal, see through enemies and unlock bone-themed powers -->
+<div id="xr-code" class="hidden" title="Open X-Ray Portal">XR-V2</div>
+
+<!-- Back to regular mode (only appears while in Hard Mode) -->
+<div id="back-to-regular" class="hidden" title="Open a portal back to regular mode">RETURN</div>
+
+<!-- Factorio minigame code -->
+<div id="fact-code" class="hidden" title="Open Factorio Minigame portal">FACT-Z</div>
+<div id="fact-score" class="hidden">Boxes: 0 / 10</div>
+<div id="fact-tip"></div>
+<button id="fact-exit" class="hidden">LEAVE MINIGAME</button>
+
+<!-- Hard mode indicator -->
+<div id="hard-mode-indicator" class="hidden">HARD MODE</div>
+
+<!-- X-Ray ability picker (appears when you walk into the X-Ray portal) -->
+<div id="xr-picker" class="screen hidden">
+  <h2 style="color:#80ff40;">X-RAY PORTAL &mdash; PICK 2 NEW POWERS</h2>
+  <div id="xr-counter" style="font-size:18px;color:#ccff80;letter-spacing:2px;font-weight:bold;background:rgba(0,0,0,0.5);padding:4px 14px;border-radius:18px;border:2px solid #80ff40;">0 / 2 picked</div>
+  <div class="pick-cards">
+    <div class="pick-card xray" data-xr-power="boneShatter">
+      <div class="pcard-name">BONE SHATTER</div>
+      <div class="pcard-key">key: K</div>
+      <div class="pcard-desc">Instantly KO every enemy under 50% HP</div>
+    </div>
+    <div class="pick-card xray" data-xr-power="xrayBeam">
+      <div class="pcard-name">X-RAY BEAM</div>
+      <div class="pcard-key">key: L</div>
+      <div class="pcard-desc">Pierce every enemy &mdash; 50 damage to all</div>
+    </div>
+    <div class="pick-card xray" data-xr-power="vitalStrike">
+      <div class="pcard-name">VITAL STRIKE</div>
+      <div class="pcard-key">key: M</div>
+      <div class="pcard-desc">Your next punch is a 5&times; critical hit</div>
+    </div>
+    <div class="pick-card xray" data-xr-power="deathWire">
+      <div class="pcard-name">DEATH WIRE</div>
+      <div class="pcard-key">key: N</div>
+      <div class="pcard-desc">Chain 3 nearest enemies &mdash; 50 dmg each</div>
+    </div>
+  </div>
+  <button class="big" id="confirm-xr">SEE THROUGH BONES!</button>
+</div>
+
+<!-- Hard mode ability picker (appears when you walk into the portal) -->
+<div id="hard-mode-picker" class="screen hidden">
+  <h2 style="color:#ff66ff;">HARD MODE &mdash; PICK 2 NEW POWERS</h2>
+  <div id="hm-counter" style="font-size:18px;color:#ff99ff;letter-spacing:2px;font-weight:bold;background:rgba(0,0,0,0.5);padding:4px 14px;border-radius:18px;border:2px solid #ff66ff;">0 / 2 picked</div>
+  <div class="pick-cards">
+    <div class="pick-card hardmode" data-hm-power="meteor">
+      <div class="pcard-name">METEOR STRIKE</div>
+      <div class="pcard-key">key: 9</div>
+      <div class="pcard-desc">Drop a meteor &mdash; huge AOE damage on every enemy</div>
+    </div>
+    <div class="pick-card hardmode" data-hm-power="demonForm">
+      <div class="pcard-name">DEMON FORM</div>
+      <div class="pcard-key">key: 0</div>
+      <div class="pcard-desc">Transform: 5&times; damage and speed for 6 seconds</div>
+    </div>
+    <div class="pick-card hardmode" data-hm-power="hellspawn">
+      <div class="pcard-name">HELLSPAWN</div>
+      <div class="pcard-key">key: H</div>
+      <div class="pcard-desc">Summon 3 demon allies that fight for you</div>
+    </div>
+    <div class="pick-card hardmode" data-hm-power="soulDrain">
+      <div class="pcard-name">SOUL DRAIN</div>
+      <div class="pcard-key">key: J</div>
+      <div class="pcard-desc">Steal 30 HP from every enemy in the arena</div>
+    </div>
+  </div>
+  <button class="big" id="confirm-hm">FIGHT IN HARD MODE!</button>
+</div>
+
+<!-- Right panel for incoming fight requests -->
+<div id="fight-panel"></div>
+
+<!-- Game over screen -->
+<div id="gameover" class="screen hidden">
+  <h1>YOU GOT KO'D</h1>
+  <div class="stats">KOs landed: <span id="go-kos">0</span></div>
+  <div class="stats">Survived: <span id="go-time">0</span> seconds</div>
+  <button class="big" id="restart-btn">FIGHT AGAIN</button>
+</div>
+
+<!-- Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+/* ============================================================
+   HELP PLEASE — a 3D fighting game
+   ============================================================ */
+
+const COLORS = [
+  0xff5252, 0xff9800, 0xffc107, 0xffeb3b,
+  0x8bc34a, 0x4caf50, 0x00bcd4, 0x2196f3,
+  0x3f51b5, 0x9c27b0, 0xe91e63, 0xffffff,
+  0x444444, 0x8d6e63
+];
+
+// Pool of fake "other players" who challenge you
+const FAKE_PLAYERS = [
+  "xX_Slayer_Xx", "BigDog42", "PunchMaster", "NoobKiller",
+  "CaptainFist", "Rage_Quit", "ChonkyBoi", "LilFighter",
+  "Sk8rDude", "QueenBee", "Shadow99", "RocketKick",
+  "MegaPunch", "TinyTerror", "TheGhost", "DonutKing",
+  "Lava_Lord", "BananaMan", "iSmash", "PixelPete"
+];
+
+// State that persists across screens
+const player = {
+  name: "Player",
+  bodyColor: 0x2196f3,
+  headColor: 0xffc107,
+  pantsColor: 0x333344,
+  shoesColor: 0x111111,
+  size: 1.0,
+  headShape: "sphere"
+};
+
+/* ============================================================
+   TITLE SCREEN
+   ============================================================ */
+const titleEl = document.getElementById('title');
+const customizeEl = document.getElementById('customize');
+const nameInput = document.getElementById('name-input');
+
+// Random fun default name
+nameInput.value = "Fighter" + Math.floor(Math.random() * 999);
+
+// ----- Loading screen sequence -----
+(function runLoader() {
+  const loader = document.getElementById('loader');
+  const bar = document.getElementById('load-bar');
+  const dotsEl = document.getElementById('load-dots');
+  setTimeout(() => bar.style.width = '100%', 80);
+  let n = 0;
+  const dotsInterval = setInterval(() => {
+    n = (n + 1) % 4;
+    dotsEl.textContent = '.'.repeat(n);
+  }, 280);
+  setTimeout(() => {
+    clearInterval(dotsInterval);
+    loader.style.opacity = '0';
+    setTimeout(() => {
+      loader.classList.add('hidden');
+      nameInput.focus();
+      nameInput.select();
+    }, 500);
+  }, 1900);
+})();
+
+document.getElementById('to-customize').onclick = () => {
+  const n = nameInput.value.trim();
+  if (!n) { nameInput.focus(); return; }
+  player.name = n.slice(0, 16);
+  titleEl.classList.add('hidden');
+  customizeEl.classList.remove('hidden');
+  initCustomize();
+};
+
+nameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('to-customize').click();
+});
+
+/* ============================================================
+   CUSTOMIZE SCREEN — preview character with 3D rotation
+   ============================================================ */
+let pvScene, pvCam, pvRenderer, pvChar;
+
+function buildSwatches(containerId, key) {
+  const c = document.getElementById(containerId);
+  c.style.display = 'flex';
+  c.style.gap = '4px';
+  c.style.flexWrap = 'wrap';
+  c.style.maxWidth = '300px';
+  COLORS.forEach(col => {
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    s.style.background = '#' + col.toString(16).padStart(6, '0');
+    if (col === player[key]) s.classList.add('sel');
+    s.onclick = () => {
+      player[key] = col;
+      [...c.children].forEach(x => x.classList.remove('sel'));
+      s.classList.add('sel');
+      rebuildPreview();
+    };
+    c.appendChild(s);
+  });
+}
+
+function initCustomize() {
+  buildSwatches('body-colors', 'bodyColor');
+  buildSwatches('head-colors', 'headColor');
+
+  document.querySelectorAll('[data-size]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('[data-size]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      player.size = parseFloat(b.dataset.size);
+      rebuildPreview();
+    };
+  });
+  document.querySelectorAll('[data-shape]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('[data-shape]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      player.headShape = b.dataset.shape;
+      rebuildPreview();
+    };
+  });
+
+  // Set up preview scene
+  const cv = document.getElementById('preview-canvas');
+  pvRenderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+  pvRenderer.setSize(320, 320, false);
+  pvScene = new THREE.Scene();
+  pvScene.background = new THREE.Color(0x1a1f2e);
+  pvCam = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  pvCam.position.set(0, 1.5, 5);
+  pvCam.lookAt(0, 1, 0);
+
+  const amb = new THREE.AmbientLight(0xffffff, 0.7);
+  pvScene.add(amb);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+  dir.position.set(3, 5, 4);
+  pvScene.add(dir);
+
+  rebuildPreview();
+  animatePreview();
+}
+
+function rebuildPreview() {
+  if (pvChar) pvScene.remove(pvChar);
+  pvChar = makeCharacter(player);
+  pvChar.position.y = 0;
+  pvScene.add(pvChar);
+}
+
+function animatePreview() {
+  if (customizeEl.classList.contains('hidden')) return;
+  pvChar.rotation.y += 0.015;
+  pvRenderer.render(pvScene, pvCam);
+  requestAnimationFrame(animatePreview);
+}
+
+// All known powers in the order they're shown in the loadout
+const ALL_POWER_IDS = [
+  'phoenixDive', 'battleStomp', 'whirlwind', 'tacticalRetreat', 'cloakAndDagger', 'adrenaline',
+  'bitterCold', 'soulWolf', 'fleshSacrifice', 'apotheosis', 'skinGraft', 'timeWarp',
+  // Unlocked via Super Vision portal:
+  'mindBlast', 'chainLightning',
+  // Unlocked by entering Hard Mode portal (player picks 2 of 4):
+  'meteor', 'demonForm', 'hellspawn', 'soulDrain',
+  // Unlocked by entering X-Ray portal (player picks 2 of 4):
+  'boneShatter', 'xrayBeam', 'vitalStrike', 'deathWire'
+];
+const MAX_PICKS = 8;
+const selectedPowers = new Set();   // populated in setupPickPowers
+
+// DOS-style passive talents
+const ALL_TALENT_IDS = [
+  'loneWolf', 'glassCannon', 'hothead', 'thePawn',
+  'comebackKid', 'opportunist', 'livingArmour', 'executioner',
+  'oneMoreTime',
+  'helpPeople', 'timeShake', 'voidBanish', 'greatIfan',
+  'imUnstoppable', 'supervision',
+  'petPal', 'torturer', 'bloodMoon', 'reactiveArmor', 'midasTouch'
+];
+const MAX_TALENTS = 1;
+const selectedTalents = new Set();
+
+document.getElementById('start-fight').onclick = () => {
+  customizeEl.classList.add('hidden');
+  document.getElementById('pick-powers').classList.remove('hidden');
+  setupPickPowers();
+};
+
+function setupPickPowers() {
+  // Reset and pick sensible defaults
+  selectedPowers.clear();
+  selectedTalents.clear();
+  document.querySelectorAll('.pick-card').forEach(c => c.classList.remove('sel'));
+
+  // Default 8 powers
+  ['phoenixDive', 'battleStomp', 'whirlwind', 'soulWolf',
+   'bitterCold', 'fleshSacrifice', 'apotheosis', 'skinGraft'].forEach(p => {
+    selectedPowers.add(p);
+    const c = document.querySelector(`.pick-card[data-power="${p}"]`);
+    if (c) c.classList.add('sel');
+  });
+
+  // Default 0 talents — let the user pick
+
+  document.querySelectorAll('.pick-card').forEach(card => {
+    card.onclick = () => {
+      // Talent toggle
+      if (card.dataset.talent) {
+        const t = card.dataset.talent;
+        if (selectedTalents.has(t)) {
+          selectedTalents.delete(t);
+          card.classList.remove('sel');
+        } else {
+          if (selectedTalents.size >= MAX_TALENTS) {
+            const ctr = document.getElementById('talent-counter');
+            ctr.classList.add('full-flash');
+            setTimeout(() => ctr.classList.remove('full-flash'), 350);
+            return;
+          }
+          selectedTalents.add(t);
+          card.classList.add('sel');
+        }
+        updateTalentCounter();
+        return;
+      }
+      // Power toggle
+      const p = card.dataset.power;
+      if (!p) return;
+      if (selectedPowers.has(p)) {
+        selectedPowers.delete(p);
+        card.classList.remove('sel');
+      } else {
+        if (selectedPowers.size >= MAX_PICKS) {
+          const ctr = document.getElementById('pick-counter');
+          ctr.classList.add('full-flash');
+          setTimeout(() => ctr.classList.remove('full-flash'), 350);
+          return;
+        }
+        selectedPowers.add(p);
+        card.classList.add('sel');
+      }
+      updatePickCounter();
+    };
+  });
+  updatePickCounter();
+  updateTalentCounter();
+}
+
+function updatePickCounter() {
+  const n = selectedPowers.size;
+  const ctr = document.getElementById('pick-counter');
+  if (ctr) {
+    ctr.textContent = `${n} / ${MAX_PICKS} powers picked`;
+    ctr.classList.toggle('full', n === MAX_PICKS);
+  }
+}
+
+function updateTalentCounter() {
+  const n = selectedTalents.size;
+  const ctr = document.getElementById('talent-counter');
+  if (ctr) {
+    const word = MAX_TALENTS === 1 ? 'talent' : 'talents';
+    ctr.textContent = `${n} / ${MAX_TALENTS} ${word} picked`;
+    ctr.classList.toggle('full', n === MAX_TALENTS);
+  }
+}
+
+document.getElementById('confirm-powers').onclick = () => {
+  document.getElementById('pick-powers').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('controls-help').classList.remove('hidden');
+  document.getElementById('powers-bar').classList.remove('hidden');
+  // Show the hidden hard-mode code in the corner
+  document.getElementById('hard-mode-code').classList.remove('hidden');
+  // Show Time Shake button only if talent picked
+  if (selectedTalents.has('timeShake')) {
+    document.getElementById('time-shake-btn').classList.remove('hidden');
+  }
+  // Show SV portal code only if Supervision picked
+  if (selectedTalents.has('supervision')) {
+    document.getElementById('sv-code').classList.remove('hidden');
+  }
+  // X-Ray portal code is always available during gameplay
+  document.getElementById('xr-code').classList.remove('hidden');
+  // Factorio minigame portal code is always available
+  document.getElementById('fact-code').classList.remove('hidden');
+  applyPowerSelection();
+  startGame();
+};
+
+function applyPowerSelection() {
+  // Hide power buttons in the in-game bar that the player didn't pick
+  for (const name of ALL_POWER_IDS) {
+    const el = document.getElementById('pwr-' + name);
+    if (!el) continue;
+    el.style.display = selectedPowers.has(name) ? '' : 'none';
+  }
+}
+
+/* ============================================================
+   CHARACTER BUILDER — used in preview AND in game
+   ============================================================ */
+function makeCharacter(spec) {
+  const root = new THREE.Group();
+  root.userData.spec = spec;
+  const s = spec.size;
+
+  // Body — chunky box
+  const bodyGeo = new THREE.BoxGeometry(0.8 * s, 1.0 * s, 0.5 * s);
+  const bodyMat = new THREE.MeshStandardMaterial({ color: spec.bodyColor, roughness: 0.7 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.7 * s;
+  root.add(body);
+
+  // Head — shape depends on choice
+  let headGeo;
+  if (spec.headShape === 'cube')      headGeo = new THREE.BoxGeometry(0.55 * s, 0.55 * s, 0.55 * s);
+  else if (spec.headShape === 'cone') headGeo = new THREE.ConeGeometry(0.35 * s, 0.7 * s, 16);
+  else                                headGeo = new THREE.SphereGeometry(0.32 * s, 16, 12);
+  const headMat = new THREE.MeshStandardMaterial({ color: spec.headColor, roughness: 0.5 });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 1.55 * s;
+  root.add(head);
+
+  // Eyes — two little white spheres
+  const eyeGeo = new THREE.SphereGeometry(0.06 * s, 8, 8);
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+  const pupGeo = new THREE.SphereGeometry(0.03 * s, 8, 8);
+  const pupMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+  for (const dx of [-0.13, 0.13]) {
+    const eye = new THREE.Mesh(eyeGeo, eyeMat);
+    eye.position.set(dx * s, 1.55 * s, 0.27 * s);
+    root.add(eye);
+    const pup = new THREE.Mesh(pupGeo, pupMat);
+    pup.position.set(dx * s, 1.55 * s, 0.32 * s);
+    root.add(pup);
+  }
+
+  // Arms — pivot at shoulder so they can swing
+  const armGeo = new THREE.BoxGeometry(0.22 * s, 0.85 * s, 0.22 * s);
+  const armMat = new THREE.MeshStandardMaterial({ color: spec.bodyColor, roughness: 0.7 });
+  const leftPivot = new THREE.Group();
+  leftPivot.position.set(-0.5 * s, 1.15 * s, 0);
+  const leftArm = new THREE.Mesh(armGeo, armMat);
+  leftArm.position.y = -0.42 * s;
+  leftPivot.add(leftArm);
+  root.add(leftPivot);
+
+  const rightPivot = new THREE.Group();
+  rightPivot.position.set(0.5 * s, 1.15 * s, 0);
+  const rightArm = new THREE.Mesh(armGeo, armMat);
+  rightArm.position.y = -0.42 * s;
+  rightPivot.add(rightArm);
+  root.add(rightPivot);
+
+  // Legs
+  const legGeo = new THREE.BoxGeometry(0.28 * s, 0.6 * s, 0.28 * s);
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x333344, roughness: 0.9 });
+  const lLeg = new THREE.Mesh(legGeo, legMat);
+  lLeg.position.set(-0.2 * s, 0.3 * s, 0);
+  root.add(lLeg);
+  const rLeg = new THREE.Mesh(legGeo, legMat);
+  rLeg.position.set(0.2 * s, 0.3 * s, 0);
+  root.add(rLeg);
+
+  // Save references for animation
+  root.userData.parts = { body, head, leftPivot, rightPivot, lLeg, rLeg };
+
+  return root;
+}
+
+/* ============================================================
+   GAME
+   ============================================================ */
+let scene, camera, renderer;
+let groundY = 0;
+let playerObj, playerState;
+let enemies = [];
+let keys = {};
+let mouse = { x: 0, y: 0, down: false };
+let cameraAngle = 0;       // horizontal yaw around player
+let cameraPitch = 0.3;     // vertical
+let cameraDistance = 6;    // zoom distance (mouse wheel changes this)
+const MIN_CAM_DIST = 2;
+const MAX_CAM_DIST = 18;
+let lastTime = 0;
+let kos = 0;
+let gameStartTime = 0;
+let gameRunning = false;
+
+const ARENA_RADIUS = 20;
+
+function startGame() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x6ec1ff);
+  scene.fog = new THREE.Fog(0x6ec1ff, 25, 60);
+
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+  sun.position.set(15, 25, 10);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -25; sun.shadow.camera.right = 25;
+  sun.shadow.camera.top = 25;   sun.shadow.camera.bottom = -25;
+  scene.add(sun);
+
+  // Ground — circular arena
+  const groundGeo = new THREE.CircleGeometry(ARENA_RADIUS, 48);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x6e8b4a, roughness: 1.0 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Arena edge ring
+  const ringGeo = new THREE.TorusGeometry(ARENA_RADIUS, 0.3, 8, 64);
+  const ringMat = new THREE.MeshStandardMaterial({ color: 0xc0392b });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.3;
+  scene.add(ring);
+
+  // Some scattered rocks for atmosphere
+  for (let i = 0; i < 12; i++) {
+    const r = 0.4 + Math.random() * 0.6;
+    const rock = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(r),
+      new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 1 })
+    );
+    const a = Math.random() * Math.PI * 2;
+    const d = ARENA_RADIUS + 1 + Math.random() * 8;
+    rock.position.set(Math.cos(a) * d, r * 0.6, Math.sin(a) * d);
+    rock.castShadow = true;
+    scene.add(rock);
+  }
+
+  // Player character
+  playerObj = makeCharacter(player);
+  playerObj.castShadow = true;
+  playerObj.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  scene.add(playerObj);
+  playerState = newFighterState(player.name, 100);
+  playerState.obj = playerObj;
+  // Apply talent effects to starting state
+  if (selectedTalents.has('loneWolf')) {
+    playerState.maxHp = 150;
+    playerState.hp = 150;
+  }
+  if (selectedTalents.has('oneMoreTime')) {
+    playerState.maxHp += 100;
+    playerState.hp = playerState.maxHp;
+  }
+  playerState.comebackUsed = false;
+  playerState.oneMoreTimeUsed = false;
+  playerState.timeShakeNextAt = 0;
+  attachNameTag(playerObj, player.name, '#ffe066');
+
+  // SUPERVISION talent — see further, no fog, wider FOV
+  if (selectedTalents.has('supervision')) {
+    camera.fov = 78;
+    camera.updateProjectionMatrix();
+    scene.fog = null;
+  }
+
+  // GREAT IFAN talent: Ifan + his Soul Wolf join you immediately
+  if (selectedTalents.has('greatIfan')) {
+    setTimeout(() => { spawnIfan(); spawnSoulWolf(); }, 50);
+  }
+  // PET PAL talent: a loyal dog joins immediately
+  if (selectedTalents.has('petPal')) {
+    setTimeout(() => spawnPetDog(), 50);
+  }
+
+  // Spawn an initial opponent so you have someone to hit
+  spawnEnemy();
+
+  // Input — clear stale keys whenever focus or pointer-lock changes
+  // (fixes "walks by itself" when a key gets stuck during state transitions)
+  function clearAllKeys() { for (const k in keys) delete keys[k]; }
+  clearAllKeys();
+  window.addEventListener('blur', clearAllKeys);
+  document.addEventListener('pointerlockchange', () => {
+    if (!document.pointerLockElement) clearAllKeys();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearAllKeys();
+  });
+
+  window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === ' ') { e.preventDefault(); attemptPunch(); }
+  });
+  window.addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
+  // Disable browser context menu so right-click can be used to turn the camera
+  renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
+  renderer.domElement.addEventListener('mousedown', e => {
+    if (e.button === 0) {                  // Left click = punch
+      mouse.down = true;
+      attemptPunch();
+    } else if (e.button === 2) {           // Right click HOLD = Roblox-style turn
+      mouse.rightDown = true;
+      // Capture the cursor so it disappears and we can drag infinitely
+      renderer.domElement.requestPointerLock?.();
+    }
+  });
+  window.addEventListener('mouseup', e => {
+    if (e.button === 0) mouse.down = false;
+    if (e.button === 2) {
+      mouse.rightDown = false;
+      // Release the cursor when right-click is released — it reappears
+      if (document.pointerLockElement) document.exitPointerLock?.();
+    }
+  });
+  document.addEventListener('mousemove', e => {
+    // Roblox-style: only rotate while right-click is held + cursor is locked.
+    // Use movementX/Y so motion is unbounded and smooth.
+    if (mouse.rightDown && document.pointerLockElement === renderer.domElement) {
+      cameraAngle -= e.movementX * 0.005;
+      cameraPitch  = Math.max(-0.4, Math.min(1.0, cameraPitch + e.movementY * 0.003));
+    }
+  });
+  // Mouse wheel = zoom in/out (Roblox style)
+  renderer.domElement.addEventListener('wheel', e => {
+    e.preventDefault();
+    cameraDistance = Math.max(MIN_CAM_DIST,
+                       Math.min(MAX_CAM_DIST, cameraDistance + e.deltaY * 0.01));
+  }, { passive: false });
+  window.addEventListener('resize', onResize);
+
+  // Schedule first fight request
+  scheduleNextRequest(3000);
+
+  gameStartTime = performance.now();
+  gameRunning = true;
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+/* ----- Fighter state object ----- */
+function newFighterState(name, hp) {
+  return {
+    name, hp, maxHp: hp,
+    obj: null,
+    vel: new THREE.Vector3(),
+    facing: 0,
+    punchTime: 0,        // 0..1, how far through swing
+    punchCooldown: 0,    // seconds remaining
+    hitCooldown: 0,      // ms invulnerability after hit
+    isDead: false,
+    aiTarget: null,
+    aiThinkAt: 0,
+    walkPhase: 0,
+    dashEndAt: 0,
+    rageEndAt: 0,
+    nextPunchDmgMult: 0
+  };
+}
+
+/* ----- Enemy creation ----- */
+function spawnEnemy(forcedName) {
+  const spec = {
+    name: forcedName || randomFakeName(),
+    bodyColor: COLORS[Math.floor(Math.random() * COLORS.length)],
+    headColor: COLORS[Math.floor(Math.random() * COLORS.length)],
+    size: 0.8 + Math.random() * 0.5,
+    headShape: ['sphere', 'cube', 'cone'][Math.floor(Math.random() * 3)]
+  };
+  const obj = makeCharacter(spec);
+  obj.traverse(o => { if (o.isMesh) o.castShadow = true; });
+
+  // Spawn at edge of arena
+  const a = Math.random() * Math.PI * 2;
+  const d = ARENA_RADIUS - 2;
+  obj.position.set(Math.cos(a) * d, 0, Math.sin(a) * d);
+  scene.add(obj);
+
+  const state = newFighterState(spec.name, 60 + Math.random() * 40);
+  state.obj = obj;
+  state.spec = spec;
+  attachNameTag(obj, spec.name, '#ff8888');
+  // Attach HP bar if SUPERVISION talent picked
+  if (selectedTalents.has('supervision')) attachHpBar(state);
+  // Apply X-ray look to new enemies if X-Ray vision is active
+  if (xrUnlocked) applyXRayLook(state);
+  enemies.push(state);
+}
+
+function randomFakeName() {
+  return FAKE_PLAYERS[Math.floor(Math.random() * FAKE_PLAYERS.length)] +
+         (Math.random() < 0.3 ? Math.floor(Math.random() * 99) : "");
+}
+
+/* ----- Floating HP bar above an enemy (only used with Supervision talent) ----- */
+function attachHpBar(state) {
+  const cv = document.createElement('canvas');
+  cv.width = 200; cv.height = 22;
+  state._hpCanvas = cv;
+  state._hpCtx = cv.getContext('2d');
+  const tex = new THREE.CanvasTexture(cv);
+  state._hpTex = tex;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  sp.scale.set(1.6, 0.18, 1);
+  const s = state.spec ? state.spec.size : 1;
+  sp.position.y = 2.05 * s;
+  state.obj.add(sp);
+  state._hpSprite = sp;
+  updateHpBar(state);
+}
+
+function updateHpBar(state) {
+  if (!state._hpCtx) return;
+  const ctx = state._hpCtx;
+  ctx.clearRect(0, 0, 200, 22);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 200, 22);
+  const pct = Math.max(0, state.hp / state.maxHp);
+  ctx.fillStyle = pct > 0.5 ? '#2ecc71' : pct > 0.25 ? '#f39c12' : '#e74c3c';
+  ctx.fillRect(2, 2, 196 * pct, 18);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, 198, 20);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(`${Math.ceil(state.hp)} / ${state.maxHp}`, 100, 11);
+  state._hpTex.needsUpdate = true;
+}
+
+/* ----- Floating name tag using a sprite ----- */
+function attachNameTag(obj, name, color) {
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 64;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, 256, 64);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 32px Trebuchet MS';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(name, 128, 32);
+  const tex = new THREE.CanvasTexture(cv);
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+  const sp = new THREE.Sprite(mat);
+  sp.scale.set(2, 0.5, 1);
+  const s = obj.userData.spec.size;
+  sp.position.y = 2.3 * s;
+  obj.add(sp);
+  obj.userData.nameTag = sp;
+}
+
+/* ============================================================
+   COMBAT
+   ============================================================ */
+const PUNCH_RANGE = 1.7;
+const PUNCH_DAMAGE = 18;
+const PUNCH_DURATION = 0.35;   // seconds
+const PUNCH_HIT_AT  = 0.55;    // fraction through swing where damage lands
+const PUNCH_COOLDOWN = 0.55;
+
+function attemptPunch() {
+  if (!gameRunning || playerState.isDead) return;
+  if (playerState.punchCooldown > 0) return;
+  playerState.punchTime = 0.001;
+  playerState.punchCooldown = PUNCH_COOLDOWN;
+}
+
+function processPunchHit(attacker, victim, isSpell = false) {
+  // Apotheosis = invincible
+  if (victim === playerState && isApotheosis()) return;
+  // I'M UNSTOPPABLE: punches do nothing to you. Only spells get through.
+  // Bonus: a punch while you're almost dead (under 30% HP) FULLY HEALS you.
+  if (victim === playerState && selectedTalents.has('imUnstoppable') && !isSpell) {
+    if (playerState.hp > 0 && playerState.hp < playerState.maxHp * 0.30) {
+      playerState.hp = playerState.maxHp;
+      flashScreen('rgba(80,255,140,0.45)', 550);
+      spawnHealEffect();
+      shakeCamera(200);
+    }
+    return;
+  }
+  // Damage modifiers (player only)
+  let mult = 1;
+  if (attacker === playerState) {
+    if (playerState.nextPunchDmgMult) { mult *= playerState.nextPunchDmgMult; playerState.nextPunchDmgMult = 0; }
+    if (isApotheosis())  mult *= 4;
+    else if (isFleshBuffed()) mult *= 3;
+    // Talents
+    if (selectedTalents.has('glassCannon')) mult *= 1.5;
+    if (selectedTalents.has('hothead') && playerState.hp >= playerState.maxHp - 0.01) mult *= 1.3;
+    if (selectedTalents.has('opportunist') && victim.hp < victim.maxHp * 0.3) mult *= 1.3;
+    if (selectedTalents.has('bloodMoon') && playerState.hp < playerState.maxHp * 0.30) mult *= 2.0;
+    // VOID BANISH: 20% chance to instant-KO
+    if (selectedTalents.has('voidBanish') && Math.random() < 0.20) {
+      victim.hp = 0;
+      flashScreen('rgba(80,0,180,0.35)', 250);
+    }
+  }
+  // Glass cannon also amplifies incoming damage
+  let inMult = 1;
+  if (victim === playerState && selectedTalents.has('glassCannon')) inMult = 1.5;
+  // Hard mode: enemies hit harder
+  if (victim === playerState && hardMode && attacker !== playerState) inMult *= 1.5;
+  const dmg = PUNCH_DAMAGE * mult * inMult * (0.85 + Math.random() * 0.3);
+  victim.hp -= dmg;
+  // I'M UNSTOPPABLE talent: every SPELL hit grows your max HP
+  if (victim === playerState && selectedTalents.has('imUnstoppable') && isSpell) {
+    playerState.maxHp += 1;
+    playerState.hp += 1;   // also heal so the bar visibly grows
+  }
+  // TORTURER talent: your punches set enemies on fire
+  if (attacker === playerState && victim !== playerState && selectedTalents.has('torturer')) {
+    victim.burnUntil = performance.now() + 3000;
+    if (!victim.burnLastTick) victim.burnLastTick = performance.now();
+  }
+  // REACTIVE ARMOR: enemy spell hits get reflected back as damage
+  if (victim === playerState && isSpell && selectedTalents.has('reactiveArmor') &&
+      attacker && attacker !== playerState && !attacker.isDead) {
+    const back = 30;
+    attacker.hp -= back;
+    showDamage(attacker.obj.position, back);
+    attacker.hitCooldown = 200;
+    if (attacker.hp <= 0) killEnemy(attacker);
+  }
+  victim.hitCooldown = 200;
+  // Knockback (heavier with multiplier)
+  const dir = new THREE.Vector3().subVectors(victim.obj.position, attacker.obj.position);
+  dir.y = 0; dir.normalize();
+  victim.vel.add(dir.multiplyScalar(6 * Math.sqrt(mult)));
+  showDamage(victim.obj.position, Math.round(dmg));
+
+  if (victim.hp <= 0 && !victim.isDead) {
+    if (victim === playerState) {
+      // ONE MORE TIME talent: revive once with FULL HP + reset EVERY ability
+      if (selectedTalents.has('oneMoreTime') && !playerState.oneMoreTimeUsed) {
+        playerState.oneMoreTimeUsed = true;
+        playerState.hp = playerState.maxHp;
+        playerState.hitCooldown = 1500;
+        // Reset every regular cooldown
+        for (const [pname, pw] of Object.entries(POWERS)) {
+          if (pw.type === 'regular') pw.lastUsed = -999;
+        }
+        // Reset every once-per-day special (so they're usable again today)
+        for (const [pname, pw] of Object.entries(POWERS)) {
+          if (pw.type === 'special') {
+            try { localStorage.removeItem('helpPlease_special_' + pname); } catch (e) {}
+          }
+        }
+        refreshPowersUI();
+        flashScreen('rgba(255,255,200,0.65)', 900);
+        spawnHealEffect();
+        shakeCamera(400);
+        return;
+      }
+      // COMEBACK KID talent: revive once at 25% HP
+      if (selectedTalents.has('comebackKid') && !playerState.comebackUsed) {
+        playerState.comebackUsed = true;
+        playerState.hp = Math.max(1, playerState.maxHp * 0.25);
+        playerState.hitCooldown = 1500;
+        flashScreen('rgba(120,255,180,0.55)', 700);
+        spawnHealEffect();
+        return;
+      }
+      playerState.isDead = true;
+      playerObj.rotation.z = Math.PI / 2;
+      playerObj.position.y = 0.1;
+      endGame();
+    } else {
+      killEnemy(victim);
+      // EXECUTIONER talent: reset all combat cooldowns on a KO
+      if (attacker === playerState && selectedTalents.has('executioner')) {
+        for (const [name, pw] of Object.entries(POWERS)) {
+          if (pw.type === 'regular') pw.lastUsed = -999;
+        }
+      }
+      // HELP PEOPLE talent: heal 25 HP per KO
+      if (attacker === playerState && selectedTalents.has('helpPeople')) {
+        playerState.hp = Math.min(playerState.maxHp, playerState.hp + 25);
+        flashScreen('rgba(80,255,140,0.18)', 200);
+      }
+      // MIDAS TOUCH talent: drop a healing orb at the corpse
+      if (attacker === playerState && selectedTalents.has('midasTouch')) {
+        spawnHealingOrb(victim.obj.position);
+      }
+    }
+  }
+}
+
+function showDamage(worldPos, amount) {
+  const v = worldPos.clone();
+  v.y += 2;
+  v.project(camera);
+  const x = (v.x * 0.5 + 0.5) * window.innerWidth;
+  const y = (-v.y * 0.5 + 0.5) * window.innerHeight;
+  const div = document.createElement('div');
+  div.className = 'dmg';
+  div.textContent = '-' + amount;
+  div.style.left = x + 'px';
+  div.style.top  = y + 'px';
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 950);
+}
+
+/* ============================================================
+   FIGHT REQUESTS PANEL
+   ============================================================ */
+const fightPanel = document.getElementById('fight-panel');
+
+function scheduleNextRequest(ms) {
+  setTimeout(() => {
+    if (!gameRunning) return;
+    showFightRequest(randomFakeName());
+    scheduleNextRequest(8000 + Math.random() * 9000);
+  }, ms);
+}
+
+function showFightRequest(name) {
+  const card = document.createElement('div');
+  card.className = 'fight-req';
+  const messages = [
+    "wants to fight you!",
+    "is challenging you!",
+    "thinks they can beat you!",
+    "joined and wants a brawl!",
+    "is calling you out!"
+  ];
+  card.innerHTML = `
+    <div class="who">${escapeHtml(name)}</div>
+    <div class="msg">${messages[Math.floor(Math.random() * messages.length)]}</div>
+    <div class="btns">
+      <button class="accept">FIGHT</button>
+      <button class="decline">Ignore</button>
+    </div>
+  `;
+  card.querySelector('.accept').onclick = () => {
+    spawnEnemy(name);
+    card.remove();
+  };
+  card.querySelector('.decline').onclick = () => card.remove();
+  fightPanel.appendChild(card);
+  // Auto-dismiss after 12s
+  setTimeout(() => card.remove(), 12000);
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ============================================================
+   GAME LOOP
+   ============================================================ */
+function loop(now) {
+  if (!gameRunning) return;
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+
+  updatePlayer(dt);
+  updateEnemies(dt, now);
+  updateCompanions(dt);
+  updateEffects(dt);
+  updateHealingOrbs(dt);
+  updateFactorio(dt);
+  checkHardModePortal();
+  updateCamera();
+  updateNameTags();
+  updateHUD();
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+function updatePlayer(dt) {
+  if (playerState.isDead) return;
+  const now = performance.now();
+
+  // Move relative to camera direction — Roblox-style direct velocity
+  let mx = 0, mz = 0;
+  if (keys['w'] || keys['arrowup'])    mz -= 1;
+  if (keys['s'] || keys['arrowdown'])  mz += 1;
+  if (keys['a'] || keys['arrowleft'])  mx -= 1;
+  if (keys['d'] || keys['arrowright']) mx += 1;
+
+  const isDashing = now < (playerState.dashEndAt || 0);
+  const isMoving = (mx !== 0 || mz !== 0);
+
+  // Roblox walk speed (apotheosis = 4x; flesh sacrifice = a bit faster)
+  // THE PAWN talent gives +30%; BLOOD MOON gives +50% when low HP
+  const pawnMult = selectedTalents.has('thePawn') ? 1.3 : 1;
+  const bloodMoonMult = (selectedTalents.has('bloodMoon') &&
+                         playerState.hp < playerState.maxHp * 0.30) ? 1.5 : 1;
+  const baseSpeed = (isApotheosis() ? 18 : (isFleshBuffed() ? 9 : 7)) * pawnMult * bloodMoonMult;
+
+  // LIVING ARMOUR talent regenerates 1 HP per second
+  if (selectedTalents.has('livingArmour') && playerState.hp < playerState.maxHp && !playerState.isDead) {
+    playerState.hp = Math.min(playerState.maxHp, playerState.hp + dt);
+  }
+  // TIME SHAKE talent: snapshot HP/position every 2 seconds for rewind history
+  if (selectedTalents.has('timeShake') && !playerState.isDead) {
+    if (!playerState.timeSnaps) playerState.timeSnaps = [];
+    if (now > (playerState.lastSnapAt || 0) + 2000) {
+      playerState.lastSnapAt = now;
+      playerState.timeSnaps.push({
+        hp: playerState.hp,
+        x: playerObj.position.x,
+        z: playerObj.position.z,
+        maxHp: playerState.maxHp
+      });
+      if (playerState.timeSnaps.length > 6) playerState.timeSnaps.shift();
+    }
+  }
+
+  if (isMoving) {
+    const len = Math.hypot(mx, mz);
+    mx /= len; mz /= len;
+    // Camera-relative direction. The camera sits at offset
+    //   (sin θ, cos θ) from the player, so "away from camera" is
+    //   (-sin θ, -cos θ). With W = mz=-1, we want vel = (-sin θ, -cos θ).
+    const cs = Math.cos(cameraAngle), sn = Math.sin(cameraAngle);
+    const dx =  mx * cs + mz * sn;
+    const dz = -mx * sn + mz * cs;
+    playerState.facing = Math.atan2(dx, dz);
+    if (!isDashing) {
+      // Direct velocity — instant start, no acceleration mush (Roblox feel)
+      playerState.vel.x = dx * baseSpeed;
+      playerState.vel.z = dz * baseSpeed;
+    }
+  } else if (!isDashing) {
+    // Instant stop when no input (Roblox feel)
+    playerState.vel.x = 0;
+    playerState.vel.z = 0;
+  }
+
+  applyMovement(playerState, dt);
+  animateFighter(playerState, dt);
+
+  // Snappy rotation — Roblox-style quick face-toward-movement
+  const cur = playerObj.rotation.y;
+  let diff = playerState.facing - cur;
+  while (diff >  Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  playerObj.rotation.y += diff * Math.min(1, dt * 22);
+
+  // Punch resolution
+  if (playerState.punchTime > 0) {
+    const prev = playerState.punchTime;
+    playerState.punchTime += dt / PUNCH_DURATION;
+    // Damage lands when crossing PUNCH_HIT_AT
+    if (prev < PUNCH_HIT_AT && playerState.punchTime >= PUNCH_HIT_AT) {
+      // Find enemies in range in front of player
+      for (const e of enemies) {
+        if (e.isDead) continue;
+        const dx = e.obj.position.x - playerObj.position.x;
+        const dz = e.obj.position.z - playerObj.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > PUNCH_RANGE) continue;
+        const ang = Math.atan2(dx, dz);
+        let aDiff = ang - playerState.facing;
+        while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
+        while (aDiff < -Math.PI) aDiff += Math.PI * 2;
+        if (Math.abs(aDiff) < 1.0) {
+          processPunchHit(playerState, e);
+        }
+      }
+    }
+    if (playerState.punchTime >= 1) playerState.punchTime = 0;
+  }
+  if (playerState.punchCooldown > 0) playerState.punchCooldown -= dt;
+}
+
+function applyMovement(st, dt) {
+  // Friction
+  st.vel.x *= Math.pow(0.001, dt);
+  st.vel.z *= Math.pow(0.001, dt);
+  st.obj.position.x += st.vel.x * dt;
+  st.obj.position.z += st.vel.z * dt;
+
+  // Keep inside arena
+  const r = Math.hypot(st.obj.position.x, st.obj.position.z);
+  if (r > ARENA_RADIUS - 0.5) {
+    const k = (ARENA_RADIUS - 0.5) / r;
+    st.obj.position.x *= k;
+    st.obj.position.z *= k;
+    st.vel.x *= -0.3;
+    st.vel.z *= -0.3;
+  }
+  if (st.hitCooldown > 0) st.hitCooldown -= dt * 1000;
+}
+
+function animateFighter(st, dt) {
+  const parts = st.obj.userData.parts;
+  // Walk bob
+  const speedSq = st.vel.x * st.vel.x + st.vel.z * st.vel.z;
+  if (speedSq > 0.5 && !st.isDead) {
+    st.walkPhase += dt * 12;
+    parts.lLeg.rotation.x = Math.sin(st.walkPhase) * 0.6;
+    parts.rLeg.rotation.x = -Math.sin(st.walkPhase) * 0.6;
+    parts.body.rotation.z = Math.sin(st.walkPhase * 2) * 0.05;
+  } else {
+    parts.lLeg.rotation.x *= 0.85;
+    parts.rLeg.rotation.x *= 0.85;
+    parts.body.rotation.z *= 0.85;
+  }
+  // Punch animation — right arm swings forward
+  if (st.punchTime > 0) {
+    const t = st.punchTime;
+    // Smooth swing: ease out then back
+    const swing = Math.sin(t * Math.PI);
+    parts.rightPivot.rotation.x = -1.6 * swing;
+    parts.leftPivot.rotation.x  =  0.4 * swing;
+  } else {
+    parts.rightPivot.rotation.x *= 0.6;
+    parts.leftPivot.rotation.x  *= 0.6;
+  }
+  // Tints (freeze takes priority, then hit flash)
+  if (st.frozenUntil && performance.now() < st.frozenUntil) {
+    parts.body.material.emissive = new THREE.Color(0x4488ff);
+    parts.body.material.emissiveIntensity = 0.55;
+  } else if (st.hitCooldown > 0) {
+    const intensity = st.hitCooldown / 200;
+    parts.body.material.emissive = new THREE.Color(1, 0, 0);
+    parts.body.material.emissiveIntensity = intensity;
+  } else if (parts.body.material.emissiveIntensity > 0) {
+    parts.body.material.emissiveIntensity = 0;
+  }
+}
+
+/* ----- Enemy AI ----- */
+function updateEnemies(dt, now) {
+  // Time Warp halves enemy time scale globally
+  const enemyDt = (now < timeWarpUntil) ? dt * 0.5 : dt;
+
+  for (const e of enemies) {
+    if (e.isDead) continue;
+
+    // TORTURER burn: tick 3 dmg per second while ablaze
+    if (e.burnUntil && now < e.burnUntil) {
+      if (now - (e.burnLastTick || 0) >= 1000) {
+        e.burnLastTick = now;
+        e.hp -= 3;
+        showDamage(e.obj.position, 3);
+        if (e.hp <= 0) { killEnemy(e); continue; }
+      }
+    }
+
+    // Frozen by Bitter Cold — skip AI, hold still
+    const isFrozen = e.frozenUntil && now < e.frozenUntil;
+    if (isFrozen) {
+      e.vel.x *= 0.7; e.vel.z *= 0.7;
+      applyMovement(e, enemyDt);
+      animateFighter(e, enemyDt);
+      continue;
+    }
+
+    // Re-decide what to do every so often
+    if (now > e.aiThinkAt) {
+      e.aiThinkAt = now + 200 + Math.random() * 400;
+    }
+
+    // Move toward player
+    const dx = playerObj.position.x - e.obj.position.x;
+    const dz = playerObj.position.z - e.obj.position.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist > 0.001) {
+      const fx = dx / dist, fz = dz / dist;
+      e.facing = Math.atan2(fx, fz);
+      if (dist > PUNCH_RANGE * 0.85) {
+        // Walk closer
+        const speed = 3.2;
+        e.vel.x += fx * speed * enemyDt * 6;
+        e.vel.z += fz * speed * enemyDt * 6;
+        e.walkPhase += enemyDt * 8;
+      } else {
+        // Try to punch
+        if (e.punchCooldown <= 0 && e.punchTime === 0) {
+          e.punchTime = 0.001;
+          e.punchCooldown = PUNCH_COOLDOWN + 0.4 + Math.random() * 0.4;
+        }
+      }
+
+      // Cast a fireball SPELL at the player from medium range
+      // Hard mode: cast more often
+      if (dist > 3 && dist < 14 && now > (e.nextSpellAt || 0)) {
+        const baseDelay = hardMode ? 1800 : 3500;
+        const variance = hardMode ? 2200 : 4000;
+        e.nextSpellAt = now + baseDelay + Math.random() * variance;
+        const chance = hardMode ? 0.85 : 0.55;
+        if (Math.random() < chance) {
+          spawnEnemyFireball(e);
+        }
+      }
+    }
+
+    applyMovement(e, enemyDt);
+    animateFighter(e, enemyDt);
+    if (e._hpCtx) updateHpBar(e);
+
+    // Smooth rotate
+    const cur = e.obj.rotation.y;
+    let diff = e.facing - cur;
+    while (diff >  Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    e.obj.rotation.y += diff * Math.min(1, enemyDt * 8);
+
+    // Resolve punch hit on player
+    if (e.punchTime > 0) {
+      const prev = e.punchTime;
+      e.punchTime += enemyDt / PUNCH_DURATION;
+      if (prev < PUNCH_HIT_AT && e.punchTime >= PUNCH_HIT_AT) {
+        const dx2 = playerObj.position.x - e.obj.position.x;
+        const dz2 = playerObj.position.z - e.obj.position.z;
+        if (Math.hypot(dx2, dz2) <= PUNCH_RANGE && playerState.hitCooldown <= 0) {
+          processPunchHit(e, playerState);
+        }
+      }
+      if (e.punchTime >= 1) e.punchTime = 0;
+    }
+    if (e.punchCooldown > 0) e.punchCooldown -= enemyDt;
+  }
+}
+
+function updateCamera() {
+  const dist = cameraDistance;
+  const cy = Math.cos(cameraPitch) * dist;
+  const ch = Math.sin(cameraPitch) * dist;
+  camera.position.x = playerObj.position.x + Math.sin(cameraAngle) * cy;
+  camera.position.z = playerObj.position.z + Math.cos(cameraAngle) * cy;
+  camera.position.y = playerObj.position.y + 2 + ch;
+  // Camera shake
+  if (performance.now() < cameraShakeUntil) {
+    const k = (cameraShakeUntil - performance.now()) / 500;
+    camera.position.x += (Math.random() - 0.5) * 0.5 * k;
+    camera.position.y += (Math.random() - 0.5) * 0.5 * k;
+    camera.position.z += (Math.random() - 0.5) * 0.5 * k;
+  }
+  camera.lookAt(playerObj.position.x, playerObj.position.y + 1.2, playerObj.position.z);
+}
+
+function updateNameTags() {
+  // Sprites already face camera automatically, but make them slightly bigger when nearer
+  // (no-op for now, kept for future tuning)
+}
+
+function updateHUD() {
+  document.getElementById('hud-name').textContent = player.name;
+  const hp = Math.max(0, playerState.hp);
+  document.getElementById('hud-hp').style.width = (hp / playerState.maxHp * 100) + '%';
+  document.getElementById('hud-hp-num').textContent = `${Math.ceil(hp)} / ${playerState.maxHp}`;
+  document.getElementById('hud-enemies').textContent = enemies.filter(e => !e.isDead).length;
+  // Time Shake button cooldown / readiness
+  if (selectedTalents.has('timeShake')) {
+    const btn = document.getElementById('time-shake-btn');
+    const remain = ((playerState.timeShakeReadyAt || 0) - performance.now()) / 1000;
+    if (remain > 0) {
+      btn.disabled = true;
+      btn.textContent = `REWIND in ${Math.ceil(remain)}s`;
+    } else if (!playerState.timeSnaps || playerState.timeSnaps.length === 0) {
+      btn.disabled = true;
+      btn.textContent = 'Building history…';
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'REWIND TIME (Y)';
+    }
+  }
+  // Show active talent so the player can see it took effect
+  const tEl = document.getElementById('hud-talent');
+  if (selectedTalents.size > 0) {
+    const labels = {
+      loneWolf: 'LONE WOLF', glassCannon: 'GLASS CANNON', hothead: 'HOTHEAD',
+      thePawn: 'THE PAWN', comebackKid: 'COMEBACK KID', opportunist: 'OPPORTUNIST',
+      livingArmour: 'LIVING ARMOUR', executioner: 'EXECUTIONER', oneMoreTime: 'ONE MORE TIME',
+      helpPeople: 'HELP PEOPLE!', timeShake: 'TIME SHAKE',
+      voidBanish: 'VOID BANISH', greatIfan: 'GREAT GREAT IFAN',
+      imUnstoppable: "I'M UNSTOPPABLE", supervision: 'SUPERVISION',
+      petPal: 'PET PAL', torturer: 'TORTURER', bloodMoon: 'BLOOD MOON',
+      reactiveArmor: 'REACTIVE ARMOR', midasTouch: 'MIDAS TOUCH'
+    };
+    const t = [...selectedTalents][0];
+    tEl.textContent = 'Talent: ' + (labels[t] || t);
+  } else {
+    tEl.textContent = 'Talent: (none)';
+  }
+  refreshPowersUI();
+  // Buff indicator (apotheosis takes priority; otherwise flesh sacrifice)
+  const buffEl = document.getElementById('buff-indicator');
+  buffEl.classList.remove('flesh', 'apotheosis');
+  if (isApotheosis()) {
+    buffEl.textContent = 'APOTHEOSIS';
+    buffEl.classList.add('apotheosis');
+    buffEl.classList.remove('hidden');
+  } else if (isFleshBuffed()) {
+    buffEl.textContent = 'FLESH SACRIFICE';
+    buffEl.classList.add('flesh');
+    buffEl.classList.remove('hidden');
+  } else {
+    buffEl.classList.add('hidden');
+  }
+}
+
+/* ============================================================
+   POWERS SYSTEM
+   ============================================================ */
+let cameraShakeUntil = 0;
+const effects = [];     // visual effects (rings, fireballs, particles)
+
+function isApotheosis()  { return performance.now() < (playerState && playerState.apotheosisEndAt || 0); }
+function isFleshBuffed() { return performance.now() < (playerState && playerState.fleshBuffEndAt || 0); }
+function isRaging()      { return isApotheosis() || isFleshBuffed(); }
+
+function todayKey() { return new Date().toISOString().slice(0, 10); }
+function isSpecialUsed(name) {
+  try { return localStorage.getItem('helpPlease_special_' + name) === todayKey(); }
+  catch (e) { return false; }
+}
+function markSpecialUsed(name) {
+  try { localStorage.setItem('helpPlease_special_' + name, todayKey()); } catch (e) {}
+}
+
+// Helper: kill an enemy cleanly (used by all damage sources)
+function killEnemy(e) {
+  if (e.isDead) return;
+  e.isDead = true;
+  e.obj.rotation.z = Math.PI / 2;
+  e.obj.position.y = 0.1;
+  kos++;
+  document.getElementById('hud-kos').textContent = kos;
+  setTimeout(() => { scene.remove(e.obj); enemies = enemies.filter(x => x !== e); }, 1500);
+}
+
+const POWERS = {
+  // ============ POWERS — I (combat skills, cooldowns) ============
+  phoenixDive: {
+    type: 'regular', cooldown: 3.5, lastUsed: -999,
+    use() {
+      const fx = Math.sin(playerState.facing);
+      const fz = Math.cos(playerState.facing);
+      playerState.vel.x = fx * 34;
+      playerState.vel.z = fz * 34;
+      playerState.dashEndAt = performance.now() + 320;
+      flashScreen('rgba(255,80,30,0.25)', 250);
+      spawnFireTrail();
+    }
+  },
+  battleStomp: {
+    type: 'regular', cooldown: 4.0, lastUsed: -999,
+    use() {
+      shakeCamera(220);
+      flashScreen('rgba(220,160,60,0.18)', 180);
+      // Hit every enemy in a frontal cone
+      for (const e of enemies) {
+        if (e.isDead) continue;
+        const dx = e.obj.position.x - playerObj.position.x;
+        const dz = e.obj.position.z - playerObj.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > 3.8 || dist < 0.001) continue;
+        const ang = Math.atan2(dx, dz);
+        let aDiff = ang - playerState.facing;
+        while (aDiff >  Math.PI) aDiff -= Math.PI * 2;
+        while (aDiff < -Math.PI) aDiff += Math.PI * 2;
+        if (Math.abs(aDiff) > 1.2) continue;
+        const dmg = 38;
+        e.hp -= dmg;
+        showDamage(e.obj.position, dmg);
+        e.hitCooldown = 200;
+        e.vel.x += (dx / dist) * 10;
+        e.vel.z += (dz / dist) * 10;
+        if (e.hp <= 0) killEnemy(e);
+      }
+      spawnStompRing();
+    }
+  },
+  whirlwind: {
+    type: 'regular', cooldown: 5.5, lastUsed: -999,
+    use() {
+      // Spin attack — hits everyone within range, all directions
+      shakeCamera(250);
+      flashScreen('rgba(200,200,255,0.18)', 180);
+      for (const e of enemies) {
+        if (e.isDead) continue;
+        const dx = e.obj.position.x - playerObj.position.x;
+        const dz = e.obj.position.z - playerObj.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > 3.0 || dist < 0.001) continue;
+        const dmg = 22;
+        e.hp -= dmg;
+        showDamage(e.obj.position, dmg);
+        e.hitCooldown = 200;
+        e.vel.x += (dx / dist) * 7;
+        e.vel.z += (dz / dist) * 7;
+        if (e.hp <= 0) killEnemy(e);
+      }
+      // Animation: rapid full spin of the player model
+      playerState.spinEndAt = performance.now() + 450;
+    }
+  },
+  tacticalRetreat: {
+    type: 'regular', cooldown: 5.0, lastUsed: -999,
+    use() {
+      // Big leap backward — flies WAY back across the arena
+      const fx = -Math.sin(playerState.facing);
+      const fz = -Math.cos(playerState.facing);
+      playerState.vel.x = fx * 60;
+      playerState.vel.z = fz * 60;
+      playerState.dashEndAt = performance.now() + 600;     // longer flight
+      flashScreen('rgba(120,255,200,0.22)', 320);
+    }
+  },
+
+  // ============ SPECIAL POWERS — II (once a day each) ============
+  bitterCold: {
+    type: 'special',
+    use() {
+      // Ice damage + freeze on every enemy
+      for (const e of enemies) {
+        if (e.isDead) continue;
+        const dmg = 30;
+        e.hp -= dmg;
+        showDamage(e.obj.position, dmg);
+        e.hitCooldown = 200;
+        e.frozenUntil = performance.now() + 5000;   // 5s freeze
+        e.vel.x = 0; e.vel.z = 0;
+        if (e.hp <= 0) killEnemy(e);
+      }
+      spawnIceRing();
+      flashScreen('rgba(120,200,255,0.32)', 380);
+      shakeCamera(300);
+    }
+  },
+  soulWolf: {
+    // Once per MINUTE (60s cooldown) — not once per day
+    type: 'regular', cooldown: 60, lastUsed: -999,
+    use() {
+      spawnSoulWolf();
+      flashScreen('rgba(170,180,220,0.22)', 280);
+    }
+  },
+  fleshSacrifice: {
+    type: 'special',
+    use() {
+      const sacrifice = 30;
+      playerState.hp = Math.max(1, playerState.hp - sacrifice);
+      showDamage(playerObj.position, sacrifice);
+      playerState.fleshBuffEndAt = performance.now() + 12000;   // 12s of x3 dmg
+      flashScreen('rgba(180,30,30,0.36)', 400);
+    }
+  },
+  apotheosis: {
+    type: 'special',
+    use() {
+      playerState.apotheosisEndAt = performance.now() + 8000;   // 8s of god mode
+      flashScreen('rgba(255,220,80,0.42)', 500);
+      shakeCamera(500);
+    }
+  }
+};
+
+// Two more regular skills
+POWERS.cloakAndDagger = {
+  type: 'regular', cooldown: 5.0, lastUsed: -999,
+  use() {
+    // Short forward teleport
+    const fx = Math.sin(playerState.facing);
+    const fz = Math.cos(playerState.facing);
+    playerObj.position.x += fx * 5.5;
+    playerObj.position.z += fz * 5.5;
+    const r = Math.hypot(playerObj.position.x, playerObj.position.z);
+    if (r > ARENA_RADIUS - 0.5) {
+      const k = (ARENA_RADIUS - 0.5) / r;
+      playerObj.position.x *= k;
+      playerObj.position.z *= k;
+    }
+    playerState.vel.x = 0; playerState.vel.z = 0;
+    flashScreen('rgba(120,80,200,0.25)', 220);
+  }
+};
+POWERS.adrenaline = {
+  type: 'regular', cooldown: 18.0, lastUsed: -999,
+  use() {
+    // Reset every other regular cooldown
+    for (const [name, pw] of Object.entries(POWERS)) {
+      if (pw.type === 'regular' && name !== 'adrenaline') pw.lastUsed = -999;
+    }
+    flashScreen('rgba(255,255,150,0.25)', 220);
+  }
+};
+
+// Two more specials
+POWERS.skinGraft = {
+  type: 'special',
+  use() {
+    playerState.hp = playerState.maxHp;
+    for (const [name, pw] of Object.entries(POWERS)) {
+      if (pw.type === 'regular') pw.lastUsed = -999;
+    }
+    spawnHealEffect();
+    flashScreen('rgba(80,255,140,0.28)', 320);
+  }
+};
+POWERS.timeWarp = {
+  type: 'special',
+  use() {
+    timeWarpUntil = performance.now() + 8000;     // 8s of slow-mo enemies
+    flashScreen('rgba(180,80,220,0.32)', 380);
+  }
+};
+
+let timeWarpUntil = 0;
+
+// ----- Super Vision unlocks -----
+POWERS.mindBlast = {
+  type: 'regular', cooldown: 6.0, lastUsed: -999,
+  use() {
+    flashScreen('rgba(180,80,255,0.4)', 350);
+    shakeCamera(300);
+    for (const e of enemies) {
+      if (e.isDead) continue;
+      const dmg = 35;
+      e.hp -= dmg;
+      showDamage(e.obj.position, dmg);
+      e.hitCooldown = 200;
+      if (e.hp <= 0) killEnemy(e);
+    }
+  }
+};
+POWERS.chainLightning = {
+  type: 'regular', cooldown: 8.0, lastUsed: -999,
+  use() {
+    flashScreen('rgba(160,180,255,0.35)', 280);
+    const sorted = enemies.filter(e => !e.isDead).slice().sort((a, b) => {
+      const ad = Math.hypot(a.obj.position.x - playerObj.position.x, a.obj.position.z - playerObj.position.z);
+      const bd = Math.hypot(b.obj.position.x - playerObj.position.x, b.obj.position.z - playerObj.position.z);
+      return ad - bd;
+    }).slice(0, 3);
+    for (const e of sorted) {
+      const dmg = 45;
+      e.hp -= dmg;
+      showDamage(e.obj.position, dmg);
+      e.hitCooldown = 200;
+      if (e.hp <= 0) killEnemy(e);
+    }
+  }
+};
+
+// ----- Hard Mode unlocks -----
+POWERS.meteor = {
+  type: 'regular', cooldown: 12.0, lastUsed: -999,
+  use() {
+    flashScreen('rgba(255,80,30,0.55)', 600);
+    shakeCamera(700);
+    spawnQuakeRing();
+    for (const e of enemies) {
+      if (e.isDead) continue;
+      const dmg = 80;
+      e.hp -= dmg;
+      showDamage(e.obj.position, dmg);
+      e.hitCooldown = 200;
+      const dx = e.obj.position.x - playerObj.position.x;
+      const dz = e.obj.position.z - playerObj.position.z;
+      const d = Math.hypot(dx, dz) || 1;
+      e.vel.x = (dx / d) * 18;
+      e.vel.z = (dz / d) * 18;
+      if (e.hp <= 0) killEnemy(e);
+    }
+  }
+};
+POWERS.demonForm = {
+  type: 'regular', cooldown: 18.0, lastUsed: -999,
+  use() {
+    playerState.apotheosisEndAt = performance.now() + 6000;   // reuse apotheosis: invincible + 4x
+    flashScreen('rgba(255,40,40,0.55)', 700);
+    shakeCamera(500);
+  }
+};
+POWERS.hellspawn = {
+  type: 'regular', cooldown: 30.0, lastUsed: -999,
+  use() {
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => spawnHellspawn(i), i * 100);
+    }
+    flashScreen('rgba(180,30,30,0.4)', 500);
+  }
+};
+POWERS.soulDrain = {
+  type: 'regular', cooldown: 10.0, lastUsed: -999,
+  use() {
+    let drained = 0;
+    for (const e of enemies) {
+      if (e.isDead) continue;
+      const dmg = 30;
+      e.hp -= dmg;
+      drained += dmg;
+      showDamage(e.obj.position, dmg);
+      e.hitCooldown = 200;
+      if (e.hp <= 0) killEnemy(e);
+    }
+    playerState.hp = Math.min(playerState.maxHp, playerState.hp + drained * 0.5);
+    flashScreen('rgba(180,40,200,0.4)', 450);
+  }
+};
+
+// ----- X-Ray unlocks -----
+POWERS.boneShatter = {
+  type: 'regular', cooldown: 8.0, lastUsed: -999,
+  use() {
+    flashScreen('rgba(220,255,180,0.45)', 350);
+    shakeCamera(350);
+    for (const e of enemies) {
+      if (e.isDead) continue;
+      if (e.hp < e.maxHp * 0.5) {
+        showDamage(e.obj.position, e.hp);
+        e.hp = 0;
+        killEnemy(e);
+      }
+    }
+  }
+};
+POWERS.xrayBeam = {
+  type: 'regular', cooldown: 6.0, lastUsed: -999,
+  use() {
+    flashScreen('rgba(180,255,80,0.4)', 280);
+    for (const e of enemies) {
+      if (e.isDead) continue;
+      const dmg = 50;
+      e.hp -= dmg;
+      showDamage(e.obj.position, dmg);
+      e.hitCooldown = 200;
+      if (e.hp <= 0) killEnemy(e);
+    }
+  }
+};
+POWERS.vitalStrike = {
+  type: 'regular', cooldown: 4.0, lastUsed: -999,
+  use() {
+    playerState.nextPunchDmgMult = 5;
+    flashScreen('rgba(200,255,120,0.3)', 250);
+  }
+};
+POWERS.deathWire = {
+  type: 'regular', cooldown: 9.0, lastUsed: -999,
+  use() {
+    flashScreen('rgba(120,220,80,0.35)', 280);
+    const sorted = enemies.filter(e => !e.isDead).slice().sort((a, b) => {
+      const ad = Math.hypot(a.obj.position.x - playerObj.position.x, a.obj.position.z - playerObj.position.z);
+      const bd = Math.hypot(b.obj.position.x - playerObj.position.x, b.obj.position.z - playerObj.position.z);
+      return ad - bd;
+    }).slice(0, 3);
+    for (const e of sorted) {
+      const dmg = 50;
+      e.hp -= dmg;
+      showDamage(e.obj.position, dmg);
+      e.hitCooldown = 200;
+      if (e.hp <= 0) killEnemy(e);
+    }
+  }
+};
+
+const POWER_KEYS = {
+  q: 'phoenixDive', e: 'battleStomp', r: 'whirlwind', f: 'tacticalRetreat',
+  c: 'cloakAndDagger', t: 'adrenaline',
+  '1': 'bitterCold', '2': 'soulWolf', '3': 'fleshSacrifice', '4': 'apotheosis',
+  '5': 'skinGraft', '6': 'timeWarp',
+  '7': 'mindBlast', '8': 'chainLightning',
+  '9': 'meteor', '0': 'demonForm', h: 'hellspawn', j: 'soulDrain',
+  k: 'boneShatter', l: 'xrayBeam', m: 'vitalStrike', n: 'deathWire'
+};
+
+function tryUsePower(name) {
+  const pw = POWERS[name];
+  if (!pw || !gameRunning || playerState.isDead) return;
+  if (!selectedPowers.has(name)) return;   // didn't pick it on the loadout screen
+  // LONE WOLF talent disables Soul Wolf
+  if (name === 'soulWolf' && selectedTalents.has('loneWolf')) return;
+  if (pw.type === 'regular') {
+    const elapsed = (performance.now() - pw.lastUsed) / 1000;
+    if (elapsed < pw.cooldown) return;
+    pw.use();
+    pw.lastUsed = performance.now();
+  } else {
+    if (isSpecialUsed(name)) return;
+    pw.use();
+    markSpecialUsed(name);
+  }
+  refreshPowersUI();
+}
+
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (POWER_KEYS[k]) {
+    e.preventDefault();
+    tryUsePower(POWER_KEYS[k]);
+  }
+  if (k === 'y') {                   // TIME SHAKE rewind
+    e.preventDefault();
+    triggerTimeShake();
+  }
+});
+
+function triggerTimeShake() {
+  if (!gameRunning || playerState.isDead) return;
+  if (!selectedTalents.has('timeShake')) return;
+  const now = performance.now();
+  if (now < (playerState.timeShakeReadyAt || 0)) return;     // 25s cooldown
+  if (!playerState.timeSnaps || playerState.timeSnaps.length === 0) return;
+
+  const snap = playerState.timeSnaps[0];                     // oldest snapshot (~12s ago)
+  playerState.hp = Math.max(snap.hp, playerState.hp);        // never lower
+  playerObj.position.x = snap.x;
+  playerObj.position.z = snap.z;
+  playerState.vel.x = 0; playerState.vel.z = 0;
+  playerState.timeSnaps = [];
+  playerState.timeShakeReadyAt = now + 25000;
+  playerState.hitCooldown = 600;
+  flashScreen('rgba(180,80,220,0.5)', 600);
+  spawnHealEffect();
+  shakeCamera(300);
+}
+
+function refreshPowersUI() {
+  for (const [name, pw] of Object.entries(POWERS)) {
+    const el = document.getElementById('pwr-' + name);
+    if (!el) continue;
+    el.classList.remove('cooldown', 'used', 'ready');
+    if (pw.type === 'regular') {
+      const elapsed = (performance.now() - pw.lastUsed) / 1000;
+      if (elapsed < pw.cooldown) {
+        el.classList.add('cooldown');
+        el.dataset.cd = Math.ceil(pw.cooldown - elapsed);
+      } else {
+        el.classList.add('ready');
+      }
+    } else {
+      if (isSpecialUsed(name)) el.classList.add('used');
+      else el.classList.add('ready');
+    }
+  }
+}
+
+/* ----- Visual effect helpers ----- */
+function flashScreen(color, ms) {
+  const div = document.createElement('div');
+  div.style.cssText = `position:absolute;inset:0;background:${color};pointer-events:none;z-index:6;opacity:1;transition:opacity ${ms}ms ease-out`;
+  document.body.appendChild(div);
+  requestAnimationFrame(() => { div.style.opacity = '0'; });
+  setTimeout(() => div.remove(), ms + 80);
+}
+
+function shakeCamera(ms) {
+  cameraShakeUntil = Math.max(cameraShakeUntil, performance.now() + ms);
+}
+
+function spawnQuakeRing() {
+  const geo = new THREE.RingGeometry(0.5, 0.9, 48);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xffaa20, side: THREE.DoubleSide, transparent: true, opacity: 0.85
+  });
+  const ring = new THREE.Mesh(geo, mat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(playerObj.position.x, 0.06, playerObj.position.z);
+  scene.add(ring);
+  effects.push({
+    obj: ring, life: 0, maxLife: 0.9,
+    update(dt) {
+      this.life += dt;
+      const t = this.life / this.maxLife;
+      const s = 1 + t * 28;
+      ring.scale.set(s, s, 1);
+      mat.opacity = 0.85 * (1 - t);
+      return this.life >= this.maxLife;
+    }
+  });
+}
+
+function spawnIceRing() {
+  const geo = new THREE.RingGeometry(0.5, 0.9, 48);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x88ddff, side: THREE.DoubleSide, transparent: true, opacity: 0.85
+  });
+  const ring = new THREE.Mesh(geo, mat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(playerObj.position.x, 0.06, playerObj.position.z);
+  scene.add(ring);
+  effects.push({
+    obj: ring, life: 0, maxLife: 1.0,
+    update(dt) {
+      this.life += dt;
+      const t = this.life / this.maxLife;
+      const s = 1 + t * 30;
+      ring.scale.set(s, s, 1);
+      mat.opacity = 0.85 * (1 - t);
+      return this.life >= this.maxLife;
+    }
+  });
+}
+
+function spawnStompRing() {
+  const geo = new THREE.RingGeometry(0.5, 0.7, 32);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xddaa30, side: THREE.DoubleSide, transparent: true, opacity: 0.7
+  });
+  const ring = new THREE.Mesh(geo, mat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(playerObj.position.x, 0.06, playerObj.position.z);
+  scene.add(ring);
+  effects.push({
+    obj: ring, life: 0, maxLife: 0.5,
+    update(dt) {
+      this.life += dt;
+      const t = this.life / this.maxLife;
+      const s = 1 + t * 8;
+      ring.scale.set(s, s, 1);
+      mat.opacity = 0.7 * (1 - t);
+      return this.life >= this.maxLife;
+    }
+  });
+}
+
+function spawnFireTrail() {
+  for (let i = 0; i < 12; i++) {
+    const p = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12 + Math.random() * 0.18, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff7000, transparent: true, opacity: 0.85 })
+    );
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.random() * 0.6;
+    p.position.set(
+      playerObj.position.x + Math.cos(a) * r,
+      0.3 + Math.random() * 0.9,
+      playerObj.position.z + Math.sin(a) * r
+    );
+    scene.add(p);
+    const mat = p.material;
+    effects.push({
+      obj: p, life: 0, maxLife: 0.6,
+      update(dt) {
+        this.life += dt;
+        p.position.y += dt * 1.6;
+        mat.opacity = 0.85 * (1 - this.life / this.maxLife);
+        return this.life >= this.maxLife;
+      }
+    });
+  }
+}
+
+/* ----- Soul Wolf companion ----- */
+const companions = [];
+
+function spawnEnemyFireball(enemy) {
+  const dx = playerObj.position.x - enemy.obj.position.x;
+  const dz = playerObj.position.z - enemy.obj.position.z;
+  const d = Math.hypot(dx, dz) || 1;
+  const fx = dx / d, fz = dz / d;
+
+  const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(0.28, 12, 8),
+    new THREE.MeshStandardMaterial({ color: 0xff3300, emissive: 0xff5500, emissiveIntensity: 1.4 })
+  );
+  ball.position.set(
+    enemy.obj.position.x + fx * 1.0,
+    1.2,
+    enemy.obj.position.z + fz * 1.0
+  );
+  scene.add(ball);
+  const light = new THREE.PointLight(0xff8800, 2, 5);
+  ball.add(light);
+
+  effects.push({
+    obj: ball, life: 0, maxLife: 2.5,
+    vel: { x: fx * 13, z: fz * 13 },
+    update(dt) {
+      this.life += dt;
+      ball.position.x += this.vel.x * dt;
+      ball.position.z += this.vel.z * dt;
+      // Hit player?
+      if (!playerState.isDead) {
+        const ddx = playerObj.position.x - ball.position.x;
+        const ddz = playerObj.position.z - ball.position.z;
+        if (ddx * ddx + ddz * ddz < 1.0 && playerState.hitCooldown <= 0) {
+          // Use the enemy as attacker so all talent logic (Glass Cannon,
+          // I'm Unstoppable, Comeback Kid, Apotheosis invincibility, etc.) fires.
+          // Pass isSpell=true so I'M UNSTOPPABLE lets the damage through.
+          processPunchHit(enemy, playerState, true);
+          flashScreen('rgba(255,80,30,0.22)', 220);
+          return true;
+        }
+      }
+      // Hit a companion?
+      for (const c of companions) {
+        if (c.isDead) continue;
+        const ddx = c.obj.position.x - ball.position.x;
+        const ddz = c.obj.position.z - ball.position.z;
+        if (ddx * ddx + ddz * ddz < 0.8) {
+          c.hp -= 18;
+          showDamage(c.obj.position, 18);
+          c.hitCooldown = 200;
+          if (c.hp <= 0) c.isDead = true;
+          return true;
+        }
+      }
+      const r = Math.hypot(ball.position.x, ball.position.z);
+      if (r > ARENA_RADIUS + 4) return true;
+      return this.life >= this.maxLife;
+    }
+  });
+}
+
+/* ----- Healing orbs (Midas Touch talent) ----- */
+const healingOrbs = [];
+
+function spawnHealingOrb(pos) {
+  const geo = new THREE.SphereGeometry(0.32, 12, 8);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffd24d, emissive: 0xffaa00, emissiveIntensity: 1.4
+  });
+  const orb = new THREE.Mesh(geo, mat);
+  orb.position.set(pos.x, 0.55, pos.z);
+  scene.add(orb);
+  const light = new THREE.PointLight(0xffaa00, 1.5, 4);
+  orb.add(light);
+  healingOrbs.push({ obj: orb, t: 0 });
+}
+
+function updateHealingOrbs(dt) {
+  if (healingOrbs.length === 0) return;
+  for (let i = healingOrbs.length - 1; i >= 0; i--) {
+    const o = healingOrbs[i];
+    o.t += dt;
+    o.obj.rotation.y += dt * 2;
+    o.obj.position.y = 0.55 + Math.sin(o.t * 4) * 0.18;
+    if (playerObj && !playerState.isDead) {
+      const dx = playerObj.position.x - o.obj.position.x;
+      const dz = playerObj.position.z - o.obj.position.z;
+      if (dx * dx + dz * dz < 1.4) {
+        playerState.hp = Math.min(playerState.maxHp, playerState.hp + 25);
+        flashScreen('rgba(255,200,40,0.25)', 250);
+        scene.remove(o.obj);
+        healingOrbs.splice(i, 1);
+      }
+    }
+  }
+}
+
+function spawnPetDog() {
+  const spec = {
+    name: 'Pet Dog',
+    bodyColor: 0xddbb88,
+    headColor: 0xeecc99,
+    size: 0.45,
+    headShape: 'sphere'
+  };
+  const obj = makeCharacter(spec);
+  obj.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  obj.position.set(playerObj.position.x + 0.9, 0, playerObj.position.z + 0.5);
+  scene.add(obj);
+  attachNameTag(obj, 'Pet Dog', '#ffd9a0');
+
+  const state = newFighterState('Pet Dog', 60);
+  state.obj = obj;
+  state.spec = spec;
+  state.expiresAt = Infinity;
+  state.isCompanion = true;
+  companions.push(state);
+}
+
+function spawnHellspawn(idx) {
+  const spec = {
+    name: 'Hellspawn',
+    bodyColor: 0x661111,
+    headColor: 0xff3300,
+    size: 0.85,
+    headShape: 'cone'
+  };
+  const obj = makeCharacter(spec);
+  obj.traverse(o => {
+    if (o.isMesh) o.castShadow = true;
+    if (o.material && o.material.emissive !== undefined) {
+      o.material.emissive.setHex(0xff2200);
+      o.material.emissiveIntensity = 0.4;
+    }
+  });
+  const angle = (idx * Math.PI * 2 / 3);
+  obj.position.set(
+    playerObj.position.x + Math.cos(angle) * 2,
+    0,
+    playerObj.position.z + Math.sin(angle) * 2
+  );
+  scene.add(obj);
+  attachNameTag(obj, 'Hellspawn', '#ff5050');
+
+  const state = newFighterState('Hellspawn', 80);
+  state.obj = obj;
+  state.spec = spec;
+  state.expiresAt = performance.now() + 30000;
+  state.isCompanion = true;
+  state.ifanDamage = true;     // hits hard like Ifan
+  companions.push(state);
+}
+
+function spawnIfan() {
+  // Ifan ben-Mezd — sturdy human companion, NOT ghostly. Permanent until killed.
+  const spec = {
+    name: 'Ifan ben-Mezd',
+    bodyColor: 0x4a3a2a,    // brown leather coat
+    headColor: 0xddbb88,    // tan skin
+    size: 1.05,
+    headShape: 'sphere'
+  };
+  const obj = makeCharacter(spec);
+  obj.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  obj.position.set(playerObj.position.x - 1.5, 0, playerObj.position.z - 1.5);
+  scene.add(obj);
+  attachNameTag(obj, 'Ifan ben-Mezd', '#ffd24d');
+
+  const state = newFighterState('Ifan ben-Mezd', 200);
+  state.obj = obj;
+  state.spec = spec;
+  state.expiresAt = Infinity;       // permanent
+  state.isCompanion = true;
+  state.ifanDamage = true;          // hits harder than wolf
+  companions.push(state);
+}
+
+function spawnSoulWolf() {
+  const spec = {
+    name: 'Soul Wolf',
+    bodyColor: 0x6677aa,
+    headColor: 0xaaccee,
+    size: 0.65,
+    headShape: 'cone'
+  };
+  const obj = makeCharacter(spec);
+  obj.traverse(o => {
+    if (o.isMesh) o.castShadow = true;
+    if (o.material) {
+      o.material.transparent = true;
+      o.material.opacity = 0.7;
+      if (o.material.emissive) {
+        o.material.emissive.setHex(0x4466aa);
+        o.material.emissiveIntensity = 0.5;
+      }
+    }
+  });
+  obj.position.set(playerObj.position.x + 1, 0, playerObj.position.z + 1);
+  scene.add(obj);
+  attachNameTag(obj, 'Soul Wolf', '#aaccff');
+
+  const state = newFighterState('Soul Wolf', 100);
+  state.obj = obj;
+  state.spec = spec;
+  state.expiresAt = performance.now() + 15000;
+  state.isCompanion = true;
+  companions.push(state);
+}
+
+function updateCompanions(dt) {
+  const now = performance.now();
+  for (let i = companions.length - 1; i >= 0; i--) {
+    const c = companions[i];
+    if (c.isDead || now > c.expiresAt) {
+      scene.remove(c.obj);
+      companions.splice(i, 1);
+      continue;
+    }
+
+    // Find nearest non-dead enemy
+    let nearest = null, nearestDist = Infinity;
+    for (const e of enemies) {
+      if (e.isDead) continue;
+      const dx = e.obj.position.x - c.obj.position.x;
+      const dz = e.obj.position.z - c.obj.position.z;
+      const d = Math.hypot(dx, dz);
+      if (d < nearestDist) { nearest = e; nearestDist = d; }
+    }
+
+    if (nearest) {
+      const dx = nearest.obj.position.x - c.obj.position.x;
+      const dz = nearest.obj.position.z - c.obj.position.z;
+      const d = Math.hypot(dx, dz);
+      c.facing = Math.atan2(dx, dz);
+      if (d > PUNCH_RANGE * 0.85) {
+        c.vel.x = (dx / d) * 8;
+        c.vel.z = (dz / d) * 8;
+      } else {
+        c.vel.x = 0; c.vel.z = 0;
+        if (c.punchCooldown <= 0 && c.punchTime === 0) {
+          c.punchTime = 0.001;
+          c.punchCooldown = PUNCH_COOLDOWN;
+        }
+      }
+    } else {
+      // Follow player
+      const dx = playerObj.position.x - c.obj.position.x;
+      const dz = playerObj.position.z - c.obj.position.z;
+      const d = Math.hypot(dx, dz);
+      if (d > 2.5) {
+        c.facing = Math.atan2(dx, dz);
+        c.vel.x = (dx / d) * 6;
+        c.vel.z = (dz / d) * 6;
+      } else {
+        c.vel.x = 0; c.vel.z = 0;
+      }
+    }
+
+    applyMovement(c, dt);
+    animateFighter(c, dt);
+
+    // Smooth-rotate body
+    let rdiff = c.facing - c.obj.rotation.y;
+    while (rdiff >  Math.PI) rdiff -= Math.PI * 2;
+    while (rdiff < -Math.PI) rdiff += Math.PI * 2;
+    c.obj.rotation.y += rdiff * Math.min(1, dt * 12);
+
+    // Resolve punch hit on enemy
+    if (c.punchTime > 0) {
+      const prev = c.punchTime;
+      c.punchTime += dt / PUNCH_DURATION;
+      if (prev < PUNCH_HIT_AT && c.punchTime >= PUNCH_HIT_AT && nearest) {
+        const dx = nearest.obj.position.x - c.obj.position.x;
+        const dz = nearest.obj.position.z - c.obj.position.z;
+        if (Math.hypot(dx, dz) < PUNCH_RANGE) {
+          const dmg = c.ifanDamage ? 28 : 16;     // Ifan hits harder
+          nearest.hp -= dmg;
+          showDamage(nearest.obj.position, dmg);
+          nearest.hitCooldown = 200;
+          if (nearest.hp <= 0) killEnemy(nearest);
+        }
+      }
+      if (c.punchTime >= 1) c.punchTime = 0;
+    }
+    if (c.punchCooldown > 0) c.punchCooldown -= dt;
+
+    // Pulse opacity for ghostly look
+    const pulse = 0.55 + Math.sin(now * 0.005) * 0.15;
+    c.obj.traverse(o => {
+      if (o.material && o.material.transparent) o.material.opacity = pulse;
+    });
+  }
+}
+
+function spawnFireball() {
+  const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(0.35, 16, 12),
+    new THREE.MeshStandardMaterial({ color: 0xff4400, emissive: 0xff5500, emissiveIntensity: 1.5 })
+  );
+  const fwdX = Math.sin(playerState.facing);
+  const fwdZ = Math.cos(playerState.facing);
+  ball.position.set(playerObj.position.x + fwdX * 1.0, 1.2, playerObj.position.z + fwdZ * 1.0);
+  scene.add(ball);
+  const light = new THREE.PointLight(0xff8800, 3, 6);
+  ball.add(light);
+  effects.push({
+    obj: ball, life: 0, maxLife: 2.5,
+    vel: { x: fwdX * 18, z: fwdZ * 18 },
+    update(dt) {
+      this.life += dt;
+      ball.position.x += this.vel.x * dt;
+      ball.position.z += this.vel.z * dt;
+      // Hit detection
+      for (const e of enemies) {
+        if (e.isDead) continue;
+        const dx = e.obj.position.x - ball.position.x;
+        const dz = e.obj.position.z - ball.position.z;
+        if (dx * dx + dz * dz < 1.0) {
+          const dmg = 70;
+          e.hp -= dmg;
+          showDamage(e.obj.position, dmg);
+          e.hitCooldown = 200;
+          e.vel.x += this.vel.x * 0.5;
+          e.vel.z += this.vel.z * 0.5;
+          if (e.hp <= 0 && !e.isDead) {
+            e.isDead = true;
+            e.obj.rotation.z = Math.PI / 2;
+            e.obj.position.y = 0.1;
+            kos++;
+            document.getElementById('hud-kos').textContent = kos;
+            const dead = e;
+            setTimeout(() => { scene.remove(dead.obj); enemies = enemies.filter(x => x !== dead); }, 1500);
+          }
+          flashScreen('rgba(255,120,0,0.2)', 150);
+          shakeCamera(200);
+          return true;
+        }
+      }
+      const r = Math.hypot(ball.position.x, ball.position.z);
+      if (r > ARENA_RADIUS + 4) return true;
+      return this.life >= this.maxLife;
+    }
+  });
+}
+
+function spawnHealEffect() {
+  for (let i = 0; i < 12; i++) {
+    const p = new THREE.Mesh(
+      new THREE.SphereGeometry(0.13, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x44ff66, transparent: true, opacity: 1 })
+    );
+    const a = (i / 12) * Math.PI * 2;
+    const r = 0.6;
+    p.position.set(
+      playerObj.position.x + Math.cos(a) * r,
+      0.4,
+      playerObj.position.z + Math.sin(a) * r
+    );
+    scene.add(p);
+    const mat = p.material;
+    effects.push({
+      obj: p, life: 0, maxLife: 1.0,
+      update(dt) {
+        this.life += dt;
+        p.position.y += dt * 2.5;
+        mat.opacity = 1 - this.life / this.maxLife;
+        return this.life >= this.maxLife;
+      }
+    });
+  }
+}
+
+function updateEffects(dt) {
+  for (let i = effects.length - 1; i >= 0; i--) {
+    if (effects[i].update(dt)) {
+      scene.remove(effects[i].obj);
+      effects.splice(i, 1);
+    }
+  }
+}
+
+/* ============================================================
+   GAME OVER + RESTART
+   ============================================================ */
+function endGame() {
+  gameRunning = false;
+  const elapsed = Math.round((performance.now() - gameStartTime) / 1000);
+  document.getElementById('go-kos').textContent = kos;
+  document.getElementById('go-time').textContent = elapsed;
+  setTimeout(() => {
+    document.getElementById('gameover').classList.remove('hidden');
+  }, 1200);
+}
+
+document.getElementById('restart-btn').onclick = () => {
+  // Hard reset by reloading
+  location.reload();
+};
+
+/* ============================================================
+   TIME SHAKE on-screen button
+   ============================================================ */
+document.getElementById('time-shake-btn').onclick = () => triggerTimeShake();
+
+/* ============================================================
+   HARD MODE PORTAL (unlocked by clicking the secret code)
+   ============================================================ */
+let hardMode = false;
+let hardModePortal = null;
+
+document.getElementById('hard-mode-code').onclick = () => {
+  if (!gameRunning) return;
+  if (hardMode || hardModePortal) return;
+  spawnHardModePortal();
+  document.getElementById('hard-mode-code').classList.add('activated');
+  document.getElementById('hard-mode-code').textContent = 'PORTAL OPEN';
+};
+
+function spawnHardModePortal() {
+  hardModePortal = makePortal(0xff00ff, 0xcc00ff, 'hard');
+  flashScreen('rgba(170,30,200,0.5)', 600);
+  shakeCamera(400);
+}
+
+// Generic portal builder so we can reuse for Hard Mode and Super Vision
+function makePortal(color, lightColor, kind) {
+  const group = new THREE.Group();
+  // BIG bright ring
+  const ringGeo = new THREE.TorusGeometry(3, 0.55, 16, 48);
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: color, emissive: color, emissiveIntensity: 2.0
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 3;
+  group.add(ring);
+  // Dark inner void
+  const voidGeo = new THREE.CircleGeometry(2.6, 32);
+  const voidMat = new THREE.MeshBasicMaterial({
+    color: 0x000000, side: THREE.DoubleSide, transparent: true, opacity: 0.7
+  });
+  const voidDisc = new THREE.Mesh(voidGeo, voidMat);
+  voidDisc.rotation.x = Math.PI / 2;
+  voidDisc.position.y = 3;
+  group.add(voidDisc);
+  // Bright glow light
+  const light = new THREE.PointLight(lightColor, 6, 18);
+  light.position.y = 3;
+  group.add(light);
+  // Tall pillar of light shooting up so it's obvious from far away
+  const pillarGeo = new THREE.CylinderGeometry(0.4, 0.4, 12, 16, 1, true);
+  const pillarMat = new THREE.MeshBasicMaterial({
+    color: color, transparent: true, opacity: 0.4, side: THREE.DoubleSide
+  });
+  const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+  pillar.position.y = 6;
+  group.add(pillar);
+  // Place it 6 units in front of the player so they can see it immediately
+  const fx = Math.sin(playerState.facing);
+  const fz = Math.cos(playerState.facing);
+  let px = playerObj.position.x + fx * 6;
+  let pz = playerObj.position.z + fz * 6;
+  // Keep inside arena
+  const r = Math.hypot(px, pz);
+  if (r > ARENA_RADIUS - 4) {
+    const k = (ARENA_RADIUS - 4) / r;
+    px *= k; pz *= k;
+  }
+  group.position.set(px, 0, pz);
+  scene.add(group);
+  group.userData.update = (dt) => { ring.rotation.z += dt * 1.5; };
+  group.userData.kind = kind;
+  return group;
+}
+
+function enterHardMode() {
+  if (hardMode) return;
+  if (hardModePortal) { scene.remove(hardModePortal); hardModePortal = null; }
+  // PAUSE the game and show the ability picker
+  gameRunning = false;
+  hardModePicked.clear();
+  document.querySelectorAll('.pick-card.hardmode').forEach(c => c.classList.remove('sel'));
+  document.getElementById('hard-mode-picker').classList.remove('hidden');
+  setupHardModePicker();
+}
+
+const HM_POWERS = ['meteor', 'demonForm', 'hellspawn', 'soulDrain'];
+const HM_MAX = 2;
+const hardModePicked = new Set();
+
+function setupHardModePicker() {
+  document.querySelectorAll('.pick-card.hardmode').forEach(card => {
+    card.onclick = () => {
+      const p = card.dataset.hmPower;
+      if (hardModePicked.has(p)) {
+        hardModePicked.delete(p);
+        card.classList.remove('sel');
+      } else {
+        if (hardModePicked.size >= HM_MAX) return;
+        hardModePicked.add(p);
+        card.classList.add('sel');
+      }
+      document.getElementById('hm-counter').textContent = `${hardModePicked.size} / ${HM_MAX} picked`;
+    };
+  });
+  document.getElementById('hm-counter').textContent = `0 / ${HM_MAX} picked`;
+}
+
+document.getElementById('confirm-hm').onclick = () => {
+  // Add picked powers and turn on hard mode
+  for (const p of hardModePicked) selectedPowers.add(p);
+  applyPowerSelection();
+  document.getElementById('hard-mode-picker').classList.add('hidden');
+  hardMode = true;
+  // Visual effects
+  scene.background = new THREE.Color(0x301030);
+  if (scene.fog) scene.fog.color.set(0x301030);
+  flashScreen('rgba(180,30,200,0.5)', 800);
+  shakeCamera(800);
+  document.getElementById('hard-mode-indicator').classList.remove('hidden');
+  document.getElementById('back-to-regular').classList.remove('hidden');
+  // Buff existing enemies + spawn 3 more
+  for (const e of enemies) {
+    if (!e.isDead) { e.maxHp = Math.round(e.maxHp * 1.5); e.hp = e.maxHp; }
+  }
+  for (let i = 0; i < 3; i++) spawnEnemy();
+  // Resume game loop
+  gameRunning = true;
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+};
+
+/* ============================================================
+   RETURN portal — get out of Hard Mode back to regular
+   ============================================================ */
+let regularPortal = null;
+
+document.getElementById('back-to-regular').onclick = () => {
+  if (!gameRunning || !hardMode || regularPortal) return;
+  regularPortal = makePortal(0x6eccff, 0xaaeeff, 'regular');
+  flashScreen('rgba(110,204,255,0.45)', 500);
+  shakeCamera(300);
+  document.getElementById('back-to-regular').classList.add('activated');
+  document.getElementById('back-to-regular').textContent = 'RETURN OPEN';
+};
+
+/* ============================================================
+   FACTORIO MINIGAME — mine ore → smelt to plates → craft gears
+   ============================================================ */
+let factPortal = null;
+let factMode = false;
+let factOreSpots = [];
+let factFurnaces = [];
+let factAssemblers = [];
+let factBelts = [];
+let factInventory = { ore: 0, plate: 0, gears: 0 };
+const FACT_GOAL = 10;
+let factSavedBg = null;
+let factSavedFog = null;
+
+document.getElementById('fact-code').onclick = () => {
+  if (!gameRunning || factMode || factPortal) return;
+  factPortal = makePortal(0xffaa20, 0xffcc40, 'fact');
+  flashScreen('rgba(255,170,40,0.45)', 500);
+  shakeCamera(300);
+  document.getElementById('fact-code').classList.add('activated');
+  document.getElementById('fact-code').textContent = 'FACT PORTAL OPEN';
+};
+
+function enterFactorio() {
+  if (factMode) return;
+  factMode = true;
+  if (factPortal) { scene.remove(factPortal); factPortal = null; }
+
+  // Save and replace scene look
+  factSavedBg = scene.background ? scene.background.clone() : null;
+  factSavedFog = scene.fog;
+  scene.background = new THREE.Color(0x554433);
+  if (scene.fog) scene.fog = new THREE.Fog(0x554433, 30, 70);
+
+  // Hide enemies during the minigame (combat paused)
+  for (const e of enemies) if (e.obj) e.obj.visible = false;
+
+  // Reset inventory
+  factInventory = { ore: 0, plate: 0, gears: 0 };
+
+  // 4 ore deposits at the arena edges
+  const oreSpots = [
+    { x:  13, z:   0 }, { x: -13, z:   0 },
+    { x:   0, z:  13 }, { x:   0, z: -13 }
+  ];
+  for (const s of oreSpots) spawnOreDeposit(s.x, s.z);
+
+  // 2 furnaces  (smelt ore → plate)
+  spawnFurnace(7, 7);
+  spawnFurnace(-7, 7);
+
+  // 2 assemblers (craft 2 plates → 1 gear)
+  spawnAssembler(7, -7);
+  spawnAssembler(-7, -7);
+
+  // Decorative conveyor belts running between spots
+  spawnConveyorBelts();
+
+  document.getElementById('fact-score').classList.remove('hidden');
+  document.getElementById('fact-exit').classList.remove('hidden');
+  updateFactInventoryUI();
+  showFactTip('Mine ORE from the brown rocks at the edges →');
+  flashScreen('rgba(255,170,40,0.55)', 700);
+}
+
+function spawnOreDeposit(x, z) {
+  // Cluster of brown chunks
+  const group = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const r = 0.4 + Math.random() * 0.3;
+    const chunk = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(r),
+      new THREE.MeshStandardMaterial({
+        color: 0x9a6a3a, emissive: 0x442211, emissiveIntensity: 0.25, roughness: 0.95
+      })
+    );
+    const a = (i / 4) * Math.PI * 2;
+    chunk.position.set(Math.cos(a) * 0.5, r * 0.6, Math.sin(a) * 0.5);
+    chunk.castShadow = true;
+    group.add(chunk);
+  }
+  group.position.set(x, 0, z);
+  scene.add(group);
+  factOreSpots.push({
+    obj: group, pos: group.position, mining: 0,
+    label: makeFloatingLabel('IRON ORE', '#ddaa55', 1.8, group)
+  });
+}
+
+function spawnFurnace(x, z) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.6, 1.6, 1.6),
+    new THREE.MeshStandardMaterial({ color: 0x554433, roughness: 0.7 })
+  );
+  body.position.y = 0.8;
+  body.castShadow = true;
+  group.add(body);
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.7, 0.05),
+    new THREE.MeshBasicMaterial({ color: 0x222222 })
+  );
+  door.position.set(0, 0.7, 0.81);
+  group.add(door);
+  const chimney = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.32, 1.0, 12),
+    new THREE.MeshStandardMaterial({ color: 0x222222 })
+  );
+  chimney.position.y = 2.1;
+  group.add(chimney);
+  const light = new THREE.PointLight(0xff5500, 0, 5);
+  light.position.set(0, 0.7, 1.0);
+  group.add(light);
+  group.position.set(x, 0, z);
+  scene.add(group);
+  factFurnaces.push({
+    obj: group, pos: group.position, ore: 0, smelting: 0, plate: 0,
+    door, light,
+    label: makeFloatingLabel('FURNACE', '#ff8855', 2.7, group)
+  });
+}
+
+function spawnAssembler(x, z) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.95, 0.95, 1.5, 16),
+    new THREE.MeshStandardMaterial({ color: 0x3366aa, roughness: 0.6 })
+  );
+  body.position.y = 0.75;
+  body.castShadow = true;
+  group.add(body);
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.55, 0.10, 8, 24),
+    new THREE.MeshStandardMaterial({
+      color: 0xddaa00, emissive: 0xaa6600, emissiveIntensity: 0.4
+    })
+  );
+  ring.position.y = 1.65;
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+  group.userData.spinRing = ring;
+  group.position.set(x, 0, z);
+  scene.add(group);
+  factAssemblers.push({
+    obj: group, pos: group.position, plate: 0, crafting: 0, gears: 0,
+    label: makeFloatingLabel('ASSEMBLER', '#88ccff', 2.7, group)
+  });
+}
+
+function spawnConveyorBelts() {
+  // Belt from each ore spot to its nearest furnace, etc. — purely cosmetic
+  const segments = [
+    [13, 0, 7, 7], [-13, 0, -7, 7],
+    [0, 13, 7, 7], [0, -13, -7, -7],
+    [7, 7, 7, -7], [-7, 7, -7, -7]
+  ];
+  for (const s of segments) {
+    const [x1, z1, x2, z2] = s;
+    const dx = x2 - x1, dz = z2 - z1;
+    const len = Math.hypot(dx, dz);
+    const belt = new THREE.Mesh(
+      new THREE.BoxGeometry(len, 0.08, 0.7),
+      new THREE.MeshStandardMaterial({
+        color: 0xffcc20, emissive: 0xff9500, emissiveIntensity: 0.25
+      })
+    );
+    belt.position.set((x1 + x2) / 2, 0.05, (z1 + z2) / 2);
+    belt.rotation.y = -Math.atan2(dz, dx);
+    scene.add(belt);
+    factBelts.push(belt);
+  }
+}
+
+function makeFloatingLabel(text, color, height, parent) {
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 64;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, 256, 64);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 28px Trebuchet MS';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 32);
+  const tex = new THREE.CanvasTexture(cv);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  sp.scale.set(2.2, 0.55, 1);
+  sp.position.y = height;
+  parent.add(sp);
+  return sp;
+}
+
+function updateFactInventoryUI() {
+  document.getElementById('fact-score').innerHTML =
+    `<span class="label">IRON ORE:</span>   <span class="v">${factInventory.ore}</span><br>` +
+    `<span class="label">IRON PLATE:</span> <span class="v">${factInventory.plate}</span><br>` +
+    `<span class="label">GEARS:</span>      <span class="goal">${factInventory.gears} / ${FACT_GOAL}</span>`;
+}
+
+function showFactTip(msg) {
+  const t = document.getElementById('fact-tip');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showFactTip._timer);
+  showFactTip._timer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function updateFactorio(dt) {
+  if (!factMode || !playerObj || playerState.isDead) return;
+  const px = playerObj.position.x, pz = playerObj.position.z;
+
+  // ----- Ore mining -----
+  for (const o of factOreSpots) {
+    const dx = px - o.pos.x, dz = pz - o.pos.z;
+    const near = dx * dx + dz * dz < 4.5;
+    o.obj.rotation.y += dt * (near ? 1.5 : 0.3);
+    if (near) {
+      o.mining += dt;
+      if (o.mining >= 1.5) {
+        o.mining = 0;
+        factInventory.ore++;
+        updateFactInventoryUI();
+        flashScreen('rgba(180,120,60,0.18)', 130);
+        if (factInventory.ore === 1) {
+          showFactTip('Carry the ore to a FURNACE (the box with the chimney)');
+        }
+      }
+    } else {
+      o.mining = Math.max(0, o.mining - dt);
+    }
+  }
+
+  // ----- Furnaces: deposit ore, smelt, take plate -----
+  for (const f of factFurnaces) {
+    const dx = px - f.pos.x, dz = pz - f.pos.z;
+    const near = dx * dx + dz * dz < 5;
+    if (near && factInventory.ore > 0 && f.ore < 5) {
+      factInventory.ore--;
+      f.ore++;
+      updateFactInventoryUI();
+      flashScreen('rgba(255,120,40,0.15)', 100);
+    }
+    if (f.ore > 0) {
+      f.smelting += dt;
+      f.door.material.color.setHex(0xff6600);
+      f.light.intensity = 1.5 + Math.sin(performance.now() * 0.01) * 0.5;
+      if (f.smelting >= 2.5) {
+        f.smelting = 0;
+        f.ore--;
+        f.plate++;
+      }
+    } else {
+      f.door.material.color.setHex(0x222222);
+      f.light.intensity = 0;
+    }
+    if (near && f.plate > 0) {
+      factInventory.plate += f.plate;
+      f.plate = 0;
+      updateFactInventoryUI();
+      if (factInventory.plate >= 2) {
+        showFactTip('Take 2 plates to an ASSEMBLER (the blue tower)');
+      }
+    }
+  }
+
+  // ----- Assemblers: deposit 2 plates, craft, take gear -----
+  for (const a of factAssemblers) {
+    const dx = px - a.pos.x, dz = pz - a.pos.z;
+    const near = dx * dx + dz * dz < 5;
+    if (a.plate >= 2 || a.crafting > 0) {
+      a.obj.userData.spinRing.rotation.z += dt * 4;
+    } else {
+      a.obj.userData.spinRing.rotation.z += dt * 0.5;
+    }
+    if (near && factInventory.plate >= 2 && a.plate < 6) {
+      factInventory.plate -= 2;
+      a.plate += 2;
+      updateFactInventoryUI();
+    }
+    if (a.plate >= 2) {
+      a.crafting += dt;
+      if (a.crafting >= 3.5) {
+        a.crafting = 0;
+        a.plate -= 2;
+        a.gears++;
+      }
+    }
+    if (near && a.gears > 0) {
+      factInventory.gears += a.gears;
+      a.gears = 0;
+      updateFactInventoryUI();
+      flashScreen('rgba(255,220,40,0.22)', 200);
+      if (factInventory.gears >= FACT_GOAL) {
+        showFactTip('FACTORY COMPLETE! Returning…');
+        flashScreen('rgba(255,255,150,0.6)', 800);
+        setTimeout(exitFactorio, 1800);
+      }
+    }
+  }
+}
+
+function exitFactorio() {
+  if (!factMode) return;
+  factMode = false;
+  for (const o of factOreSpots) scene.remove(o.obj);
+  factOreSpots = [];
+  for (const f of factFurnaces) scene.remove(f.obj);
+  factFurnaces = [];
+  for (const a of factAssemblers) scene.remove(a.obj);
+  factAssemblers = [];
+  for (const b of factBelts) scene.remove(b);
+  factBelts = [];
+  for (const e of enemies) if (e.obj && !e.isDead) e.obj.visible = true;
+  if (factSavedBg) scene.background = factSavedBg;
+  if (factSavedFog !== undefined) scene.fog = factSavedFog;
+  document.getElementById('fact-score').classList.add('hidden');
+  document.getElementById('fact-exit').classList.add('hidden');
+  document.getElementById('fact-tip').classList.remove('show');
+  document.getElementById('fact-code').classList.remove('activated');
+  document.getElementById('fact-code').textContent = 'FACT-Z';
+  factPortal = null;
+  flashScreen('rgba(110,204,255,0.4)', 500);
+}
+
+document.getElementById('fact-exit').onclick = () => exitFactorio();
+
+function exitHardMode() {
+  if (!hardMode) return;
+  hardMode = false;
+  if (regularPortal) { scene.remove(regularPortal); regularPortal = null; }
+  // Restore the regular sky and fog (skip fog if Supervision is on)
+  scene.background = new THREE.Color(0x6ec1ff);
+  if (!selectedTalents.has('supervision')) {
+    scene.fog = new THREE.Fog(0x6ec1ff, 25, 60);
+  }
+  document.getElementById('hard-mode-indicator').classList.add('hidden');
+  // Reset the RETURN button so it's hidden again
+  const back = document.getElementById('back-to-regular');
+  back.classList.add('hidden');
+  back.classList.remove('activated');
+  back.textContent = 'RETURN';
+  // Reset the DOSII-X9 code so the player can enter hard mode again later
+  const hmCode = document.getElementById('hard-mode-code');
+  hmCode.classList.remove('activated');
+  hmCode.textContent = 'DOSII-X9';
+  hardModePortal = null;
+  flashScreen('rgba(110,204,255,0.55)', 600);
+  shakeCamera(300);
+}
+
+function checkHardModePortal() {
+  if (hardModePortal) {
+    if (hardModePortal.userData.update) hardModePortal.userData.update(1 / 60);
+    if (playerObj && !playerState.isDead) {
+      const dx = playerObj.position.x - hardModePortal.position.x;
+      const dz = playerObj.position.z - hardModePortal.position.z;
+      if (dx * dx + dz * dz < 9) enterHardMode();
+    }
+  }
+  if (svPortal) {
+    if (svPortal.userData.update) svPortal.userData.update(1 / 60);
+    if (playerObj && !playerState.isDead) {
+      const dx = playerObj.position.x - svPortal.position.x;
+      const dz = playerObj.position.z - svPortal.position.z;
+      if (dx * dx + dz * dz < 9) enterSuperVision();
+    }
+  }
+  if (xrPortal) {
+    if (xrPortal.userData.update) xrPortal.userData.update(1 / 60);
+    if (playerObj && !playerState.isDead) {
+      const dx = playerObj.position.x - xrPortal.position.x;
+      const dz = playerObj.position.z - xrPortal.position.z;
+      if (dx * dx + dz * dz < 9) enterXRay();
+    }
+  }
+  if (regularPortal) {
+    if (regularPortal.userData.update) regularPortal.userData.update(1 / 60);
+    if (playerObj && !playerState.isDead) {
+      const dx = playerObj.position.x - regularPortal.position.x;
+      const dz = playerObj.position.z - regularPortal.position.z;
+      if (dx * dx + dz * dz < 9) exitHardMode();
+    }
+  }
+  if (factPortal) {
+    if (factPortal.userData.update) factPortal.userData.update(1 / 60);
+    if (playerObj && !playerState.isDead) {
+      const dx = playerObj.position.x - factPortal.position.x;
+      const dz = playerObj.position.z - factPortal.position.z;
+      if (dx * dx + dz * dz < 9) enterFactorio();
+    }
+  }
+}
+
+/* ============================================================
+   X-RAY PORTAL — third tier; click XR-V2 → portal → walk through →
+   pick 2 of 4 X-Ray powers + see-through enemies
+   ============================================================ */
+let xrPortal = null;
+let xrUnlocked = false;
+const XR_POWERS = ['boneShatter', 'xrayBeam', 'vitalStrike', 'deathWire'];
+const XR_MAX = 2;
+const xrPicked = new Set();
+
+document.getElementById('xr-code').onclick = () => {
+  if (!gameRunning) return;
+  if (xrUnlocked || xrPortal) return;
+  xrPortal = makePortal(0x80ff40, 0xaaff60, 'xr');
+  flashScreen('rgba(150,255,80,0.45)', 600);
+  shakeCamera(350);
+  document.getElementById('xr-code').classList.add('activated');
+  document.getElementById('xr-code').textContent = 'XR PORTAL OPEN';
+};
+
+function enterXRay() {
+  if (xrUnlocked) return;
+  if (xrPortal) { scene.remove(xrPortal); xrPortal = null; }
+  // PAUSE the game and show the picker
+  gameRunning = false;
+  xrPicked.clear();
+  document.querySelectorAll('.pick-card.xray').forEach(c => c.classList.remove('sel'));
+  document.getElementById('xr-picker').classList.remove('hidden');
+  setupXRPicker();
+}
+
+function setupXRPicker() {
+  document.querySelectorAll('.pick-card.xray').forEach(card => {
+    card.onclick = () => {
+      const p = card.dataset.xrPower;
+      if (xrPicked.has(p)) {
+        xrPicked.delete(p);
+        card.classList.remove('sel');
+      } else {
+        if (xrPicked.size >= XR_MAX) return;
+        xrPicked.add(p);
+        card.classList.add('sel');
+      }
+      document.getElementById('xr-counter').textContent = `${xrPicked.size} / ${XR_MAX} picked`;
+    };
+  });
+  document.getElementById('xr-counter').textContent = `0 / ${XR_MAX} picked`;
+}
+
+document.getElementById('confirm-xr').onclick = () => {
+  for (const p of xrPicked) selectedPowers.add(p);
+  applyPowerSelection();
+  document.getElementById('xr-picker').classList.add('hidden');
+  xrUnlocked = true;
+  // Apply x-ray vision: make existing enemies semi-transparent
+  for (const e of enemies) applyXRayLook(e);
+  // +50 max HP bonus
+  playerState.maxHp += 50;
+  playerState.hp = playerState.maxHp;
+  flashScreen('rgba(180,255,120,0.6)', 700);
+  shakeCamera(500);
+  // Resume game loop
+  gameRunning = true;
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+};
+
+function applyXRayLook(state) {
+  if (!state || !state.obj) return;
+  state.obj.traverse(o => {
+    if (o.material && o.material.color) {
+      o.material.transparent = true;
+      o.material.opacity = 0.55;
+    }
+  });
+}
+
+/* ============================================================
+   SUPER VISION PORTAL — only the SUPERVISION talent unlocks the code.
+   Walking through it grants new powers + new enemy spell types.
+   ============================================================ */
+let svPortal = null;
+let svUnlocked = false;
+
+document.getElementById('sv-code').onclick = () => {
+  if (!gameRunning) return;
+  if (!selectedTalents.has('supervision')) return;
+  if (svUnlocked || svPortal) return;
+  svPortal = makePortal(0x00ddff, 0x00ffff, 'sv');
+  flashScreen('rgba(40,200,255,0.45)', 600);
+  shakeCamera(350);
+  document.getElementById('sv-code').classList.add('activated');
+  document.getElementById('sv-code').textContent = 'SV PORTAL OPEN';
+};
+
+function enterSuperVision() {
+  if (svUnlocked) return;
+  svUnlocked = true;
+  if (svPortal) { scene.remove(svPortal); svPortal = null; }
+  flashScreen('rgba(80,255,255,0.6)', 800);
+  shakeCamera(700);
+  // Bonus stat boost — being a "superseer" comes with power
+  playerState.maxHp += 80;
+  playerState.hp = playerState.maxHp;
+  // Enable new enemy spell types
+  enemiesCanCastIce = true;
+  enemiesCanCastLightning = true;
+  // Give the player two NEW powers in their bar (added to selection so keys work)
+  selectedPowers.add('mindBlast');
+  selectedPowers.add('chainLightning');
+  // Show those buttons in the in-game power bar
+  applyPowerSelection();
+  // Show notification
+  const note = document.createElement('div');
+  note.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);' +
+    'background:rgba(0,0,0,0.85);color:#aaffff;padding:20px 40px;border:3px solid #00ddff;' +
+    'border-radius:8px;font-size:22px;font-weight:bold;z-index:20;text-align:center;' +
+    'box-shadow:0 0 30px rgba(0,221,255,0.7);text-shadow:2px 2px 0 #000;';
+  note.innerHTML = 'SUPER VISION UNLOCKED<br><span style="font-size:14px;color:#fff;">+80 max HP &middot; new powers (7, 8) &middot; enemies cast ice & lightning</span>';
+  document.body.appendChild(note);
+  setTimeout(() => note.style.opacity = '0', 2500);
+  setTimeout(() => note.remove(), 3500);
+}
+
+let enemiesCanCastIce = false;
+let enemiesCanCastLightning = false;
+</script>
+
+</body>
+</html>

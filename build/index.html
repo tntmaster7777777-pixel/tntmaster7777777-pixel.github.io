@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate House Builder</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;color:#eee;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none}
+#wrap{display:flex;height:100vh}
+
+/* Sidebar */
+#side{width:240px;background:#1a1a2e;border-right:2px solid #2a2a4e;display:flex;flex-direction:column;overflow:hidden}
+#side-header{padding:10px;background:#0f0f2a;text-align:center;font-size:18px;font-weight:bold;letter-spacing:2px;color:#ff6b6b;border-bottom:2px solid #2a2a4e}
+#search{width:100%;padding:8px 12px;background:#12122a;border:none;border-bottom:1px solid #2a2a4e;color:#ccc;font-size:13px;outline:none}
+#search::placeholder{color:#555}
+#item-list{flex:1;overflow-y:auto;overflow-x:hidden}
+#item-list::-webkit-scrollbar{width:6px}
+#item-list::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+.cat{padding:6px 12px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#ff6b6b;background:#12122a;position:sticky;top:0;z-index:1;border-bottom:1px solid #1e1e3e}
+.itm{display:flex;align-items:center;gap:10px;padding:7px 14px;border:none;background:none;color:#aaa;font-size:12px;cursor:pointer;width:100%;text-align:left;border-left:3px solid transparent;transition:.1s}
+.itm:hover{background:#20204a;color:#fff}
+.itm.act{border-left-color:#ff6b6b;background:#20204a;color:#fff}
+.itm canvas{border-radius:4px;background:#0a0a1e;flex-shrink:0}
+
+/* Canvas */
+#cv-wrap{flex:1;position:relative;overflow:hidden}
+canvas#game{display:block;cursor:crosshair}
+
+/* Toolbar */
+#tb{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(20,20,40,.95);border:1px solid #2a2a4e;border-radius:14px;padding:6px 14px;display:flex;gap:8px;align-items:center;z-index:20;backdrop-filter:blur(10px)}
+.tb-btn{padding:5px 12px;background:#1a1a3a;border:1px solid #2a2a4e;border-radius:8px;color:#aaa;cursor:pointer;font-size:12px;transition:.12s}
+.tb-btn:hover,.tb-btn.on{background:#ff6b6b;color:#fff;border-color:#ff6b6b}
+.tb-sep{color:#333;font-size:14px}
+#flr-lbl{color:#ff6b6b;font-weight:bold;font-size:13px;min-width:70px;text-align:center}
+
+/* HUD */
+#hud{position:fixed;top:10px;right:12px;background:rgba(20,20,40,.88);border:1px solid #2a2a4e;border-radius:10px;padding:8px 14px;font-size:11px;line-height:1.9;z-index:20}
+#hud kbd{background:#2a2a4e;padding:1px 5px;border-radius:3px;font-size:10px}
+
+/* Toast */
+#toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,107,107,.9);color:#fff;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:bold;pointer-events:none;opacity:0;transition:opacity .3s;z-index:100}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="side">
+    <div id="side-header">HOUSE BUILDER</div>
+    <input id="search" placeholder="Search items..." autocomplete="off">
+    <div id="item-list"></div>
+  </div>
+  <div id="cv-wrap"><canvas id="game"></canvas></div>
+</div>
+
+<div id="tb">
+  <button class="tb-btn on" data-t="place">Place</button>
+  <button class="tb-btn" data-t="erase">Erase</button>
+  <button class="tb-btn" data-t="pick">Pick</button>
+  <span class="tb-sep">|</span>
+  <button class="tb-btn" id="fd">&#9660;</button>
+  <span id="flr-lbl">Floor 1</span>
+  <button class="tb-btn" id="fu">&#9650;</button>
+  <span class="tb-sep">|</span>
+  <button class="tb-btn" id="undo">Undo</button>
+  <button class="tb-btn" id="redo">Redo</button>
+  <span class="tb-sep">|</span>
+  <button class="tb-btn" id="save">Save</button>
+  <button class="tb-btn" id="load">Load</button>
+  <button class="tb-btn" id="clear">Clear</button>
+</div>
+
+<div id="hud">
+  <kbd>R</kbd> Rotate &nbsp;<kbd>Scroll</kbd> Zoom &nbsp;<kbd>Right-drag</kbd> Pan<br>
+  <kbd>E</kbd> Erase &nbsp;<kbd>Q</kbd> Pick &nbsp;<kbd>PgUp/Dn</kbd> Floor &nbsp;<kbd>Z</kbd> Undo
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ===================== ITEMS =====================
+const ITEMS=[
+// --- Foundation & Structure ---
+{id:'concrete_foundation',name:'Foundation',cat:'Foundation',w:1,h:1,c:'#888',layer:0},
+{id:'wood_floor',name:'Wood Floor',cat:'Foundation',w:1,h:1,c:'#C4A46E',layer:0},
+{id:'tile_floor',name:'Tile Floor',cat:'Foundation',w:1,h:1,c:'#D4C8B0',layer:0},
+{id:'marble_floor',name:'Marble Floor',cat:'Foundation',w:1,h:1,c:'#E8E0D8',layer:0},
+{id:'carpet',name:'Carpet',cat:'Foundation',w:1,h:1,c:'#8B4C6A',layer:0},
+{id:'stone_floor',name:'Stone Floor',cat:'Foundation',w:1,h:1,c:'#9E9684',layer:0},
+
+// --- Walls ---
+{id:'brick_wall',name:'Brick Wall',cat:'Walls',w:1,h:1,c:'#A0704C',layer:1},
+{id:'stone_wall',name:'Stone Wall',cat:'Walls',w:1,h:1,c:'#8A8478',layer:1},
+{id:'drywall',name:'Drywall',cat:'Walls',w:1,h:1,c:'#E8E0D0',layer:1},
+{id:'wood_wall',name:'Wood Wall',cat:'Walls',w:1,h:1,c:'#B08050',layer:1},
+{id:'glass_wall',name:'Glass Wall',cat:'Walls',w:1,h:1,c:'#A8D8EA',layer:1},
+{id:'half_wall',name:'Half Wall',cat:'Walls',w:1,h:1,c:'#D0C8B8',layer:1},
+{id:'pillar',name:'Pillar',cat:'Walls',w:1,h:1,c:'#CCC4B4',layer:1},
+{id:'arch',name:'Arch',cat:'Walls',w:1,h:1,c:'#C8B898',layer:1},
+
+// --- Doors & Windows ---
+{id:'wood_door',name:'Wood Door',cat:'Doors & Windows',w:1,h:1,c:'#A06830',layer:1},
+{id:'double_door',name:'Double Door',cat:'Doors & Windows',w:2,h:1,c:'#A06830',layer:1},
+{id:'sliding_door',name:'Sliding Door',cat:'Doors & Windows',w:2,h:1,c:'#90C8E0',layer:1},
+{id:'front_door',name:'Front Door',cat:'Doors & Windows',w:1,h:1,c:'#6B3420',layer:1},
+{id:'window_sm',name:'Small Window',cat:'Doors & Windows',w:1,h:1,c:'#88C8E8',layer:1},
+{id:'window_lg',name:'Large Window',cat:'Doors & Windows',w:2,h:1,c:'#88C8E8',layer:1},
+{id:'bay_window',name:'Bay Window',cat:'Doors & Windows',w:2,h:1,c:'#80C0E0',layer:1},
+{id:'skylight',name:'Skylight',cat:'Doors & Windows',w:1,h:1,c:'#A0D8F0',layer:1},
+
+// --- Roof ---
+{id:'roof_tile',name:'Roof Tile',cat:'Roof',w:1,h:1,c:'#B03020',layer:2},
+{id:'roof_peak',name:'Roof Peak',cat:'Roof',w:1,h:1,c:'#A02818',layer:2},
+{id:'flat_roof',name:'Flat Roof',cat:'Roof',w:1,h:1,c:'#787068',layer:2},
+{id:'chimney',name:'Chimney',cat:'Roof',w:1,h:1,c:'#804828',layer:2},
+{id:'gutter',name:'Gutter',cat:'Roof',w:2,h:1,c:'#A0A0A0',layer:2},
+{id:'solar_panel',name:'Solar Panel',cat:'Roof',w:2,h:1,c:'#304888',layer:2},
+{id:'antenna',name:'Antenna',cat:'Roof',w:1,h:1,c:'#808080',layer:2},
+
+// --- Stairs & Vertical ---
+{id:'stairs_wood',name:'Wood Stairs',cat:'Stairs',w:1,h:2,c:'#A08050',layer:1},
+{id:'stairs_spiral',name:'Spiral Stairs',cat:'Stairs',w:1,h:1,c:'#808080',layer:1},
+{id:'ladder',name:'Ladder',cat:'Stairs',w:1,h:1,c:'#B09060',layer:1},
+{id:'elevator',name:'Elevator',cat:'Stairs',w:1,h:1,c:'#C0C0C0',layer:1},
+{id:'railing',name:'Railing',cat:'Stairs',w:1,h:1,c:'#A0A0A0',layer:1},
+
+// --- Living Room ---
+{id:'sofa',name:'Sofa',cat:'Living Room',w:3,h:1,c:'#4878B0',layer:1},
+{id:'loveseat',name:'Loveseat',cat:'Living Room',w:2,h:1,c:'#5088C0',layer:1},
+{id:'armchair',name:'Armchair',cat:'Living Room',w:1,h:1,c:'#5898B0',layer:1},
+{id:'recliner',name:'Recliner',cat:'Living Room',w:1,h:1,c:'#685040',layer:1},
+{id:'coffee_table',name:'Coffee Table',cat:'Living Room',w:2,h:1,c:'#906838',layer:1},
+{id:'end_table',name:'End Table',cat:'Living Room',w:1,h:1,c:'#886030',layer:1},
+{id:'tv_stand',name:'TV Stand',cat:'Living Room',w:2,h:1,c:'#484040',layer:1},
+{id:'tv',name:'Television',cat:'Living Room',w:2,h:1,c:'#222',layer:1},
+{id:'bookshelf',name:'Bookshelf',cat:'Living Room',w:1,h:1,c:'#7C4C28',layer:1},
+{id:'fireplace',name:'Fireplace',cat:'Living Room',w:2,h:1,c:'#804828',layer:1},
+{id:'rug_sm',name:'Small Rug',cat:'Living Room',w:2,h:1,c:'#B08848',layer:0},
+{id:'rug_lg',name:'Large Rug',cat:'Living Room',w:3,h:2,c:'#A07838',layer:0},
+{id:'floor_lamp',name:'Floor Lamp',cat:'Living Room',w:1,h:1,c:'#E8D060',layer:1},
+{id:'table_lamp',name:'Table Lamp',cat:'Living Room',w:1,h:1,c:'#F0D870',layer:1},
+{id:'chandelier',name:'Chandelier',cat:'Living Room',w:1,h:1,c:'#F0E0A0',layer:2},
+{id:'ceiling_fan',name:'Ceiling Fan',cat:'Living Room',w:1,h:1,c:'#C0B898',layer:2},
+{id:'curtains',name:'Curtains',cat:'Living Room',w:1,h:1,c:'#C87070',layer:1},
+{id:'painting',name:'Painting',cat:'Living Room',w:1,h:1,c:'#D0A040',layer:1},
+{id:'clock',name:'Wall Clock',cat:'Living Room',w:1,h:1,c:'#C8B078',layer:1},
+{id:'vase',name:'Vase',cat:'Living Room',w:1,h:1,c:'#60A0B8',layer:1},
+{id:'speaker',name:'Speaker',cat:'Living Room',w:1,h:1,c:'#383838',layer:1},
+{id:'piano',name:'Piano',cat:'Living Room',w:2,h:1,c:'#1a1a1a',layer:1},
+{id:'aquarium',name:'Aquarium',cat:'Living Room',w:2,h:1,c:'#40A8C8',layer:1},
+
+// --- Kitchen ---
+{id:'counter_top',name:'Counter',cat:'Kitchen',w:1,h:1,c:'#C8B898',layer:1},
+{id:'counter_corner',name:'Corner Counter',cat:'Kitchen',w:1,h:1,c:'#C0B090',layer:1},
+{id:'kitchen_island',name:'Kitchen Island',cat:'Kitchen',w:2,h:1,c:'#B8A888',layer:1},
+{id:'stove',name:'Stove',cat:'Kitchen',w:1,h:1,c:'#505050',layer:1},
+{id:'oven',name:'Oven',cat:'Kitchen',w:1,h:1,c:'#484848',layer:1},
+{id:'microwave',name:'Microwave',cat:'Kitchen',w:1,h:1,c:'#404040',layer:1},
+{id:'fridge',name:'Fridge',cat:'Kitchen',w:1,h:1,c:'#D8D8D8',layer:1},
+{id:'freezer',name:'Freezer',cat:'Kitchen',w:1,h:1,c:'#E0E0E0',layer:1},
+{id:'dishwasher',name:'Dishwasher',cat:'Kitchen',w:1,h:1,c:'#C0C0C0',layer:1},
+{id:'kitchen_sink',name:'Kitchen Sink',cat:'Kitchen',w:1,h:1,c:'#B0C0D0',layer:1},
+{id:'cabinet_upper',name:'Upper Cabinet',cat:'Kitchen',w:1,h:1,c:'#A89878',layer:1},
+{id:'cabinet_lower',name:'Lower Cabinet',cat:'Kitchen',w:1,h:1,c:'#988868',layer:1},
+{id:'pantry',name:'Pantry',cat:'Kitchen',w:1,h:1,c:'#A08858',layer:1},
+{id:'trash_can',name:'Trash Can',cat:'Kitchen',w:1,h:1,c:'#686868',layer:1},
+{id:'toaster',name:'Toaster',cat:'Kitchen',w:1,h:1,c:'#C8C0B0',layer:1},
+{id:'coffee_maker',name:'Coffee Maker',cat:'Kitchen',w:1,h:1,c:'#383030',layer:1},
+
+// --- Dining Room ---
+{id:'dining_table_sm',name:'Small Table',cat:'Dining Room',w:2,h:1,c:'#906838',layer:1},
+{id:'dining_table_lg',name:'Large Table',cat:'Dining Room',w:3,h:2,c:'#885830',layer:1},
+{id:'dining_chair',name:'Dining Chair',cat:'Dining Room',w:1,h:1,c:'#886040',layer:1},
+{id:'bench',name:'Bench',cat:'Dining Room',w:2,h:1,c:'#806038',layer:1},
+{id:'bar_stool',name:'Bar Stool',cat:'Dining Room',w:1,h:1,c:'#605040',layer:1},
+{id:'china_cabinet',name:'China Cabinet',cat:'Dining Room',w:2,h:1,c:'#6C4420',layer:1},
+{id:'wine_rack',name:'Wine Rack',cat:'Dining Room',w:1,h:1,c:'#5C3418',layer:1},
+{id:'dining_light',name:'Dining Light',cat:'Dining Room',w:1,h:1,c:'#F0D870',layer:2},
+
+// --- Bedroom ---
+{id:'bed_single',name:'Single Bed',cat:'Bedroom',w:1,h:2,c:'#6868C0',layer:1},
+{id:'bed_double',name:'Double Bed',cat:'Bedroom',w:2,h:2,c:'#7878D0',layer:1},
+{id:'bed_king',name:'King Bed',cat:'Bedroom',w:3,h:2,c:'#6060B0',layer:1},
+{id:'bed_bunk',name:'Bunk Bed',cat:'Bedroom',w:1,h:2,c:'#B09060',layer:1},
+{id:'crib',name:'Crib',cat:'Bedroom',w:1,h:1,c:'#E8D8C0',layer:1},
+{id:'nightstand',name:'Nightstand',cat:'Bedroom',w:1,h:1,c:'#887050',layer:1},
+{id:'dresser',name:'Dresser',cat:'Bedroom',w:2,h:1,c:'#806840',layer:1},
+{id:'wardrobe',name:'Wardrobe',cat:'Bedroom',w:2,h:1,c:'#604828',layer:1},
+{id:'closet',name:'Walk-in Closet',cat:'Bedroom',w:2,h:2,c:'#E0D8C8',layer:1},
+{id:'vanity',name:'Vanity',cat:'Bedroom',w:1,h:1,c:'#E0D0C0',layer:1},
+{id:'desk',name:'Desk',cat:'Bedroom',w:2,h:1,c:'#906838',layer:1},
+{id:'office_chair',name:'Office Chair',cat:'Bedroom',w:1,h:1,c:'#404040',layer:1},
+{id:'computer',name:'Computer',cat:'Bedroom',w:1,h:1,c:'#303030',layer:1},
+{id:'bedside_lamp',name:'Bedside Lamp',cat:'Bedroom',w:1,h:1,c:'#F0D870',layer:1},
+{id:'alarm_clock',name:'Alarm Clock',cat:'Bedroom',w:1,h:1,c:'#C03030',layer:1},
+{id:'mirror_full',name:'Full Mirror',cat:'Bedroom',w:1,h:1,c:'#B0D8E8',layer:1},
+{id:'toy_box',name:'Toy Box',cat:'Bedroom',w:1,h:1,c:'#E86040',layer:1},
+
+// --- Bathroom ---
+{id:'toilet',name:'Toilet',cat:'Bathroom',w:1,h:1,c:'#F0F0F0',layer:1},
+{id:'bathtub',name:'Bathtub',cat:'Bathroom',w:1,h:2,c:'#E0E0E0',layer:1},
+{id:'shower',name:'Shower',cat:'Bathroom',w:1,h:1,c:'#B0C8D8',layer:1},
+{id:'shower_tub',name:'Shower+Tub',cat:'Bathroom',w:1,h:2,c:'#C0D0E0',layer:1},
+{id:'bath_sink',name:'Bathroom Sink',cat:'Bathroom',w:1,h:1,c:'#E8E8E8',layer:1},
+{id:'double_sink',name:'Double Sink',cat:'Bathroom',w:2,h:1,c:'#E0E0E0',layer:1},
+{id:'bath_mirror',name:'Mirror',cat:'Bathroom',w:1,h:1,c:'#A8D0E0',layer:1},
+{id:'bath_cabinet',name:'Bath Cabinet',cat:'Bathroom',w:1,h:1,c:'#E0D8C8',layer:1},
+{id:'towel_rack',name:'Towel Rack',cat:'Bathroom',w:1,h:1,c:'#B0B0B0',layer:1},
+{id:'toilet_paper',name:'Toilet Paper',cat:'Bathroom',w:1,h:1,c:'#F8F8F8',layer:1},
+{id:'bath_mat',name:'Bath Mat',cat:'Bathroom',w:1,h:1,c:'#70A8C0',layer:0},
+{id:'scale',name:'Scale',cat:'Bathroom',w:1,h:1,c:'#D0D0D0',layer:1},
+
+// --- Laundry ---
+{id:'washer',name:'Washer',cat:'Laundry',w:1,h:1,c:'#D0D0D0',layer:1},
+{id:'dryer',name:'Dryer',cat:'Laundry',w:1,h:1,c:'#D8D8D8',layer:1},
+{id:'ironing_board',name:'Ironing Board',cat:'Laundry',w:1,h:1,c:'#C0C0C0',layer:1},
+{id:'laundry_basket',name:'Laundry Basket',cat:'Laundry',w:1,h:1,c:'#C8B080',layer:1},
+{id:'utility_sink',name:'Utility Sink',cat:'Laundry',w:1,h:1,c:'#A8B8C8',layer:1},
+{id:'drying_rack',name:'Drying Rack',cat:'Laundry',w:1,h:1,c:'#B8B8B8',layer:1},
+
+// --- Garage ---
+{id:'garage_door_item',name:'Garage Door',cat:'Garage',w:3,h:1,c:'#888',layer:1},
+{id:'workbench',name:'Workbench',cat:'Garage',w:2,h:1,c:'#907050',layer:1},
+{id:'tool_wall',name:'Tool Wall',cat:'Garage',w:2,h:1,c:'#706050',layer:1},
+{id:'car',name:'Car',cat:'Garage',w:2,h:3,c:'#D03030',layer:1},
+{id:'bicycle',name:'Bicycle',cat:'Garage',w:1,h:1,c:'#3080D0',layer:1},
+{id:'storage_shelf',name:'Storage Shelf',cat:'Garage',w:2,h:1,c:'#808080',layer:1},
+{id:'water_heater',name:'Water Heater',cat:'Garage',w:1,h:1,c:'#E0D8D0',layer:1},
+{id:'furnace',name:'Furnace',cat:'Garage',w:1,h:1,c:'#606060',layer:1},
+
+// --- Outdoor ---
+{id:'grass',name:'Grass',cat:'Outdoor',w:1,h:1,c:'#4CAF50',layer:0},
+{id:'dirt',name:'Dirt',cat:'Outdoor',w:1,h:1,c:'#9C7E5E',layer:0},
+{id:'sand',name:'Sand',cat:'Outdoor',w:1,h:1,c:'#E8D8A0',layer:0},
+{id:'water',name:'Water',cat:'Outdoor',w:1,h:1,c:'#4098D0',layer:0},
+{id:'path_stone',name:'Stone Path',cat:'Outdoor',w:1,h:1,c:'#B0A898',layer:0},
+{id:'path_brick',name:'Brick Path',cat:'Outdoor',w:1,h:1,c:'#C08060',layer:0},
+{id:'driveway',name:'Driveway',cat:'Outdoor',w:1,h:1,c:'#909090',layer:0},
+{id:'sidewalk',name:'Sidewalk',cat:'Outdoor',w:1,h:1,c:'#C0C0C0',layer:0},
+{id:'deck',name:'Wooden Deck',cat:'Outdoor',w:1,h:1,c:'#B89868',layer:0},
+{id:'patio',name:'Patio',cat:'Outdoor',w:1,h:1,c:'#C8B898',layer:0},
+{id:'fence_wood',name:'Wood Fence',cat:'Outdoor',w:1,h:1,c:'#B89058',layer:1},
+{id:'fence_iron',name:'Iron Fence',cat:'Outdoor',w:1,h:1,c:'#484848',layer:1},
+{id:'gate',name:'Gate',cat:'Outdoor',w:1,h:1,c:'#A08040',layer:1},
+{id:'mailbox',name:'Mailbox',cat:'Outdoor',w:1,h:1,c:'#3868A8',layer:1},
+{id:'porch_light',name:'Porch Light',cat:'Outdoor',w:1,h:1,c:'#F0D870',layer:1},
+{id:'welcome_mat',name:'Welcome Mat',cat:'Outdoor',w:1,h:1,c:'#887050',layer:0},
+
+// --- Garden ---
+{id:'tree_oak',name:'Oak Tree',cat:'Garden',w:2,h:2,c:'#2E7D32',layer:1},
+{id:'tree_pine',name:'Pine Tree',cat:'Garden',w:1,h:2,c:'#1B5E20',layer:1},
+{id:'palm_tree',name:'Palm Tree',cat:'Garden',w:1,h:1,c:'#33691E',layer:1},
+{id:'bush_sm',name:'Small Bush',cat:'Garden',w:1,h:1,c:'#43A047',layer:1},
+{id:'bush_lg',name:'Large Bush',cat:'Garden',w:2,h:1,c:'#388E3C',layer:1},
+{id:'hedge',name:'Hedge',cat:'Garden',w:1,h:1,c:'#2E7D32',layer:1},
+{id:'flower_red',name:'Red Flowers',cat:'Garden',w:1,h:1,c:'#E53935',layer:1},
+{id:'flower_blue',name:'Blue Flowers',cat:'Garden',w:1,h:1,c:'#4488CC',layer:1},
+{id:'flower_yellow',name:'Yellow Flowers',cat:'Garden',w:1,h:1,c:'#FDD835',layer:1},
+{id:'flower_pot',name:'Flower Pot',cat:'Garden',w:1,h:1,c:'#A05030',layer:1},
+{id:'garden_bed',name:'Garden Bed',cat:'Garden',w:2,h:1,c:'#6D4C2A',layer:0},
+{id:'fountain',name:'Fountain',cat:'Garden',w:2,h:2,c:'#90B8D0',layer:1},
+{id:'bird_bath',name:'Bird Bath',cat:'Garden',w:1,h:1,c:'#A0B0C0',layer:1},
+{id:'gnome',name:'Garden Gnome',cat:'Garden',w:1,h:1,c:'#D04040',layer:1},
+{id:'lawn_chair',name:'Lawn Chair',cat:'Garden',w:1,h:1,c:'#40A040',layer:1},
+{id:'picnic_table',name:'Picnic Table',cat:'Garden',w:2,h:1,c:'#907040',layer:1},
+{id:'bbq_grill',name:'BBQ Grill',cat:'Garden',w:1,h:1,c:'#303030',layer:1},
+{id:'trampoline',name:'Trampoline',cat:'Garden',w:2,h:2,c:'#4070C0',layer:1},
+{id:'swing_set',name:'Swing Set',cat:'Garden',w:2,h:1,c:'#C04040',layer:1},
+{id:'sandbox',name:'Sandbox',cat:'Garden',w:2,h:2,c:'#E8D090',layer:0},
+
+// --- Pool ---
+{id:'pool_water',name:'Pool Water',cat:'Pool',w:1,h:1,c:'#38B0D8',layer:0},
+{id:'pool_edge',name:'Pool Edge',cat:'Pool',w:1,h:1,c:'#D0D0D0',layer:0},
+{id:'pool_corner',name:'Pool Corner',cat:'Pool',w:1,h:1,c:'#C8C8C8',layer:0},
+{id:'diving_board',name:'Diving Board',cat:'Pool',w:1,h:2,c:'#4080C0',layer:1},
+{id:'pool_ladder',name:'Pool Ladder',cat:'Pool',w:1,h:1,c:'#A0A0A0',layer:1},
+{id:'hot_tub',name:'Hot Tub',cat:'Pool',w:2,h:2,c:'#50A0C0',layer:1},
+{id:'lounge_chair',name:'Lounge Chair',cat:'Pool',w:1,h:2,c:'#E0D0A0',layer:1},
+{id:'umbrella',name:'Umbrella',cat:'Pool',w:1,h:1,c:'#E86040',layer:1},
+
+// --- Electrical ---
+{id:'outlet',name:'Outlet',cat:'Electrical',w:1,h:1,c:'#E0D8C8',layer:1},
+{id:'light_switch',name:'Light Switch',cat:'Electrical',w:1,h:1,c:'#E0D8C8',layer:1},
+{id:'ceiling_light',name:'Ceiling Light',cat:'Electrical',w:1,h:1,c:'#F0E8D0',layer:2},
+{id:'recessed_light',name:'Recessed Light',cat:'Electrical',w:1,h:1,c:'#F8F0E0',layer:2},
+{id:'wall_sconce',name:'Wall Sconce',cat:'Electrical',w:1,h:1,c:'#E8D890',layer:1},
+{id:'thermostat',name:'Thermostat',cat:'Electrical',w:1,h:1,c:'#E0E0E0',layer:1},
+{id:'smoke_detector',name:'Smoke Detector',cat:'Electrical',w:1,h:1,c:'#F0F0F0',layer:2},
+{id:'doorbell',name:'Doorbell',cat:'Electrical',w:1,h:1,c:'#D0C8B8',layer:1},
+{id:'security_cam',name:'Security Camera',cat:'Electrical',w:1,h:1,c:'#505050',layer:1},
+{id:'router',name:'WiFi Router',cat:'Electrical',w:1,h:1,c:'#303030',layer:1},
+
+// --- Plumbing ---
+{id:'pipe_h',name:'Pipe Horizontal',cat:'Plumbing',w:1,h:1,c:'#808890',layer:0},
+{id:'pipe_v',name:'Pipe Vertical',cat:'Plumbing',w:1,h:1,c:'#808890',layer:0},
+{id:'pipe_corner',name:'Pipe Corner',cat:'Plumbing',w:1,h:1,c:'#808890',layer:0},
+{id:'drain',name:'Drain',cat:'Plumbing',w:1,h:1,c:'#606060',layer:0},
+{id:'vent',name:'Vent',cat:'Plumbing',w:1,h:1,c:'#E0E0E0',layer:1},
+{id:'ac_unit',name:'AC Unit',cat:'Plumbing',w:1,h:1,c:'#D8D8D8',layer:1},
+{id:'radiator',name:'Radiator',cat:'Plumbing',w:1,h:1,c:'#D0D0D0',layer:1},
+
+// --- Decoration ---
+{id:'indoor_plant',name:'Indoor Plant',cat:'Decoration',w:1,h:1,c:'#2E8B57',layer:1},
+{id:'tall_plant',name:'Tall Plant',cat:'Decoration',w:1,h:1,c:'#228B22',layer:1},
+{id:'candles',name:'Candles',cat:'Decoration',w:1,h:1,c:'#F0D870',layer:1},
+{id:'photo_frame',name:'Photo Frame',cat:'Decoration',w:1,h:1,c:'#C8A060',layer:1},
+{id:'trophy',name:'Trophy',cat:'Decoration',w:1,h:1,c:'#D4AF37',layer:1},
+{id:'globe',name:'Globe',cat:'Decoration',w:1,h:1,c:'#4090B0',layer:1},
+{id:'statue',name:'Statue',cat:'Decoration',w:1,h:1,c:'#C8C0B8',layer:1},
+{id:'rug_round',name:'Round Rug',cat:'Decoration',w:1,h:1,c:'#B87848',layer:0},
+{id:'wall_shelf',name:'Wall Shelf',cat:'Decoration',w:2,h:1,c:'#A08050',layer:1},
+
+// --- Pets ---
+{id:'dog_bed',name:'Dog Bed',cat:'Pets',w:1,h:1,c:'#A08868',layer:1},
+{id:'cat_tree',name:'Cat Tree',cat:'Pets',w:1,h:1,c:'#C8A878',layer:1},
+{id:'fish_tank',name:'Fish Tank',cat:'Pets',w:1,h:1,c:'#50B0D0',layer:1},
+{id:'pet_bowl',name:'Pet Bowl',cat:'Pets',w:1,h:1,c:'#D05040',layer:1},
+{id:'dog_house',name:'Dog House',cat:'Outdoor',w:1,h:1,c:'#A07040',layer:1},
+];
+
+// ===================== STATE =====================
+const C=document.getElementById('game'),X=C.getContext('2d');
+const CELL=40;
+let world={},floor=0,sel=ITEMS[0],tool='place',rot=0;
+let camX=0,camY=0,zoom=1;
+let panning=false,panSX,panSY,camSX,camSY;
+let painting=false,mgx=0,mgy=0;
+let history=[],future=[];
+const MAX_HIST=200;
+
+function snap(){history.push(JSON.stringify(world));if(history.length>MAX_HIST)history.shift();future=[];}
+function undo(){if(!history.length)return;future.push(JSON.stringify(world));world=JSON.parse(history.pop());}
+function redo(){if(!future.length)return;history.push(JSON.stringify(world));world=JSON.parse(future.pop());}
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1200);}
+
+// ===================== SIDEBAR =====================
+function buildSidebar(filter=''){
+  const list=document.getElementById('item-list');
+  list.innerHTML='';
+  let lastCat='';
+  const f=filter.toLowerCase();
+  ITEMS.forEach(item=>{
+    if(f&&!item.name.toLowerCase().includes(f)&&!item.cat.toLowerCase().includes(f))return;
+    if(item.cat!==lastCat){lastCat=item.cat;const d=document.createElement('div');d.className='cat';d.textContent=item.cat;list.appendChild(d);}
+    const btn=document.createElement('button');
+    btn.className='itm'+(sel.id===item.id?' act':'');
+    // mini preview canvas
+    const mc=document.createElement('canvas');mc.width=28;mc.height=28;
+    const mx=mc.getContext('2d');
+    drawItem(mx,item,0,0,28,28,0);
+    btn.appendChild(mc);
+    const sp=document.createElement('span');
+    sp.textContent=item.name;
+    if(item.w>1||item.h>1)sp.textContent+=` (${item.w}x${item.h})`;
+    btn.appendChild(sp);
+    btn.onclick=()=>{sel=item;tool='place';updateTool();buildSidebar(filter);};
+    list.appendChild(btn);
+  });
+}
+
+document.getElementById('search').addEventListener('input',e=>buildSidebar(e.target.value));
+
+// ===================== TOOLBAR =====================
+function updateTool(){document.querySelectorAll('.tb-btn[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===tool));}
+document.querySelectorAll('.tb-btn[data-t]').forEach(b=>b.onclick=()=>{tool=b.dataset.t;updateTool();});
+document.getElementById('fu').onclick=()=>{floor++;updFlr();};
+document.getElementById('fd').onclick=()=>{if(floor>0)floor--;updFlr();};
+function updFlr(){document.getElementById('flr-lbl').textContent='Floor '+(floor+1);}
+document.getElementById('undo').onclick=undo;
+document.getElementById('redo').onclick=redo;
+document.getElementById('save').onclick=()=>{localStorage.setItem('hb2',JSON.stringify(world));toast('Saved!');};
+document.getElementById('load').onclick=()=>{const d=localStorage.getItem('hb2');if(d){snap();world=JSON.parse(d);toast('Loaded!');}};
+document.getElementById('clear').onclick=()=>{snap();world={};toast('Cleared!');};
+
+// ===================== INPUT =====================
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='r'||e.key==='R')rot=(rot+1)%4;
+  if(e.key==='e'||e.key==='E'){tool='erase';updateTool();}
+  if(e.key==='q'||e.key==='Q'){tool='pick';updateTool();}
+  if(e.key==='z'||e.key==='Z')undo();
+  if(e.key==='y'||e.key==='Y')redo();
+  if(e.key==='PageUp'){floor++;updFlr();}
+  if(e.key==='PageDown'){if(floor>0)floor--;updFlr();}
+});
+
+C.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.12:.89;zoom=Math.max(.2,Math.min(4,zoom*f));});
+
+C.addEventListener('mousedown',e=>{
+  if(e.button===2){panning=true;panSX=e.clientX;panSY=e.clientY;camSX=camX;camSY=camY;return;}
+  if(e.button===0){
+    painting=true;
+    if(tool==='place'){snap();}
+    if(tool==='erase'){snap();}
+    doAction();
+  }
+});
+C.addEventListener('mousemove',e=>{
+  const r=C.getBoundingClientRect();
+  const mx=(e.clientX-r.left-C.width/2)/zoom+camX;
+  const my=(e.clientY-r.top-C.height/2)/zoom+camY;
+  mgx=Math.floor(mx/CELL);mgy=Math.floor(my/CELL);
+  if(panning){camX=camSX-(e.clientX-panSX)/zoom;camY=camSY-(e.clientY-panSY)/zoom;}
+  if(painting)doAction();
+});
+C.addEventListener('mouseup',e=>{if(e.button===2)panning=false;painting=false;});
+C.addEventListener('contextmenu',e=>e.preventDefault());
+
+function dims(item,r){const sw=r%2===1;return{w:sw?item.h:item.w,h:sw?item.w:item.h};}
+
+function doAction(){
+  if(tool==='place')place(mgx,mgy);
+  else if(tool==='erase')erase(mgx,mgy);
+  else if(tool==='pick')pick(mgx,mgy);
+}
+
+function place(gx,gy){
+  const d=dims(sel,rot);
+  for(let dx=0;dx<d.w;dx++)for(let dy=0;dy<d.h;dy++){
+    const k=`${floor}:${gx+dx}:${gy+dy}`;
+    if(world[k])return;
+  }
+  for(let dx=0;dx<d.w;dx++)for(let dy=0;dy<d.h;dy++){
+    world[`${floor}:${gx+dx}:${gy+dy}`]={id:sel.id,rot,ox:gx,oy:gy,isO:dx===0&&dy===0};
+  }
+}
+
+function erase(gx,gy){
+  const k=`${floor}:${gx}:${gy}`;
+  const c=world[k];if(!c)return;
+  const item=ITEMS.find(i=>i.id===c.id);if(!item){delete world[k];return;}
+  const d=dims(item,c.rot);
+  for(let dx=0;dx<d.w;dx++)for(let dy=0;dy<d.h;dy++)delete world[`${floor}:${c.ox+dx}:${c.oy+dy}`];
+}
+
+function pick(gx,gy){
+  const k=`${floor}:${gx}:${gy}`;
+  const c=world[k];if(!c)return;
+  const item=ITEMS.find(i=>i.id===c.id);if(!item)return;
+  sel=item;rot=c.rot;tool='place';updateTool();buildSidebar(document.getElementById('search').value);
+  toast('Picked: '+item.name);
+}
+
+// ===================== DRAWING =====================
+function drawItem(ctx,item,x,y,w,h,rot){
+  ctx.save();
+  ctx.translate(x+w/2,y+h/2);
+  ctx.rotate(rot*Math.PI/2);
+  ctx.translate(-w/2,-h/2);
+
+  const id=item.id;
+  const c=item.c;
+
+  // Base shape
+  ctx.fillStyle=c;
+
+  // Category-specific drawing
+  if(item.cat==='Foundation'||item.layer===0&&!id.includes('rug')&&!id.includes('mat')&&!id.includes('pool')&&!id.includes('sandbox')&&!id.includes('garden_bed')){
+    drawFloorTile(ctx,id,w,h,c);
+  } else if(item.cat==='Walls'){
+    drawWall(ctx,id,w,h,c);
+  } else if(item.cat==='Doors & Windows'){
+    drawDoorWindow(ctx,id,w,h,c);
+  } else if(item.cat==='Roof'){
+    drawRoof(ctx,id,w,h,c);
+  } else {
+    drawGeneric(ctx,item,id,w,h,c);
+  }
+
+  ctx.restore();
+}
+
+function drawFloorTile(ctx,id,w,h,c){
+  ctx.fillStyle=c;ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+
+  if(id==='wood_floor'||id==='deck'){
+    for(let i=0;i<h;i+=h/4){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(w,i);ctx.stroke();}
+    ctx.strokeStyle=shadeColor(c,-.08);
+    ctx.beginPath();ctx.moveTo(w/3,0);ctx.lineTo(w/3,h);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*2/3,0);ctx.lineTo(w*2/3,h);ctx.stroke();
+  } else if(id==='tile_floor'||id==='patio'||id==='sidewalk'){
+    ctx.strokeRect(0,0,w/2,h/2);ctx.strokeRect(w/2,0,w/2,h/2);
+    ctx.strokeRect(0,h/2,w/2,h/2);ctx.strokeRect(w/2,h/2,w/2,h/2);
+  } else if(id==='marble_floor'){
+    ctx.strokeRect(0,0,w,h);
+    ctx.fillStyle=shadeColor(c,.05);
+    ctx.beginPath();ctx.moveTo(w*.2,0);ctx.lineTo(w*.6,h);ctx.lineTo(w*.4,h);ctx.lineTo(0,0);ctx.fill();
+  } else if(id==='stone_floor'||id==='path_stone'){
+    ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(w*.4,0);ctx.lineTo(w*.3,h*.5);ctx.lineTo(0,h*.6);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.7,0);ctx.lineTo(w*.6,h*.4);ctx.lineTo(w,h*.5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.2,h);ctx.lineTo(w*.5,h*.6);ctx.lineTo(w*.8,h);ctx.stroke();
+  } else if(id==='carpet'||id==='bath_mat'||id==='welcome_mat'){
+    rrect(ctx,2,2,w-4,h-4,4);ctx.fill();
+    ctx.strokeStyle=shadeColor(c,.1);ctx.lineWidth=1;rrect(ctx,4,4,w-8,h-8,2);ctx.stroke();
+  } else if(id==='path_brick'){
+    ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1;
+    for(let r=0;r<h;r+=6){const off=(Math.floor(r/6)%2)*8;for(let col=off-8;col<w;col+=16)ctx.strokeRect(col,r,16,6);}
+  } else if(id==='water'||id==='pool_water'){
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='rgba(255,255,255,.15)';
+    ctx.beginPath();ctx.moveTo(0,h*.3);ctx.quadraticCurveTo(w*.25,h*.2,w*.5,h*.3);ctx.quadraticCurveTo(w*.75,h*.4,w,h*.3);ctx.lineTo(w,h*.4);ctx.quadraticCurveTo(w*.75,h*.5,w*.5,h*.4);ctx.quadraticCurveTo(w*.25,h*.3,0,h*.4);ctx.fill();
+  } else if(id==='grass'){
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle=shadeColor(c,.1);
+    for(let i=0;i<5;i++){const bx=w*(.1+Math.sin(i*3)*.3),by=h*(.2+Math.cos(i*2)*.3);ctx.fillRect(bx,by,2,6);}
+  } else if(id==='driveway'){
+    ctx.fillRect(0,0,w,h);ctx.strokeStyle=shadeColor(c,.1);ctx.lineWidth=1;ctx.strokeRect(0,0,w,h);
+  } else if(id==='pool_edge'||id==='pool_corner'){
+    ctx.fillStyle='#C8C8C8';ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#38B0D8';ctx.fillRect(4,4,w-8,h-8);
+  } else if(id.includes('rug')){
+    rrect(ctx,2,2,w-4,h-4,6);ctx.fill();
+    ctx.strokeStyle=shadeColor(c,.15);ctx.lineWidth=2;rrect(ctx,6,6,w-12,h-12,4);ctx.stroke();
+    ctx.strokeStyle=shadeColor(c,-.1);rrect(ctx,10,10,w-20,h-20,2);ctx.stroke();
+  } else if(id==='garden_bed'){
+    ctx.fillStyle='#5E3E1A';ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#6D4C2A';ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle='#4CAF50';
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(w*(.2+i*.3),h*.4,4,0,Math.PI*2);ctx.fill();}
+  } else if(id==='sandbox'){
+    ctx.fillStyle='#C8A060';rrect(ctx,2,2,w-4,h-4,4);ctx.fill();
+    ctx.strokeStyle='#A08040';ctx.lineWidth=3;rrect(ctx,2,2,w-4,h-4,4);ctx.stroke();
+    ctx.fillStyle='#E0C880';ctx.beginPath();ctx.arc(w*.6,h*.5,w*.15,0,Math.PI*2);ctx.fill();
+  } else {
+    ctx.fillRect(0,0,w,h);ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;ctx.strokeRect(0,0,w,h);
+  }
+}
+
+function drawWall(ctx,id,w,h,c){
+  ctx.fillStyle=c;ctx.fillRect(0,0,w,h);
+  if(id==='brick_wall'){
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1;
+    for(let r=0;r<h;r+=8){const off=(Math.floor(r/8)%2)*12;for(let col=off-12;col<w;col+=24)ctx.strokeRect(col,r,24,8);}
+  } else if(id==='stone_wall'){
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1.5;
+    const stones=[[0,0,w*.45,h*.5],[w*.45,0,w*.55,h*.4],[0,h*.5,w*.55,h*.5],[w*.55,h*.4,w*.45,h*.6]];
+    stones.forEach(s=>ctx.strokeRect(s[0],s[1],s[2],s[3]));
+  } else if(id==='glass_wall'){
+    ctx.globalAlpha=.6;ctx.fillRect(0,0,w,h);ctx.globalAlpha=1;
+    ctx.strokeStyle='#80B0D0';ctx.lineWidth=2;ctx.strokeRect(1,1,w-2,h-2);
+    ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(3,3,w*.3,h-6);
+  } else if(id==='wood_wall'){
+    for(let i=0;i<w;i+=w/4){ctx.fillStyle=i%(w/2)?shadeColor(c,.05):c;ctx.fillRect(i,0,w/4,h);}
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1;
+    for(let i=0;i<=w;i+=w/4){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,h);ctx.stroke();}
+  } else if(id==='half_wall'){
+    ctx.fillRect(0,h*.4,w,h*.6);
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(0,h*.4,w,4);
+  } else if(id==='pillar'){
+    ctx.fillStyle=shadeColor(c,.05);ctx.fillRect(w*.2,0,w*.6,h);
+    ctx.fillStyle=c;ctx.fillRect(w*.15,0,w*.7,6);ctx.fillRect(w*.15,h-6,w*.7,6);
+    ctx.strokeStyle=shadeColor(c,-.1);ctx.lineWidth=1;ctx.strokeRect(w*.2,0,w*.6,h);
+  } else if(id==='arch'){
+    ctx.fillRect(0,0,w*.25,h);ctx.fillRect(w*.75,0,w*.25,h);
+    ctx.beginPath();ctx.arc(w/2,h*.35,w*.25,Math.PI,0);ctx.lineTo(w*.75,0);ctx.lineTo(w*.25,0);ctx.fill();
+  } else {
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;ctx.strokeRect(0,0,w,h);
+  }
+}
+
+function drawDoorWindow(ctx,id,w,h,c){
+  if(id.includes('door')){
+    if(id==='sliding_door'){
+      ctx.fillStyle='#D0D0D0';ctx.fillRect(0,0,w,h);
+      ctx.fillStyle='#88C8E8';ctx.globalAlpha=.6;ctx.fillRect(3,3,w/2-2,h-6);ctx.fillRect(w/2+1,3,w/2-4,h-6);ctx.globalAlpha=1;
+      ctx.strokeStyle='#999';ctx.lineWidth=1;ctx.strokeRect(0,0,w,h);
+      ctx.fillStyle='#888';ctx.fillRect(w/2-1,0,2,h);
+    } else {
+      ctx.fillStyle=c;ctx.fillRect(4,0,w-8,h);
+      ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=2;ctx.strokeRect(4,0,w-8,h);
+      if(id==='double_door'){
+        ctx.strokeRect(6,4,w/2-8,h-8);ctx.strokeRect(w/2+2,4,w/2-8,h-8);
+        ctx.fillStyle='#D4AF37';
+        ctx.beginPath();ctx.arc(w/2-6,h/2,2.5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(w/2+6,h/2,2.5,0,Math.PI*2);ctx.fill();
+      } else {
+        ctx.strokeRect(8,4,w-16,h*.4-4);ctx.strokeRect(8,h*.4+2,w-16,h*.55);
+        ctx.fillStyle=id==='front_door'?'#D4AF37':'#C8A040';
+        ctx.beginPath();ctx.arc(w-14,h/2,3,0,Math.PI*2);ctx.fill();
+        if(id==='front_door'){
+          // peephole
+          ctx.fillStyle='#333';ctx.beginPath();ctx.arc(w/2,h*.2,2,0,Math.PI*2);ctx.fill();
+        }
+      }
+    }
+  } else {
+    // Windows
+    ctx.fillStyle='#8B7355';ctx.fillRect(0,0,w,h);
+    const p=4;
+    ctx.fillStyle='#88C8E8';ctx.fillRect(p,p,w-p*2,h-p*2);
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(p,p,w-p*2,h-p*2);
+    if(id==='window_sm'){
+      ctx.beginPath();ctx.moveTo(w/2,p);ctx.lineTo(w/2,h-p);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p,h/2);ctx.lineTo(w-p,h/2);ctx.stroke();
+    } else if(id==='window_lg'||id==='bay_window'){
+      ctx.beginPath();ctx.moveTo(w*.33,p);ctx.lineTo(w*.33,h-p);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(w*.66,p);ctx.lineTo(w*.66,h-p);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(p,h/2);ctx.lineTo(w-p,h/2);ctx.stroke();
+      if(id==='bay_window'){
+        ctx.fillStyle='rgba(135,206,235,.3)';ctx.fillRect(p,h-p-6,w-p*2,6);
+      }
+    } else if(id==='skylight'){
+      ctx.fillStyle='#A0D8F0';ctx.fillRect(p,p,w-p*2,h-p*2);
+      ctx.fillStyle='rgba(255,255,255,.3)';ctx.fillRect(p+2,p+2,w*.3,h-p*2-4);
+    }
+  }
+}
+
+function drawRoof(ctx,id,w,h,c){
+  if(id==='roof_tile'){
+    ctx.fillStyle=c;
+    ctx.beginPath();ctx.moveTo(0,h);ctx.lineTo(w/2,2);ctx.lineTo(w,h);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+    for(let i=h*.3;i<h;i+=6){const pct=i/h;const lx=w/2*(1-pct);const rx=w-lx;ctx.beginPath();ctx.moveTo(lx,i);ctx.lineTo(rx,i);ctx.stroke();}
+  } else if(id==='roof_peak'){
+    ctx.fillStyle=c;
+    ctx.beginPath();ctx.moveTo(0,h);ctx.lineTo(w/2,0);ctx.lineTo(w,h);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=shadeColor(c,.15);ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(w/2,0);ctx.lineTo(w/2,h*.15);ctx.stroke();
+  } else if(id==='flat_roof'){
+    ctx.fillStyle=c;ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle=shadeColor(c,-.1);ctx.lineWidth=1;
+    for(let i=0;i<w;i+=8){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,h);ctx.stroke();}
+  } else if(id==='chimney'){
+    ctx.fillStyle=c;ctx.fillRect(w*.2,h*.1,w*.6,h*.9);
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(w*.15,h*.1,w*.7,h*.08);
+    ctx.fillStyle='rgba(180,180,180,.5)';
+    ctx.beginPath();ctx.arc(w/2,h*.05,4,0,Math.PI*2);ctx.fill();
+  } else if(id==='gutter'){
+    ctx.fillStyle=c;ctx.fillRect(0,h*.3,w,h*.4);
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;ctx.strokeRect(0,h*.3,w,h*.4);
+  } else if(id==='solar_panel'){
+    ctx.fillStyle=c;ctx.fillRect(2,2,w-4,h-4);
+    ctx.strokeStyle='#4060A0';ctx.lineWidth=1;
+    for(let i=0;i<w;i+=w/4){ctx.beginPath();ctx.moveTo(i,2);ctx.lineTo(i,h-2);ctx.stroke();}
+    for(let i=0;i<h;i+=h/3){ctx.beginPath();ctx.moveTo(2,i);ctx.lineTo(w-2,i);ctx.stroke();}
+    ctx.fillStyle='rgba(100,140,200,.3)';ctx.fillRect(2,2,w-4,h-4);
+  } else if(id==='antenna'){
+    ctx.strokeStyle=c;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(w/2,h);ctx.lineTo(w/2,h*.15);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.2,h*.3);ctx.lineTo(w/2,h*.15);ctx.lineTo(w*.8,h*.3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.3,h*.5);ctx.lineTo(w/2,h*.35);ctx.lineTo(w*.7,h*.5);ctx.stroke();
+  }
+}
+
+function drawGeneric(ctx,item,id,w,h,c){
+  // Massive switch for all remaining items
+  ctx.fillStyle=c;
+
+  // === Living Room ===
+  if(id==='sofa'||id==='loveseat'){
+    rrect(ctx,2,2,w-4,h-4,5);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.15);ctx.fillRect(2,2,w-4,h*.25);ctx.fillRect(2,2,6,h-4);ctx.fillRect(w-8,2,6,h-4);
+    ctx.fillStyle=shadeColor(c,.1);
+    const cushions=id==='sofa'?3:2;const cw=(w-20)/cushions;
+    for(let i=0;i<cushions;i++){rrect(ctx,10+i*(cw+2),h*.3,cw,h*.6,3);ctx.fill();}
+  } else if(id==='armchair'||id==='recliner'){
+    rrect(ctx,3,3,w-6,h-6,5);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.15);ctx.fillRect(3,3,w-6,h*.25);ctx.fillRect(3,3,6,h-6);ctx.fillRect(w-9,3,6,h-6);
+    ctx.fillStyle=shadeColor(c,.1);rrect(ctx,10,h*.3,w-20,h*.6,3);ctx.fill();
+  } else if(id==='coffee_table'||id==='end_table'){
+    ctx.fillStyle=shadeColor(c,.1);rrect(ctx,3,3,w-6,h-6,3);ctx.fill();
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1.5;rrect(ctx,3,3,w-6,h-6,3);ctx.stroke();
+  } else if(id==='tv_stand'){
+    ctx.fillRect(2,h*.3,w-4,h*.7);
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(2,h*.3,w-4,4);
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+    ctx.fillRect(6,h*.5,w*.35,h*.35);ctx.fillRect(w*.5+2,h*.5,w*.35,h*.35);
+  } else if(id==='tv'){
+    rrect(ctx,2,4,w-4,h-8,2);ctx.fill();
+    ctx.fillStyle='#111';ctx.fillRect(4,6,w-8,h-12);
+    ctx.fillStyle='rgba(60,100,180,.1)';ctx.fillRect(4,6,w-8,h-12);
+    ctx.fillStyle='#333';ctx.fillRect(w/2-8,h-5,16,3);
+  } else if(id==='bookshelf'){
+    ctx.fillRect(2,2,w-4,h-4);
+    const colors=['#C0392B','#2980B9','#27AE60','#F39C12','#8E44AD','#E67E22'];
+    for(let row=0;row<3;row++){
+      const sy=3+row*(h-6)/3;ctx.fillStyle=shadeColor(c,-.15);ctx.fillRect(3,sy+(h-6)/3-2,w-6,2);
+      for(let b=0;b<4;b++){ctx.fillStyle=colors[(row*4+b)%colors.length];ctx.fillRect(5+b*((w-10)/4),sy+1,(w-14)/4,((h-6)/3)-4);}
+    }
+  } else if(id==='fireplace'){
+    ctx.fillRect(2,2,w-4,h-4);ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(0,0,w,6);
+    ctx.fillStyle='#1a1a1a';
+    ctx.beginPath();ctx.moveTo(w*.15,h);ctx.lineTo(w*.15,h*.35);ctx.quadraticCurveTo(w/2,h*.15,w*.85,h*.35);ctx.lineTo(w*.85,h);ctx.fill();
+    ctx.fillStyle='#E05020';ctx.beginPath();ctx.arc(w/2,h*.75,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#F0A020';ctx.beginPath();ctx.arc(w/2,h*.7,4,0,Math.PI*2);ctx.fill();
+  } else if(id==='floor_lamp'){
+    ctx.fillStyle='#888';ctx.fillRect(w/2-2,h*.3,4,h*.6);
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(w*.2,h*.3);ctx.lineTo(w*.5,h*.05);ctx.lineTo(w*.8,h*.3);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,255,200,.2)';ctx.beginPath();ctx.arc(w/2,h*.25,w*.4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#666';ctx.fillRect(w*.3,h*.9,w*.4,4);
+  } else if(id==='table_lamp'){
+    ctx.fillStyle='#888';ctx.fillRect(w/2-1,h*.4,2,h*.35);
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(w*.25,h*.4);ctx.lineTo(w*.5,h*.1);ctx.lineTo(w*.75,h*.4);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#666';rrect(ctx,w*.3,h*.75,w*.4,h*.15,2);ctx.fill();
+  } else if(id==='chandelier'){
+    ctx.fillStyle='#D0C090';ctx.fillRect(w/2-1,0,2,h*.3);
+    ctx.fillStyle=c;rrect(ctx,w*.15,h*.3,w*.7,h*.15,3);ctx.fill();
+    ctx.fillStyle='#F8E880';
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(w*(.25+i*.25),h*.6,3,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='rgba(255,255,200,.15)';ctx.beginPath();ctx.arc(w/2,h*.5,w*.4,0,Math.PI*2);ctx.fill();
+  } else if(id==='ceiling_fan'){
+    ctx.fillStyle='#888';ctx.beginPath();ctx.arc(w/2,h/2,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=c;
+    for(let a=0;a<4;a++){ctx.save();ctx.translate(w/2,h/2);ctx.rotate(a*Math.PI/2);ctx.fillRect(-2,-2,w*.4,5);ctx.restore();}
+  } else if(id==='curtains'){
+    ctx.fillStyle=c;
+    for(let i=0;i<4;i++){const cx=w*(.15+i*.22);ctx.beginPath();ctx.moveTo(cx,0);ctx.quadraticCurveTo(cx+5,h*.5,cx,h);ctx.quadraticCurveTo(cx-5,h*.5,cx,0);ctx.fill();}
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(0,0,w,4);
+  } else if(id==='painting'){
+    ctx.fillStyle='#604020';ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle='#88C8A0';ctx.fillRect(5,5,w-10,h-10);
+    ctx.fillStyle='#4CA870';ctx.fillRect(5,h*.5,w-10,h*.4);
+    ctx.fillStyle='#F0D040';ctx.beginPath();ctx.arc(w*.7,h*.3,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#2E8050';ctx.beginPath();ctx.moveTo(w*.2,h*.9);ctx.lineTo(w*.35,h*.45);ctx.lineTo(w*.5,h*.9);ctx.fill();
+  } else if(id==='clock'){
+    ctx.fillStyle='#E0D0B8';ctx.beginPath();ctx.arc(w/2,h/2,w*.4,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#806040';ctx.lineWidth=2;ctx.beginPath();ctx.arc(w/2,h/2,w*.4,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#333';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(w/2,h/2);ctx.lineTo(w/2,h*.2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w/2,h/2);ctx.lineTo(w*.7,h/2);ctx.stroke();
+  } else if(id==='vase'){
+    ctx.fillStyle=c;
+    ctx.beginPath();ctx.moveTo(w*.35,h);ctx.quadraticCurveTo(w*.2,h*.5,w*.35,h*.3);ctx.lineTo(w*.4,h*.15);ctx.lineTo(w*.6,h*.15);ctx.lineTo(w*.65,h*.3);ctx.quadraticCurveTo(w*.8,h*.5,w*.65,h);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#4CAF50';ctx.fillRect(w*.45,0,2,h*.2);
+    ctx.beginPath();ctx.arc(w*.52,h*.05,4,0,Math.PI*2);ctx.fill();
+  } else if(id==='speaker'){
+    rrect(ctx,4,2,w-8,h-4,3);ctx.fill();
+    ctx.strokeStyle='#555';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(w/2,h*.35,5,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(w/2,h*.7,7,0,Math.PI*2);ctx.stroke();
+  } else if(id==='piano'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle='#F0F0F0';ctx.fillRect(4,h*.5,w-8,h*.4);
+    ctx.fillStyle='#111';const kw=(w-8)/10;
+    for(let i=0;i<10;i+=1){if([1,2,4,5,6,8,9].includes(i%10)===false){ctx.fillRect(6+i*kw+kw*.3,h*.5,kw*.5,h*.25);}}
+  } else if(id==='aquarium'){
+    ctx.fillStyle='#306080';rrect(ctx,2,2,w-4,h-4,3);ctx.fill();
+    ctx.fillStyle='#40A8C8';ctx.fillRect(4,4,w-8,h-8);
+    ctx.fillStyle='#E8D070';ctx.fillRect(4,h-8,w-8,4);
+    ctx.fillStyle='#F08030';ctx.beginPath();ctx.arc(w*.3,h*.4,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3080F0';ctx.beginPath();ctx.arc(w*.6,h*.5,2.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#2E8B57';ctx.fillRect(w*.7,h*.3,3,h*.4);ctx.fillRect(w*.2,h*.35,2,h*.35);
+
+  // === Kitchen ===
+  } else if(id==='counter_top'||id==='counter_corner'||id==='kitchen_island'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle=shadeColor(c,.08);ctx.fillRect(2,2,w-4,5);
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;ctx.strokeRect(2,2,w-4,h-4);
+  } else if(id==='stove'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle='#383838';ctx.fillRect(2,2,w-4,h*.3);
+    ctx.strokeStyle='#777';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(w*.3,h*.55,5,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(w*.7,h*.55,5,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(w*.3,h*.8,4,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(w*.7,h*.8,4,0,Math.PI*2);ctx.stroke();
+  } else if(id==='oven'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle='#383838';ctx.fillRect(4,4,w-8,h*.3);
+    ctx.strokeStyle='#666';ctx.lineWidth=1;ctx.strokeRect(4,h*.38,w-8,h*.55);
+    ctx.fillStyle='#555';ctx.fillRect(w*.3,h*.42,w*.4,2);
+  } else if(id==='microwave'){
+    rrect(ctx,3,3,w-6,h-6,3);ctx.fill();
+    ctx.fillStyle='#2a2a2a';ctx.fillRect(5,5,w*.6,h-10);
+    ctx.fillStyle='#555';ctx.beginPath();ctx.arc(w*.8,h*.4,2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.8,h*.6,2,0,Math.PI*2);ctx.fill();
+  } else if(id==='fridge'){
+    ctx.fillRect(3,2,w-6,h-4);
+    ctx.strokeStyle='#BBB';ctx.lineWidth=1;
+    ctx.strokeRect(3,2,w-6,h*.35);ctx.strokeRect(3,h*.35,w-6,h*.63);
+    ctx.fillStyle='#999';ctx.fillRect(w-10,h*.17,2,8);ctx.fillRect(w-10,h*.55,2,12);
+  } else if(id==='freezer'){
+    ctx.fillRect(3,2,w-6,h-4);ctx.strokeStyle='#CCC';ctx.lineWidth=1;ctx.strokeRect(3,2,w-6,h-4);
+    ctx.fillStyle='#C8D8E8';ctx.fillRect(6,6,w-12,h-12);
+    ctx.fillStyle='#999';ctx.fillRect(w-10,h/2-4,2,8);
+  } else if(id==='dishwasher'){
+    ctx.fillRect(3,2,w-6,h-4);
+    ctx.strokeStyle='#AAA';ctx.lineWidth=1;ctx.strokeRect(3,2,w-6,h-4);
+    ctx.fillStyle='#A8A8A8';ctx.fillRect(3,2,w-6,5);
+    ctx.fillStyle='#888';ctx.fillRect(w/2-4,h*.4,8,2);
+  } else if(id==='kitchen_sink'){
+    ctx.fillStyle='#C8B898';ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle='#A8B8C8';rrect(ctx,6,8,w-12,h-14,3);ctx.fill();
+    ctx.fillStyle='#C0C0C0';ctx.fillRect(w/2-2,2,4,8);ctx.fillRect(w/2-5,2,10,3);
+  } else if(id==='cabinet_upper'||id==='cabinet_lower'||id==='pantry'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1.5;ctx.strokeRect(2,2,w-4,h-4);
+    ctx.strokeRect(4,4,w/2-4,h-8);ctx.strokeRect(w/2,4,w/2-4,h-8);
+    ctx.fillStyle='#C0A060';
+    ctx.beginPath();ctx.arc(w/2-4,h/2,1.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w/2+4,h/2,1.5,0,Math.PI*2);ctx.fill();
+  } else if(id==='trash_can'){
+    ctx.fillStyle='#585858';rrect(ctx,w*.2,h*.15,w*.6,h*.8,3);ctx.fill();
+    ctx.fillStyle='#686868';ctx.fillRect(w*.15,h*.1,w*.7,h*.1);
+    ctx.fillStyle='#505050';ctx.fillRect(w*.35,h*.05,w*.3,h*.08);
+  } else if(id==='toaster'){
+    rrect(ctx,w*.15,h*.2,w*.7,h*.65,3);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(w*.25,h*.15,w*.2,h*.12);ctx.fillRect(w*.55,h*.15,w*.2,h*.12);
+    ctx.fillStyle='#888';ctx.fillRect(w*.7,h*.5,w*.12,h*.1);
+  } else if(id==='coffee_maker'){
+    ctx.fillRect(w*.2,h*.1,w*.6,h*.85);
+    ctx.fillStyle='#282020';ctx.fillRect(w*.25,h*.15,w*.5,h*.35);
+    ctx.fillStyle='#604830';ctx.fillRect(w*.3,h*.55,w*.25,h*.3);
+    ctx.fillStyle='#888';ctx.fillRect(w*.3,h*.55,w*.25,3);
+
+  // === Dining ===
+  } else if(id==='dining_table_sm'||id==='dining_table_lg'){
+    rrect(ctx,3,3,w-6,h-6,4);ctx.fill();
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=2;rrect(ctx,3,3,w-6,h-6,4);ctx.stroke();
+    ctx.fillStyle=shadeColor(c,-.2);
+    ctx.fillRect(6,6,4,4);ctx.fillRect(w-10,6,4,4);ctx.fillRect(6,h-10,4,4);ctx.fillRect(w-10,h-10,4,4);
+  } else if(id==='dining_chair'||id==='bar_stool'){
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(4,2,w-8,h*.22);
+    ctx.fillStyle=c;ctx.fillRect(6,h*.3,w-12,h*.5);
+    ctx.fillStyle=shadeColor(c,-.2);
+    ctx.fillRect(6,h*.75,3,h*.25);ctx.fillRect(w-9,h*.75,3,h*.25);
+  } else if(id==='bench'){
+    ctx.fillRect(2,h*.4,w-4,h*.3);
+    ctx.fillStyle=shadeColor(c,-.15);
+    ctx.fillRect(4,h*.65,4,h*.35);ctx.fillRect(w-8,h*.65,4,h*.35);
+  } else if(id==='china_cabinet'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1.5;ctx.strokeRect(2,2,w-4,h-4);
+    ctx.fillStyle='rgba(150,200,220,.3)';ctx.fillRect(4,4,w-8,h*.5);
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(w/2,4);ctx.lineTo(w/2,h-4);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(4,h*.5);ctx.lineTo(w-4,h*.5);ctx.stroke();
+  } else if(id==='wine_rack'){
+    ctx.fillRect(3,3,w-6,h-6);
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+    for(let r=0;r<3;r++)for(let cc=0;cc<2;cc++){
+      ctx.beginPath();ctx.arc(8+cc*(w-16)/1.3,8+r*(h-16)/2.3,4,0,Math.PI*2);ctx.stroke();
+    }
+  } else if(id==='dining_light'){
+    ctx.fillStyle='#888';ctx.fillRect(w/2-1,0,2,h*.3);
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(w*.2,h*.5);ctx.quadraticCurveTo(w/2,h*.25,w*.8,h*.5);ctx.lineTo(w*.7,h*.55);ctx.quadraticCurveTo(w/2,h*.35,w*.3,h*.55);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,255,200,.2)';ctx.beginPath();ctx.arc(w/2,h*.6,w*.35,0,Math.PI*2);ctx.fill();
+
+  // === Stairs ===
+  } else if(id==='stairs_wood'){
+    const steps=6;const sh=h/steps;
+    for(let i=0;i<steps;i++){ctx.fillStyle=shadeColor(c,i%2?0:.08);ctx.fillRect(3,i*sh,w-6,sh-1);}
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1;ctx.strokeRect(2,0,w-4,h);
+  } else if(id==='stairs_spiral'){
+    ctx.fillStyle='#606060';ctx.beginPath();ctx.arc(w/2,h/2,w*.4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#888';ctx.beginPath();ctx.arc(w/2,h/2,w*.1,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#A0A0A0';ctx.lineWidth=2;
+    for(let a=0;a<4;a++){ctx.beginPath();ctx.moveTo(w/2,h/2);const angle=a*Math.PI/2;ctx.lineTo(w/2+Math.cos(angle)*w*.38,h/2+Math.sin(angle)*h*.38);ctx.stroke();}
+  } else if(id==='ladder'){
+    ctx.fillStyle=c;ctx.fillRect(w*.2,0,4,h);ctx.fillRect(w*.7,0,4,h);
+    for(let i=0;i<5;i++)ctx.fillRect(w*.2,h*(.1+i*.2),w*.55,3);
+  } else if(id==='elevator'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle='#A0A0A0';ctx.fillRect(4,4,w/2-4,h-8);ctx.fillRect(w/2,4,w/2-4,h-8);
+    ctx.fillStyle='#888';ctx.beginPath();ctx.moveTo(w/2,h*.3);ctx.lineTo(w*.35,h*.5);ctx.lineTo(w*.65,h*.5);ctx.closePath();ctx.fill();
+  } else if(id==='railing'){
+    ctx.strokeStyle=c;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(2,h*.3);ctx.lineTo(w-2,h*.3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(2,h*.7);ctx.lineTo(w-2,h*.7);ctx.stroke();
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(w*(.15+i*.25),h*.3);ctx.lineTo(w*(.15+i*.25),h*.7);ctx.stroke();}
+
+  // === Bedroom ===
+  } else if(id==='bed_single'){
+    rrect(ctx,2,2,w-4,h-4,3);ctx.fill();
+    ctx.fillStyle='#E0E0E0';rrect(ctx,5,4,w-10,h*.18,2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(4,h*.3,w-8,h*.62);
+    ctx.fillStyle=shadeColor(c,-.15);ctx.fillRect(2,2,w-4,4);
+  } else if(id==='bed_double'){
+    rrect(ctx,2,2,w-4,h-4,3);ctx.fill();
+    ctx.fillStyle='#E0E0E0';rrect(ctx,5,4,w/2-6,h*.18,2);ctx.fill();rrect(ctx,w/2+1,4,w/2-6,h*.18,2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(4,h*.3,w-8,h*.62);
+    ctx.fillStyle=shadeColor(c,-.15);ctx.fillRect(2,2,w-4,4);
+  } else if(id==='bed_king'){
+    rrect(ctx,2,2,w-4,h-4,3);ctx.fill();
+    ctx.fillStyle='#E0E0E0';
+    for(let i=0;i<3;i++){rrect(ctx,5+i*(w/3),4,w/3-6,h*.16,2);ctx.fill();}
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(4,h*.28,w-8,h*.65);
+    ctx.fillStyle=shadeColor(c,-.15);ctx.fillRect(2,2,w-4,5);
+  } else if(id==='bed_bunk'){
+    ctx.fillStyle='#A08050';ctx.fillRect(4,0,4,h);ctx.fillRect(w-8,0,4,h);
+    ctx.fillStyle=c;ctx.fillRect(4,h*.05,w-8,h*.35);
+    ctx.fillRect(4,h*.55,w-8,h*.35);
+    ctx.fillStyle='#E0E0E0';ctx.fillRect(8,h*.07,w-16,h*.08);ctx.fillRect(8,h*.57,w-16,h*.08);
+  } else if(id==='crib'){
+    ctx.fillStyle='#D8C8B0';ctx.fillRect(4,4,w-8,h-8);
+    ctx.strokeStyle='#C0B098';ctx.lineWidth=1.5;
+    for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(6+i*(w-12)/4,4);ctx.lineTo(6+i*(w-12)/4,h-4);ctx.stroke();}
+    ctx.fillStyle='#A0D0E0';ctx.fillRect(8,h*.5,w-16,h*.35);
+  } else if(id==='nightstand'){
+    ctx.fillRect(4,4,w-8,h-8);
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;ctx.strokeRect(5,5,w-10,h/2-3);
+    ctx.fillStyle='#C0A060';ctx.fillRect(w/2-3,h*.25,6,2);
+  } else if(id==='dresser'){
+    ctx.fillRect(2,2,w-4,h-4);ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1;ctx.strokeRect(2,2,w-4,h-4);
+    for(let r=0;r<3;r++){const dy=4+r*(h-8)/3;ctx.strokeRect(4,dy,w-8,(h-8)/3);ctx.fillStyle='#C0A060';ctx.fillRect(w/2-3,dy+(h-8)/6-1,6,2);}
+  } else if(id==='wardrobe'){
+    ctx.fillRect(2,2,w-4,h-4);ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=2;ctx.strokeRect(2,2,w-4,h-4);
+    ctx.strokeRect(4,4,w/2-4,h-8);ctx.strokeRect(w/2,4,w/2-4,h-8);
+    ctx.fillStyle='#C0A060';
+    ctx.beginPath();ctx.arc(w/2-4,h/2,2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w/2+4,h/2,2,0,Math.PI*2);ctx.fill();
+  } else if(id==='closet'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle=shadeColor(c,.05);ctx.fillRect(4,4,w-8,h-8);
+    ctx.strokeStyle=shadeColor(c,-.1);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(w/2,4);ctx.lineTo(w/2,h-4);ctx.stroke();
+    // clothes rod
+    ctx.strokeStyle='#A0A0A0';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(6,h*.25);ctx.lineTo(w-6,h*.25);ctx.stroke();
+  } else if(id==='vanity'){
+    ctx.fillRect(4,h*.4,w-8,h*.55);
+    ctx.fillStyle='#A8C8D8';rrect(ctx,w*.15,4,w*.7,h*.4,3);ctx.fill();
+    ctx.strokeStyle='#888';ctx.lineWidth=1;rrect(ctx,w*.15,4,w*.7,h*.4,3);ctx.stroke();
+  } else if(id==='desk'){
+    ctx.fillRect(2,4,w-4,h*.28);
+    ctx.fillRect(4,4,4,h-6);ctx.fillRect(w-8,4,4,h-6);
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(w*.5,h*.35,w*.38,h*.3);
+    ctx.fillStyle='#C0A060';ctx.fillRect(w*.65,h*.45,6,2);
+  } else if(id==='office_chair'){
+    ctx.fillStyle='#555';ctx.beginPath();ctx.arc(w/2,h*.85,w*.25,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=c;rrect(ctx,w*.15,h*.25,w*.7,h*.45,3);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(w*.2,h*.1,w*.6,h*.2);
+  } else if(id==='computer'){
+    ctx.fillStyle='#222';ctx.fillRect(4,4,w-8,h*.6);
+    ctx.fillStyle='#111';ctx.fillRect(6,6,w-12,h*.5);
+    ctx.fillStyle='rgba(50,80,150,.15)';ctx.fillRect(6,6,w-12,h*.5);
+    ctx.fillStyle='#333';ctx.fillRect(w/2-6,h*.65,12,3);ctx.fillRect(w*.2,h*.7,w*.6,h*.15);
+  } else if(id==='bedside_lamp'){
+    ctx.fillStyle='#888';ctx.fillRect(w/2-1,h*.4,2,h*.35);
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(w*.25,h*.4);ctx.lineTo(w*.5,h*.15);ctx.lineTo(w*.75,h*.4);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#666';rrect(ctx,w*.3,h*.75,w*.4,h*.15,2);ctx.fill();
+  } else if(id==='alarm_clock'){
+    ctx.beginPath();ctx.arc(w/2,h/2,w*.35,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(w/2,h/2,w*.28,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#E04040';ctx.fillRect(w*.4,h*.35,w*.15,h*.2);
+    ctx.fillRect(w*.4,h*.35,w*.25,h*.06);
+  } else if(id==='mirror_full'){
+    rrect(ctx,4,2,w-8,h-4,3);ctx.fill();
+    ctx.strokeStyle='#888';ctx.lineWidth=2;rrect(ctx,4,2,w-8,h-4,3);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(7,4,5,h*.6);
+  } else if(id==='toy_box'){
+    rrect(ctx,3,h*.15,w-6,h*.8,3);ctx.fill();
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(3,h*.15,w-6,h*.12);
+    ctx.fillStyle='#4080D0';ctx.beginPath();ctx.arc(w*.3,h*.55,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#40C040';ctx.fillRect(w*.55,h*.5,7,7);
+
+  // === Bathroom ===
+  } else if(id==='toilet'){
+    ctx.fillRect(w*.2,2,w*.6,h*.3);
+    ctx.beginPath();ctx.ellipse(w/2,h*.6,w*.35,h*.32,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#DDD';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#CCC';ctx.fillRect(w*.7,h*.1,5,3);
+  } else if(id==='bathtub'){
+    rrect(ctx,2,2,w-4,h-4,6);ctx.fill();
+    ctx.fillStyle='#A8D0E0';rrect(ctx,5,5,w-10,h-10,4);ctx.fill();
+    ctx.fillStyle='#C0C0C0';ctx.fillRect(w/2-3,2,6,7);
+  } else if(id==='shower'){
+    ctx.fillRect(2,2,w-4,h-4);
+    ctx.fillStyle='#D8D8D8';ctx.fillRect(4,h-8,w-8,6);
+    ctx.fillStyle='#C0C0C0';ctx.fillRect(w/2-1,4,2,h*.45);ctx.fillRect(w/2-5,4,10,4);
+    ctx.strokeStyle='rgba(100,180,255,.35)';ctx.lineWidth=1;
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(w*.3+i*5,12);ctx.lineTo(w*.3+i*5,h-10);ctx.stroke();}
+  } else if(id==='shower_tub'){
+    rrect(ctx,2,2,w-4,h-4,6);ctx.fill();
+    ctx.fillStyle='#A8D0E0';rrect(ctx,5,5,w-10,h-10,4);ctx.fill();
+    ctx.fillStyle='#C0C0C0';ctx.fillRect(w/2-1,2,2,h*.3);ctx.fillRect(w/2-5,2,10,3);
+    ctx.strokeStyle='rgba(100,180,255,.3)';ctx.lineWidth=1;
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(w*.3+i*5,h*.15);ctx.lineTo(w*.3+i*5,h*.7);ctx.stroke();}
+  } else if(id==='bath_sink'||id==='double_sink'){
+    ctx.fillStyle='#D0C8B8';ctx.fillRect(2,h*.25,w-4,h*.7);
+    ctx.fillStyle=c;
+    if(id==='double_sink'){rrect(ctx,5,h*.35,w*.4,h*.4,3);ctx.fill();rrect(ctx,w*.55,h*.35,w*.4-4,h*.4,3);ctx.fill();}
+    else{rrect(ctx,6,h*.35,w-12,h*.4,3);ctx.fill();}
+    ctx.fillStyle='#C0C0C0';ctx.fillRect(w/2-2,h*.25,4,6);ctx.fillRect(w/2-5,h*.23,10,3);
+  } else if(id==='bath_mirror'){
+    rrect(ctx,4,4,w-8,h-8,3);ctx.fill();
+    ctx.strokeStyle='#888';ctx.lineWidth=2;rrect(ctx,4,4,w-8,h-8,3);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.3)';ctx.fillRect(7,6,4,h*.5);
+  } else if(id==='bath_cabinet'){
+    ctx.fillRect(3,3,w-6,h-6);ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+    ctx.strokeRect(3,3,w-6,h-6);ctx.strokeRect(5,5,w/2-5,h-10);ctx.strokeRect(w/2,5,w/2-5,h-10);
+  } else if(id==='towel_rack'){
+    ctx.strokeStyle=c;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(w*.15,h*.25);ctx.lineTo(w*.85,h*.25);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.15,h*.5);ctx.lineTo(w*.85,h*.5);ctx.stroke();
+    ctx.fillStyle='#E0E0E0';ctx.fillRect(w*.2,h*.5,w*.5,h*.4);
+  } else if(id==='toilet_paper'){
+    ctx.fillStyle='#D0D0D0';ctx.fillRect(w*.3,h*.2,w*.15,h*.2);
+    ctx.fillStyle=c;ctx.beginPath();ctx.arc(w/2,h*.55,w*.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#E8E0D8';ctx.beginPath();ctx.arc(w/2,h*.55,w*.15,0,Math.PI*2);ctx.fill();
+  } else if(id==='scale'){
+    rrect(ctx,4,h*.3,w-8,h*.6,4);ctx.fill();
+    ctx.fillStyle='#E8E8E8';ctx.beginPath();ctx.arc(w/2,h*.55,w*.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#333';ctx.fillRect(w/2-1,h*.45,2,h*.12);
+
+  // === Laundry ===
+  } else if(id==='washer'||id==='dryer'){
+    ctx.fillRect(3,2,w-6,h-4);
+    ctx.strokeStyle='#BBB';ctx.lineWidth=1;ctx.strokeRect(3,2,w-6,h-4);
+    ctx.fillStyle=shadeColor(c,.05);ctx.fillRect(3,2,w-6,h*.2);
+    if(id==='washer'){ctx.strokeStyle='#AAA';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(w/2,h*.58,w*.25,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(100,180,220,.2)';ctx.beginPath();ctx.arc(w/2,h*.58,w*.25,0,Math.PI*2);ctx.fill();}
+    else{ctx.strokeStyle='#AAA';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(w/2,h*.58,w*.25,0,Math.PI*2);ctx.stroke();}
+  } else if(id==='ironing_board'){
+    ctx.fillStyle='#A0A0A0';ctx.fillRect(w*.1,h*.45,w*.8,h*.12);
+    ctx.beginPath();ctx.moveTo(w*.8,h*.45);ctx.lineTo(w*.95,h*.5);ctx.lineTo(w*.8,h*.57);ctx.fill();
+    ctx.fillStyle='#888';ctx.fillRect(w*.25,h*.55,3,h*.4);ctx.fillRect(w*.65,h*.55,3,h*.4);
+  } else if(id==='laundry_basket'){
+    ctx.beginPath();ctx.moveTo(w*.15,h*.2);ctx.lineTo(w*.05,h*.95);ctx.lineTo(w*.95,h*.95);ctx.lineTo(w*.85,h*.2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(w*.13-i*.02,h*(.3+i*.15));ctx.lineTo(w*.87+i*.02,h*(.3+i*.15));ctx.stroke();}
+  } else if(id==='utility_sink'){
+    ctx.fillStyle='#C0C0C0';ctx.fillRect(4,h*.2,w-8,h*.75);
+    ctx.fillStyle=c;rrect(ctx,6,h*.3,w-12,h*.5,2);ctx.fill();
+    ctx.fillStyle='#999';ctx.fillRect(w/2-2,h*.2,4,6);
+  } else if(id==='drying_rack'){
+    ctx.strokeStyle=c;ctx.lineWidth=1.5;
+    ctx.fillRect(w*.1,h*.15,3,h*.8);ctx.fillRect(w*.85,h*.15,3,h*.8);
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(w*.1,h*(.2+i*.2));ctx.lineTo(w*.88,h*(.2+i*.2));ctx.stroke();}
+
+  // === Garage ===
+  } else if(id==='garage_door_item'){
+    ctx.fillStyle='#808080';ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='#666';ctx.lineWidth=1;
+    for(let i=0;i<h;i+=h/6){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(w,i);ctx.stroke();}
+    ctx.strokeStyle='#555';ctx.lineWidth=2;ctx.strokeRect(0,0,w,h);
+  } else if(id==='workbench'){
+    ctx.fillRect(2,h*.3,w-4,h*.2);
+    ctx.fillRect(4,h*.3,4,h*.65);ctx.fillRect(w-8,h*.3,4,h*.65);
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(2,h*.3,w-4,4);
+    ctx.fillStyle='#888';ctx.fillRect(w*.3,h*.15,8,h*.2);ctx.fillRect(w*.55,h*.2,6,h*.15);
+  } else if(id==='tool_wall'){
+    ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='#888';ctx.lineWidth=1;
+    // tools
+    ctx.strokeRect(w*.1,h*.15,3,h*.3);ctx.strokeRect(w*.25,h*.1,6,h*.4);
+    ctx.beginPath();ctx.arc(w*.5,h*.3,5,0,Math.PI*2);ctx.stroke();
+    ctx.strokeRect(w*.7,h*.15,3,h*.35);
+    ctx.strokeRect(w*.15,h*.6,w*.3,3);ctx.strokeRect(w*.55,h*.65,w*.25,3);
+  } else if(id==='car'){
+    rrect(ctx,2,h*.35,w-4,h*.45,4);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.15);rrect(ctx,w*.15,h*.12,w*.65,h*.33,3);ctx.fill();
+    ctx.fillStyle='#80C0E0';ctx.fillRect(w*.2,h*.15,w*.25,h*.22);ctx.fillRect(w*.5,h*.15,w*.25,h*.22);
+    ctx.fillStyle='#282828';
+    ctx.beginPath();ctx.arc(w*.25,h*.8,w*.1,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.75,h*.8,w*.1,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#E0D040';ctx.fillRect(w-4,h*.45,3,5);ctx.fillRect(1,h*.45,3,5);
+  } else if(id==='bicycle'){
+    ctx.strokeStyle=c;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(w*.25,h*.6,w*.2,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(w*.75,h*.6,w*.2,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.25,h*.6);ctx.lineTo(w*.5,h*.3);ctx.lineTo(w*.75,h*.6);ctx.lineTo(w*.5,h*.6);ctx.lineTo(w*.25,h*.6);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.5,h*.3);ctx.lineTo(w*.45,h*.15);ctx.stroke();
+    ctx.fillRect(w*.35,h*.15,w*.15,2);
+  } else if(id==='storage_shelf'){
+    ctx.strokeStyle=c;ctx.lineWidth=2;ctx.strokeRect(2,2,w-4,h-4);
+    ctx.fillStyle=c;
+    for(let i=0;i<3;i++){ctx.fillRect(2,4+i*(h-8)/3,w-4,2);}
+    ctx.fillStyle='#A08060';ctx.fillRect(6,h*.05,w*.25,h*.28);
+    ctx.fillStyle='#6080A0';ctx.fillRect(w*.4,h*.05,w*.3,h*.28);
+    ctx.fillStyle='#906050';ctx.fillRect(6,h*.38,w*.2,h*.25);
+  } else if(id==='water_heater'){
+    ctx.beginPath();ctx.arc(w/2,h*.2,w*.3,Math.PI,0);ctx.lineTo(w*.8,h*.85);ctx.arc(w/2,h*.85,w*.3,0,Math.PI);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#D03030';ctx.fillRect(w*.35,h*.5,w*.3,h*.08);
+  } else if(id==='furnace'){
+    ctx.fillRect(4,4,w-8,h-8);
+    ctx.strokeStyle='#505050';ctx.lineWidth=1.5;ctx.strokeRect(4,4,w-8,h-8);
+    ctx.fillStyle='#484848';ctx.fillRect(6,6,w-12,h*.3);
+    ctx.fillStyle='#E05020';ctx.fillRect(w*.25,h*.6,w*.5,h*.15);
+
+  // === Garden & Outdoor ===
+  } else if(id==='tree_oak'){
+    ctx.fillStyle='#6B4226';ctx.fillRect(w*.4,h*.45,w*.2,h*.55);
+    ctx.fillStyle=c;ctx.beginPath();ctx.arc(w/2,h*.35,w*.4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.1);ctx.beginPath();ctx.arc(w*.35,h*.28,w*.22,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.65,h*.3,w*.2,0,Math.PI*2);ctx.fill();
+  } else if(id==='tree_pine'){
+    ctx.fillStyle='#5C3A18';ctx.fillRect(w*.4,h*.6,w*.2,h*.4);
+    ctx.fillStyle=c;
+    ctx.beginPath();ctx.moveTo(w/2,0);ctx.lineTo(w*.1,h*.45);ctx.lineTo(w*.9,h*.45);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(w/2,h*.15);ctx.lineTo(w*.15,h*.65);ctx.lineTo(w*.85,h*.65);ctx.closePath();ctx.fill();
+  } else if(id==='palm_tree'){
+    ctx.fillStyle='#8B6914';ctx.fillRect(w*.4,h*.3,w*.2,h*.7);
+    ctx.fillStyle=c;
+    for(let a=-2;a<=2;a++){ctx.save();ctx.translate(w/2,h*.3);ctx.rotate(a*.5);ctx.fillRect(-2,0,4,-h*.3);ctx.beginPath();ctx.ellipse(0,-h*.25,12,4,0,0,Math.PI*2);ctx.fill();ctx.restore();}
+  } else if(id==='bush_sm'){
+    ctx.beginPath();ctx.arc(w/2,h/2,w*.38,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.1);ctx.beginPath();ctx.arc(w*.35,h*.4,w*.2,0,Math.PI*2);ctx.fill();
+  } else if(id==='bush_lg'){
+    ctx.beginPath();ctx.arc(w*.3,h/2,w*.18,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w/2,h*.4,w*.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.7,h/2,w*.18,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,.1);ctx.beginPath();ctx.arc(w*.5,h*.55,w*.15,0,Math.PI*2);ctx.fill();
+  } else if(id==='hedge'){
+    rrect(ctx,2,h*.2,w-4,h*.6,4);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.1);
+    ctx.beginPath();ctx.arc(w*.25,h*.25,4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.75,h*.3,3,0,Math.PI*2);ctx.fill();
+  } else if(id.startsWith('flower_')&&id!=='flower_pot'){
+    ctx.fillStyle='#228B22';ctx.fillRect(w/2-1,h*.4,2,h*.55);
+    const cx=w/2,cy=h*.3;
+    for(let a=0;a<5;a++){const ang=a*Math.PI*2/5;ctx.fillStyle=c;ctx.beginPath();ctx.arc(cx+Math.cos(ang)*5,cy+Math.sin(ang)*5,4,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(cx,cy,3,0,Math.PI*2);ctx.fill();
+  } else if(id==='flower_pot'){
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(w*.2,h*.35);ctx.lineTo(w*.15,h*.95);ctx.lineTo(w*.85,h*.95);ctx.lineTo(w*.8,h*.35);ctx.closePath();ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(w*.18,h*.3,w*.64,h*.08);
+    ctx.fillStyle='#2E8B57';ctx.beginPath();ctx.arc(w/2,h*.2,6,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.35,h*.15,4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.65,h*.15,4,0,Math.PI*2);ctx.fill();
+  } else if(id==='fountain'){
+    ctx.fillStyle='#8A9EAE';ctx.beginPath();ctx.arc(w/2,h/2,Math.min(w,h)*.42,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#60A0C8';ctx.beginPath();ctx.arc(w/2,h/2,Math.min(w,h)*.35,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#8A9EAE';ctx.fillRect(w/2-3,h*.2,6,h*.3);
+    ctx.fillStyle='rgba(255,255,255,.3)';
+    ctx.beginPath();ctx.arc(w/2,h*.2,8,0,Math.PI*2);ctx.fill();
+  } else if(id==='bird_bath'){
+    ctx.fillStyle='#888';ctx.fillRect(w*.4,h*.5,w*.2,h*.45);
+    ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(w/2,h*.45,w*.38,h*.12,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#80B8D0';ctx.beginPath();ctx.ellipse(w/2,h*.44,w*.28,h*.07,0,0,Math.PI*2);ctx.fill();
+  } else if(id==='gnome'){
+    ctx.fillStyle='#E08070';ctx.beginPath();ctx.arc(w/2,h*.55,w*.25,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(w*.3,h*.45);ctx.lineTo(w/2,h*.05);ctx.lineTo(w*.7,h*.45);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#F0D0C0';ctx.beginPath();ctx.arc(w/2,h*.5,w*.12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#E0E0E0';ctx.beginPath();ctx.ellipse(w/2,h*.65,w*.2,h*.1,0,0,Math.PI*2);ctx.fill();
+  } else if(id==='lawn_chair'){
+    ctx.fillRect(4,h*.25,w-8,h*.15);
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(4,h*.05,w-8,h*.22);
+    ctx.fillRect(6,h*.4,3,h*.55);ctx.fillRect(w-9,h*.4,3,h*.55);
+  } else if(id==='picnic_table'){
+    ctx.fillRect(2,h*.35,w-4,h*.15);
+    ctx.fillStyle=shadeColor(c,.08);ctx.fillRect(2,h*.35,w-4,4);
+    ctx.fillStyle=shadeColor(c,-.1);
+    ctx.fillRect(w*.15,h*.5,w*.2,h*.1);ctx.fillRect(w*.65,h*.5,w*.2,h*.1);
+    ctx.fillRect(w*.3,h*.5,4,h*.45);ctx.fillRect(w*.65,h*.5,4,h*.45);
+  } else if(id==='bbq_grill'){
+    ctx.fillRect(w*.15,h*.35,w*.7,h*.35);
+    ctx.fillStyle='#222';ctx.fillRect(w*.18,h*.35,w*.64,4);
+    ctx.fillStyle='#444';ctx.fillRect(w*.3,h*.7,4,h*.25);ctx.fillRect(w*.65,h*.7,4,h*.25);
+    ctx.fillStyle='#E04020';
+    ctx.beginPath();ctx.arc(w*.35,h*.5,3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.55,h*.48,2,0,Math.PI*2);ctx.fill();
+  } else if(id==='trampoline'){
+    ctx.strokeStyle='#606060';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(w/2,h/2,w*.45,h*.45,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='rgba(60,100,180,.3)';ctx.beginPath();ctx.ellipse(w/2,h/2,w*.4,h*.4,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#4060A0';ctx.lineWidth=1;
+    for(let a=0;a<8;a++){const ang=a*Math.PI/4;ctx.beginPath();ctx.moveTo(w/2,h/2);ctx.lineTo(w/2+Math.cos(ang)*w*.4,h/2+Math.sin(ang)*h*.4);ctx.stroke();}
+  } else if(id==='swing_set'){
+    ctx.strokeStyle=c;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(w*.1,h*.95);ctx.lineTo(w*.3,h*.05);ctx.lineTo(w*.7,h*.05);ctx.lineTo(w*.9,h*.95);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.3,h*.05);ctx.lineTo(w*.7,h*.05);ctx.stroke();
+    ctx.strokeStyle='#888';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(w*.4,h*.05);ctx.lineTo(w*.4,h*.6);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*.6,h*.05);ctx.lineTo(w*.6,h*.6);ctx.stroke();
+    ctx.fillStyle='#804020';ctx.fillRect(w*.35,h*.6,w*.12,3);ctx.fillRect(w*.55,h*.6,w*.12,3);
+
+  // === Pool ===
+  } else if(id==='diving_board'){
+    ctx.fillStyle='#C0C0C0';ctx.fillRect(w*.3,h*.8,w*.4,h*.15);
+    ctx.fillStyle=c;ctx.fillRect(w*.2,h*.05,w*.6,h*.08);
+    ctx.fillRect(w*.35,h*.12,w*.1,h*.7);
+  } else if(id==='pool_ladder'){
+    ctx.strokeStyle=c;ctx.lineWidth=2;
+    ctx.fillRect(w*.2,h*.1,3,h*.8);ctx.fillRect(w*.7,h*.1,3,h*.8);
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(w*.2,h*(.2+i*.2));ctx.lineTo(w*.73,h*(.2+i*.2));ctx.stroke();}
+  } else if(id==='hot_tub'){
+    rrect(ctx,2,2,w-4,h-4,8);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.15)';
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(w*(.3+i*.2),h*.5,3,0,Math.PI*2);ctx.fill();}
+    ctx.strokeStyle='#888';ctx.lineWidth=3;rrect(ctx,2,2,w-4,h-4,8);ctx.stroke();
+  } else if(id==='lounge_chair'){
+    ctx.fillRect(3,h*.15,w-6,h*.75);
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(3,h*.15,w-6,h*.25);
+    ctx.fillStyle=shadeColor(c,.05);ctx.fillRect(5,h*.45,w-10,h*.4);
+  } else if(id==='umbrella'){
+    ctx.fillStyle='#888';ctx.fillRect(w/2-1,h*.3,2,h*.7);
+    ctx.fillStyle=c;ctx.beginPath();ctx.arc(w/2,h*.3,w*.42,Math.PI,0);ctx.closePath();ctx.fill();
+    ctx.fillStyle=shadeColor(c,.15);ctx.beginPath();ctx.moveTo(w*.15,h*.3);ctx.arc(w*.3,h*.3,w*.15,Math.PI,0);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(w*.55,h*.3);ctx.arc(w*.7,h*.3,w*.15,Math.PI,0);ctx.closePath();ctx.fill();
+
+  // === Fence & Outdoor ===
+  } else if(id==='fence_wood'){
+    ctx.fillRect(2,h*.3,w-4,4);ctx.fillRect(2,h*.6,w-4,4);
+    for(let i=0;i<3;i++){const px=5+i*(w-12)/2;ctx.fillRect(px,h*.1,4,h*.8);ctx.beginPath();ctx.moveTo(px,h*.1);ctx.lineTo(px+2,0);ctx.lineTo(px+4,h*.1);ctx.fill();}
+  } else if(id==='fence_iron'){
+    ctx.strokeStyle=c;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(2,h*.35);ctx.lineTo(w-2,h*.35);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(2,h*.7);ctx.lineTo(w-2,h*.7);ctx.stroke();
+    for(let i=0;i<4;i++){const px=w*(.12+i*.25);ctx.beginPath();ctx.moveTo(px,h*.1);ctx.lineTo(px,h*.85);ctx.stroke();
+    ctx.beginPath();ctx.arc(px,h*.1,2,0,Math.PI*2);ctx.fill();}
+  } else if(id==='gate'){
+    ctx.fillRect(2,h*.25,w-4,4);ctx.fillRect(2,h*.65,w-4,4);
+    ctx.fillRect(3,h*.05,4,h*.9);ctx.fillRect(w-7,h*.05,4,h*.9);
+    ctx.fillRect(w*.35,h*.25,3,h*.4);ctx.fillRect(w*.55,h*.25,3,h*.4);
+    ctx.fillStyle='#D0A840';ctx.beginPath();ctx.arc(w*.58,h*.48,2,0,Math.PI*2);ctx.fill();
+  } else if(id==='mailbox'){
+    ctx.fillStyle='#6B4226';ctx.fillRect(w/2-2,h*.4,4,h*.6);
+    ctx.fillStyle=c;rrect(ctx,w*.15,h*.15,w*.7,h*.3,3);ctx.fill();
+    ctx.fillStyle='#E03030';ctx.fillRect(w*.1,h*.22,4,10);
+  } else if(id==='porch_light'){
+    ctx.fillStyle='#888';ctx.fillRect(w/2-2,h*.1,4,h*.2);
+    ctx.fillStyle=c;
+    ctx.beginPath();ctx.moveTo(w*.25,h*.3);ctx.lineTo(w*.5,h*.15);ctx.lineTo(w*.75,h*.3);ctx.lineTo(w*.7,h*.65);ctx.lineTo(w*.3,h*.65);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,255,200,.3)';ctx.beginPath();ctx.arc(w/2,h*.55,w*.4,0,Math.PI*2);ctx.fill();
+  } else if(id==='dog_house'){
+    ctx.fillStyle='#8B5E3C';ctx.fillRect(w*.1,h*.4,w*.8,h*.55);
+    ctx.fillStyle='#A07040';ctx.beginPath();ctx.moveTo(w*.05,h*.4);ctx.lineTo(w/2,h*.1);ctx.lineTo(w*.95,h*.4);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#4A3020';ctx.beginPath();ctx.arc(w/2,h*.7,w*.15,0,Math.PI*2);ctx.fill();
+
+  // === Electrical ===
+  } else if(id==='outlet'){
+    rrect(ctx,w*.2,h*.2,w*.6,h*.6,3);ctx.fill();
+    ctx.fillStyle='#888';ctx.fillRect(w*.35,h*.35,3,6);ctx.fillRect(w*.58,h*.35,3,6);
+    ctx.fillRect(w*.42,h*.55,w*.15,3);
+  } else if(id==='light_switch'){
+    rrect(ctx,w*.2,h*.15,w*.6,h*.7,3);ctx.fill();
+    ctx.fillStyle='#CCC';rrect(ctx,w*.3,h*.3,w*.4,h*.35,2);ctx.fill();
+  } else if(id==='ceiling_light'||id==='recessed_light'){
+    ctx.beginPath();ctx.arc(w/2,h/2,w*.35,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,230,.3)';ctx.beginPath();ctx.arc(w/2,h/2,w*.45,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,.1);ctx.beginPath();ctx.arc(w/2,h/2,w*.2,0,Math.PI*2);ctx.fill();
+  } else if(id==='wall_sconce'){
+    ctx.fillStyle='#888';ctx.fillRect(w*.4,h*.5,w*.2,h*.15);
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(w*.2,h*.5);ctx.lineTo(w*.5,h*.15);ctx.lineTo(w*.8,h*.5);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,255,200,.2)';ctx.beginPath();ctx.arc(w/2,h*.4,w*.3,0,Math.PI*2);ctx.fill();
+  } else if(id==='thermostat'){
+    rrect(ctx,w*.2,h*.15,w*.6,h*.7,4);ctx.fill();
+    ctx.fillStyle='#333';ctx.beginPath();ctx.arc(w/2,h/2,w*.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4CAF50';ctx.beginPath();ctx.arc(w/2,h/2,w*.08,0,Math.PI*2);ctx.fill();
+  } else if(id==='smoke_detector'){
+    ctx.beginPath();ctx.arc(w/2,h/2,w*.38,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,-.05);ctx.beginPath();ctx.arc(w/2,h/2,w*.25,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#E03030';ctx.beginPath();ctx.arc(w/2,h*.35,2,0,Math.PI*2);ctx.fill();
+  } else if(id==='doorbell'){
+    rrect(ctx,w*.25,h*.15,w*.5,h*.7,4);ctx.fill();
+    ctx.fillStyle='#888';ctx.beginPath();ctx.arc(w/2,h*.5,w*.15,0,Math.PI*2);ctx.fill();
+  } else if(id==='security_cam'){
+    ctx.fillRect(w*.1,h*.3,w*.4,h*.25);
+    ctx.beginPath();ctx.moveTo(w*.5,h*.3);ctx.lineTo(w*.85,h*.2);ctx.lineTo(w*.85,h*.55);ctx.lineTo(w*.5,h*.55);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#333';ctx.beginPath();ctx.arc(w*.85,h*.38,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#888';ctx.fillRect(w*.15,h*.15,4,h*.2);
+  } else if(id==='router'){
+    rrect(ctx,w*.1,h*.4,w*.8,h*.35,3);ctx.fill();
+    ctx.fillStyle='#4CAF50';ctx.beginPath();ctx.arc(w*.35,h*.5,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#2196F3';ctx.beginPath();ctx.arc(w*.55,h*.5,2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=c;ctx.fillRect(w*.3,h*.2,2,h*.2);ctx.fillRect(w*.55,h*.15,2,h*.25);
+
+  // === Plumbing ===
+  } else if(id==='pipe_h'){
+    ctx.fillRect(0,h*.35,w,h*.3);ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(0,h*.35,w,h*.08);
+  } else if(id==='pipe_v'){
+    ctx.fillRect(w*.35,0,w*.3,h);ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(w*.35,0,w*.08,h);
+  } else if(id==='pipe_corner'){
+    ctx.fillRect(w*.35,0,w*.3,h*.65);ctx.fillRect(w*.35,h*.35,w*.65,h*.3);
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(w*.35,0,w*.08,h*.65);ctx.fillRect(w*.35,h*.35,w*.65,h*.08);
+  } else if(id==='drain'){
+    ctx.beginPath();ctx.arc(w/2,h/2,w*.35,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#444';ctx.beginPath();ctx.arc(w/2,h/2,w*.2,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#555';ctx.lineWidth=1;
+    for(let a=0;a<4;a++){ctx.beginPath();ctx.moveTo(w/2,h/2);const ang=a*Math.PI/2;ctx.lineTo(w/2+Math.cos(ang)*w*.2,h/2+Math.sin(ang)*h*.2);ctx.stroke();}
+  } else if(id==='vent'){
+    rrect(ctx,4,4,w-8,h-8,2);ctx.fill();
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(6,8+i*(h-16)/3);ctx.lineTo(w-6,8+i*(h-16)/3);ctx.stroke();}
+  } else if(id==='ac_unit'){
+    rrect(ctx,2,2,w-4,h-4,3);ctx.fill();
+    ctx.strokeStyle='#BBB';ctx.lineWidth=1;ctx.strokeRect(2,2,w-4,h-4);
+    ctx.strokeStyle='#CCC';for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(5,6+i*(h-12)/4);ctx.lineTo(w-5,6+i*(h-12)/4);ctx.stroke();}
+  } else if(id==='radiator'){
+    ctx.fillRect(3,h*.15,w-6,h*.7);
+    ctx.strokeStyle=shadeColor(c,-.15);ctx.lineWidth=1;
+    for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(5+i*(w-10)/4,h*.15);ctx.lineTo(5+i*(w-10)/4,h*.85);ctx.stroke();}
+
+  // === Decoration ===
+  } else if(id==='indoor_plant'||id==='tall_plant'){
+    ctx.fillStyle='#A05030';
+    const ph=id==='tall_plant'?h*.45:h*.55;
+    ctx.fillRect(w*.25,ph,w*.5,h-ph-2);ctx.fillRect(w*.2,ph,w*.6,4);
+    ctx.fillStyle=c;
+    if(id==='tall_plant'){ctx.beginPath();ctx.arc(w/2,h*.25,w*.35,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(w*.35,h*.15,w*.2,0,Math.PI*2);ctx.fill();}
+    else{ctx.beginPath();ctx.arc(w/2,h*.38,w*.28,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(w*.4,h*.3,w*.15,0,Math.PI*2);ctx.fill();}
+  } else if(id==='candles'){
+    ctx.fillStyle='#F0E8D0';ctx.fillRect(w*.2,h*.35,w*.15,h*.55);ctx.fillRect(w*.45,h*.25,w*.12,h*.65);ctx.fillRect(w*.65,h*.4,w*.15,h*.5);
+    ctx.fillStyle='#F0A020';
+    ctx.beginPath();ctx.arc(w*.275,h*.3,3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.51,h*.2,3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*.725,h*.35,3,0,Math.PI*2);ctx.fill();
+  } else if(id==='photo_frame'){
+    ctx.fillRect(3,3,w-6,h-6);
+    ctx.fillStyle='#E8D8C0';ctx.fillRect(6,6,w-12,h-12);
+    ctx.fillStyle='#A8C8A0';ctx.fillRect(8,8,w-16,h-16);
+  } else if(id==='trophy'){
+    ctx.fillStyle='#B08C28';ctx.fillRect(w*.35,h*.65,w*.3,h*.15);ctx.fillRect(w*.3,h*.8,w*.4,h*.1);
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(w*.2,h*.1);ctx.lineTo(w*.2,h*.45);ctx.quadraticCurveTo(w/2,h*.7,w*.8,h*.45);ctx.lineTo(w*.8,h*.1);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#C0A030';ctx.fillRect(w*.35,h*.15,w*.3,h*.08);
+  } else if(id==='globe'){
+    ctx.beginPath();ctx.arc(w/2,h*.4,w*.35,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=shadeColor(c,.15);ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(w/2,h*.4,w*.35,w*.15,0,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(w/2,h*.4,w*.15,w*.35,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#888';ctx.fillRect(w*.35,h*.75,w*.3,h*.05);ctx.fillRect(w*.3,h*.8,w*.4,h*.1);
+  } else if(id==='statue'){
+    ctx.fillRect(w*.3,h*.8,w*.4,h*.15);
+    ctx.fillRect(w*.38,h*.3,w*.24,h*.5);
+    ctx.beginPath();ctx.arc(w/2,h*.25,w*.18,0,Math.PI*2);ctx.fill();
+  } else if(id==='wall_shelf'){
+    ctx.fillRect(2,h*.4,w-4,h*.15);
+    ctx.fillStyle=shadeColor(c,.1);ctx.fillRect(2,h*.4,w-4,3);
+    ctx.fillStyle='#C0392B';ctx.fillRect(w*.1,h*.15,6,h*.25);
+    ctx.fillStyle='#2980B9';ctx.fillRect(w*.25,h*.2,5,h*.2);
+    ctx.fillStyle='#27AE60';ctx.beginPath();ctx.arc(w*.6,h*.3,4,0,Math.PI*2);ctx.fill();
+
+  // === Pets ===
+  } else if(id==='dog_bed'){
+    ctx.beginPath();ctx.ellipse(w/2,h/2,w*.42,h*.35,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,.1);ctx.beginPath();ctx.ellipse(w/2,h*.55,w*.3,h*.2,0,0,Math.PI*2);ctx.fill();
+  } else if(id==='cat_tree'){
+    ctx.fillStyle=shadeColor(c,-.1);ctx.fillRect(w*.4,h*.2,w*.2,h*.75);
+    ctx.fillStyle=c;ctx.fillRect(w*.15,h*.05,w*.7,h*.18);ctx.fillRect(w*.2,h*.5,w*.6,h*.12);
+    ctx.fillRect(w*.25,h*.9,w*.5,h*.08);
+  } else if(id==='fish_tank'){
+    rrect(ctx,2,2,w-4,h-4,3);ctx.fill();
+    ctx.fillStyle='#E8D060';ctx.fillRect(4,h-8,w-8,4);
+    ctx.fillStyle='#F08030';ctx.beginPath();ctx.arc(w*.35,h*.4,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3080F0';ctx.beginPath();ctx.arc(w*.65,h*.55,2.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#228B22';ctx.fillRect(w*.7,h*.3,3,h*.35);
+  } else if(id==='pet_bowl'){
+    ctx.beginPath();ctx.ellipse(w/2,h*.55,w*.4,h*.25,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=shadeColor(c,.2);ctx.beginPath();ctx.ellipse(w/2,h*.5,w*.3,h*.15,0,0,Math.PI*2);ctx.fill();
+
+  // Fallback
+  } else {
+    rrect(ctx,2,2,w-4,h-4,4);ctx.fill();
+    ctx.strokeStyle=shadeColor(c,-.2);ctx.lineWidth=1;rrect(ctx,2,2,w-4,h-4,4);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font=`${Math.min(w,h)*.3}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(item.name.charAt(0),w/2,h/2);
+  }
+}
+
+function rrect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+function shadeColor(col,pct){
+  let r=parseInt(col.substring(1,3),16),g=parseInt(col.substring(3,5),16),b=parseInt(col.substring(5,7),16);
+  r=Math.min(255,Math.max(0,Math.round(r*(1+pct))));g=Math.min(255,Math.max(0,Math.round(g*(1+pct))));b=Math.min(255,Math.max(0,Math.round(b*(1+pct))));
+  return '#'+(r<<16|g<<8|b).toString(16).padStart(6,'0');
+}
+
+// ===================== RENDER =====================
+function resize(){C.width=C.parentElement.clientWidth;C.height=C.parentElement.clientHeight;}
+window.addEventListener('resize',resize);resize();
+
+function render(){
+  X.clearRect(0,0,C.width,C.height);
+  X.save();
+  X.translate(C.width/2,C.height/2);
+  X.scale(zoom,zoom);
+  X.translate(-camX,-camY);
+
+  const sx=Math.floor((camX-C.width/2/zoom)/CELL)-1;
+  const sy=Math.floor((camY-C.height/2/zoom)/CELL)-1;
+  const ex=Math.ceil((camX+C.width/2/zoom)/CELL)+1;
+  const ey=Math.ceil((camY+C.height/2/zoom)/CELL)+1;
+
+  // Background
+  X.fillStyle='#2a4a20';
+  X.fillRect(sx*CELL,sy*CELL,(ex-sx)*CELL,(ey-sy)*CELL);
+
+  // Grid
+  X.strokeStyle='rgba(255,255,255,.05)';X.lineWidth=1;
+  for(let gx=sx;gx<=ex;gx++){X.beginPath();X.moveTo(gx*CELL,sy*CELL);X.lineTo(gx*CELL,ey*CELL);X.stroke();}
+  for(let gy=sy;gy<=ey;gy++){X.beginPath();X.moveTo(sx*CELL,gy*CELL);X.lineTo(ex*CELL,gy*CELL);X.stroke();}
+
+  // Below floor ghost
+  if(floor>0){X.globalAlpha=.18;drawFloor(floor-1,sx,sy,ex,ey);X.globalAlpha=1;}
+
+  // Current floor by layer
+  for(let layer=0;layer<=2;layer++)drawFloor(floor,sx,sy,ex,ey,layer);
+
+  // Ghost preview
+  if(tool==='place'){
+    const d=dims(sel,rot);
+    const px=mgx*CELL,py=mgy*CELL,pw=d.w*CELL,ph=d.h*CELL;
+    let can=true;
+    for(let dx=0;dx<d.w;dx++)for(let dy=0;dy<d.h;dy++)if(world[`${floor}:${mgx+dx}:${mgy+dy}`])can=false;
+    X.globalAlpha=.55;
+    drawItem(X,sel,px,py,pw,ph,rot);
+    X.globalAlpha=1;
+    X.strokeStyle=can?'#4f4':'#f44';X.lineWidth=2;X.strokeRect(px,py,pw,ph);
+  } else if(tool==='erase'){
+    X.strokeStyle='#f44';X.lineWidth=2;X.setLineDash([4,4]);X.strokeRect(mgx*CELL,mgy*CELL,CELL,CELL);X.setLineDash([]);
+  } else if(tool==='pick'){
+    X.strokeStyle='#ff0';X.lineWidth=2;X.setLineDash([4,4]);X.strokeRect(mgx*CELL,mgy*CELL,CELL,CELL);X.setLineDash([]);
+  }
+
+  X.restore();
+  requestAnimationFrame(render);
+}
+
+function drawFloor(f,sx,sy,ex,ey,targetLayer){
+  const drawn=new Set();
+  for(let gx=sx;gx<=ex;gx++)for(let gy=sy;gy<=ey;gy++){
+    const k=`${f}:${gx}:${gy}`;
+    const c=world[k];if(!c||!c.isO)continue;
+    const ok=`${c.ox}:${c.oy}`;if(drawn.has(ok))continue;
+    const item=ITEMS.find(i=>i.id===c.id);if(!item)continue;
+    if(targetLayer!==undefined&&item.layer!==targetLayer)continue;
+    drawn.add(ok);
+    const d=dims(item,c.rot);
+    drawItem(X,item,c.ox*CELL,c.oy*CELL,d.w*CELL,d.h*CELL,c.rot);
+  }
+}
+
+// ===================== INIT =====================
+buildSidebar();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>War Disco — Dance Floor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #111; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; }
+  body { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  h1 { font-size: 28px; letter-spacing: 4px; margin-bottom: 4px;
+    background: linear-gradient(90deg, #ff4500, #ffd24d, #4caf50, #2196f3, #9c27b0);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: rainbow 3s linear infinite; background-size: 200% 100%; }
+  @keyframes rainbow { from {background-position: 0%} to {background-position: 200%} }
+  .sub { color: #888; font-size: 11px; letter-spacing: 3px; margin-bottom: 14px; }
+
+  #floor { position: relative; width: 720px; max-width: 95vw; height: 460px;
+    border: 4px solid #222; border-radius: 14px; overflow: hidden;
+    background: #0a0a14;
+  }
+  /* Disco lights — radial flashes */
+  #floor::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,69,0,.5), transparent 35%),
+      radial-gradient(circle at 80% 20%, rgba(255,215,0,.5), transparent 35%),
+      radial-gradient(circle at 50% 80%, rgba(0,200,255,.5), transparent 35%),
+      radial-gradient(circle at 20% 80%, rgba(156,39,176,.5), transparent 35%),
+      radial-gradient(circle at 80% 80%, rgba(76,175,80,.5), transparent 35%);
+    animation: lights .35s steps(1) infinite;
+    mix-blend-mode: screen;
+  }
+  @keyframes lights {
+    0%   { filter: hue-rotate(0deg) }
+    25%  { filter: hue-rotate(90deg) }
+    50%  { filter: hue-rotate(180deg) }
+    75%  { filter: hue-rotate(270deg) }
+    100% { filter: hue-rotate(360deg) }
+  }
+  /* Checker dance floor */
+  #tiles {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 55%;
+    background:
+      repeating-conic-gradient(#f0f0f0 0% 25%, #222 0% 50%);
+    background-size: 60px 60px;
+    transform: perspective(400px) rotateX(55deg);
+    transform-origin: bottom;
+    animation: tilePulse 1.6s ease-in-out infinite;
+    mix-blend-mode: lighten;
+  }
+  @keyframes tilePulse {
+    0%, 100% { filter: brightness(1) }
+    50%      { filter: brightness(1.6) hue-rotate(45deg) }
+  }
+  /* Disco ball */
+  #ball {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 60px; height: 60px; border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 30%, #fff, #aaa 40%, #444 80%),
+      conic-gradient(#bbb, #777, #bbb, #777);
+    box-shadow: 0 0 40px rgba(255,255,255,.5), 0 0 80px rgba(255,200,255,.4);
+    animation: spin 4s linear infinite;
+  }
+  @keyframes spin { from {transform: translateX(-50%) rotate(0)} to {transform: translateX(-50%) rotate(360deg)} }
+
+  /* Dancers */
+  .dancer {
+    position: absolute; bottom: 60px; width: 60px; height: 110px;
+    display: flex; flex-direction: column; align-items: center;
+    animation: dance var(--ad) ease-in-out infinite;
+    transform-origin: bottom;
+  }
+  @keyframes dance {
+    0%   { transform: translateY(0)    rotate(-4deg) scaleX(1)  }
+    25%  { transform: translateY(-18px) rotate(0deg)  scaleX(-1) }
+    50%  { transform: translateY(0)    rotate(4deg)  scaleX(1)  }
+    75%  { transform: translateY(-12px) rotate(0deg)  scaleX(-1) }
+    100% { transform: translateY(0)    rotate(-4deg) scaleX(1)  }
+  }
+  .helmet { width: 30px; height: 16px; background: #4a5d23;
+    border: 2px solid #000; border-radius: 16px 16px 4px 4px; position: relative; }
+  .helmet::after { content: ''; position: absolute; left: 8px; right: 8px; top: 14px;
+    height: 4px; background: #2d3a14; border: 2px solid #000; border-top: 0; }
+  .face { width: 22px; height: 16px; background: #f1c27d;
+    border: 2px solid #000; margin-top: -3px; border-radius: 0 0 6px 6px;
+    position: relative; }
+  .face::before, .face::after { content: ''; position: absolute; top: 4px;
+    width: 3px; height: 3px; background: #000; }
+  .face::before { left: 4px } .face::after { right: 4px }
+  .body { width: 34px; height: 40px; background: #4a5d23;
+    border: 2px solid #000; margin-top: -2px; position: relative; }
+  .body::before { content: ''; position: absolute; left: 6px; right: 6px; top: 6px;
+    height: 4px; background: #2d3a14; }
+  .arms { position: absolute; top: 24px; left: -8px; right: -8px; height: 14px;
+    display: flex; justify-content: space-between; pointer-events: none; }
+  .arm { width: 10px; height: 14px; background: #f1c27d; border: 2px solid #000;
+    animation: wave var(--ad) ease-in-out infinite; }
+  .arm.r { animation-delay: calc(var(--ad) * -.5) }
+  @keyframes wave {
+    0%,100% { transform: rotate(20deg) }
+    50%     { transform: rotate(-30deg) }
+  }
+  .legs { display: flex; gap: 4px; margin-top: -2px; }
+  .leg { width: 12px; height: 22px; background: #2d3a14;
+    border: 2px solid #000; animation: kick var(--ad) ease-in-out infinite; }
+  .leg.r { animation-delay: calc(var(--ad) * -.5) }
+  @keyframes kick {
+    0%,100% { transform: translateY(0) }
+    50%     { transform: translateY(-4px) rotate(10deg) }
+  }
+
+  /* Different uniforms / variations */
+  .dancer.navy  .helmet, .dancer.navy  .body { background: #1a3a5c; }
+  .dancer.navy  .body::before, .dancer.navy .helmet::after { background: #0d1f33; }
+  .dancer.navy  .leg { background: #0d1f33; }
+  .dancer.air   .helmet, .dancer.air   .body { background: #5c5c1a; }
+  .dancer.air   .body::before, .dancer.air .helmet::after { background: #3a3a0d; }
+  .dancer.air   .leg { background: #3a3a0d; }
+  .dancer.medic .helmet { background: #fff; }
+  .dancer.medic .helmet::after { background: #ff0000; height: 4px;
+    left: 12px; right: 12px; top: 4px; border-radius: 2px; }
+  .dancer.medic .body { background: #fff; }
+  .dancer.medic .body::before { background: #ff0000; }
+
+  /* Controls */
+  .controls { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  button { font-family: inherit; font-size: 14px; padding: 10px 16px;
+    background: #ffd24d; color: #000; border: 2px solid #000; cursor: pointer; border-radius: 6px;
+    box-shadow: 3px 3px 0 #000; }
+  button:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #000; }
+  .bpm { color: #888; font-size: 12px; margin-top: 8px; letter-spacing: 2px; }
+
+  /* Floor confetti */
+  .confetti {
+    position: absolute; width: 6px; height: 10px;
+    animation: fall 3s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes fall {
+    from { transform: translateY(-30px) rotate(0); opacity: 1 }
+    to   { transform: translateY(500px) rotate(720deg); opacity: 0 }
+  }
+</style>
+</head>
+<body>
+  <h1>⭐ WAR DISCO ⭐</h1>
+  <div class="sub">THE SOLDIERS ARE OFF-DUTY · 1944</div>
+
+  <div id="floor">
+    <div id="tiles"></div>
+    <div id="ball"></div>
+    <div id="dancers"></div>
+  </div>
+
+  <div class="controls">
+    <button onclick="addDancer()">+ ADD DANCER</button>
+    <button onclick="removeDancer()">− REMOVE</button>
+    <button onclick="changeSpeed(0.8)">SLOWER</button>
+    <button onclick="changeSpeed(1/0.8)">FASTER</button>
+    <button onclick="toggleMusic()">♫ MUSIC</button>
+  </div>
+  <div class="bpm" id="bpm">DANCERS: 0  ·  BPM: 120  ·  MUSIC: OFF</div>
+
+<script>
+  const dancersEl = document.getElementById('dancers');
+  const floor = document.getElementById('floor');
+  const variants = ['army','navy','air','medic'];
+  let dancers = [];
+  let bpm = 120;
+  let musicOn = false;
+
+  function addDancer() {
+    const v = variants[dancers.length % variants.length];
+    const d = document.createElement('div');
+    d.className = 'dancer ' + v;
+    const rate = 60 / bpm; // seconds per beat
+    d.style.setProperty('--ad', rate + 's');
+    d.style.left = (10 + Math.random() * 85) + '%';
+    d.style.bottom = (40 + Math.random() * 40) + 'px';
+    d.style.animationDelay = (-Math.random() * rate) + 's';
+    d.style.zIndex = Math.floor(parseFloat(d.style.bottom));
+    d.innerHTML = `
+      <div class="helmet"></div>
+      <div class="face"></div>
+      <div class="body">
+        <div class="arms"><div class="arm"></div><div class="arm r"></div></div>
+      </div>
+      <div class="legs"><div class="leg"></div><div class="leg r"></div></div>
+    `;
+    dancersEl.appendChild(d);
+    dancers.push(d);
+    updateHud();
+  }
+
+  function removeDancer() {
+    const d = dancers.pop();
+    if (d) d.remove();
+    updateHud();
+  }
+
+  function changeSpeed(factor) {
+    bpm = Math.max(60, Math.min(220, Math.round(bpm * factor)));
+    const rate = 60 / bpm;
+    dancers.forEach(d => d.style.setProperty('--ad', rate + 's'));
+    document.documentElement.style.setProperty('--tile-rate', rate + 's');
+    updateHud();
+  }
+
+  function updateHud() {
+    document.getElementById('bpm').textContent =
+      `DANCERS: ${dancers.length}  ·  BPM: ${bpm}  ·  MUSIC: ${musicOn ? 'ON' : 'OFF'}`;
+  }
+
+  // --- Music: a simple chip-tune disco loop ---
+  let ac, musicTimer, beat = 0;
+  function toggleMusic() {
+    if (!musicOn) {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      startMusic();
+    } else {
+      clearInterval(musicTimer);
+    }
+    musicOn = !musicOn;
+    updateHud();
+  }
+
+  function note(freq, dur, vol=0.15, type='square', delay=0) {
+    const t = ac.currentTime + delay;
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(ac.destination);
+    o.start(t); o.stop(t + dur);
+  }
+  function kick() {
+    const t = ac.currentTime;
+    const o = ac.createOscillator(); const g = ac.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+    g.gain.setValueAtTime(0.4, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    o.connect(g).connect(ac.destination);
+    o.start(t); o.stop(t + 0.2);
+  }
+
+  // Simple Glenn Miller style "In The Mood"-ish riff
+  const riff = [220, 277, 330, 277, 220, 277, 330, 392, 330, 277, 220, 277, 330, 277, 220, 196];
+  function startMusic() {
+    beat = 0;
+    const stepMs = () => (60000 / bpm) / 2; // 8th notes
+    const tick = () => {
+      kick();
+      if (beat % 2 === 0) note(riff[beat % riff.length], 0.18, 0.12, 'square');
+      if (beat % 4 === 2) note(riff[(beat/2) % riff.length] * 2, 0.12, 0.08, 'triangle');
+      // Spawn confetti every few beats
+      if (beat % 4 === 0) sprinkleConfetti();
+      beat++;
+    };
+    clearInterval(musicTimer);
+    musicTimer = setInterval(tick, stepMs());
+  }
+
+  function sprinkleConfetti() {
+    const colors = ['#ff4500','#ffd24d','#4caf50','#2196f3','#9c27b0','#ffffff'];
+    for (let i = 0; i < 8; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + '%';
+      c.style.background = colors[Math.floor(Math.random()*colors.length)];
+      c.style.animationDelay = (Math.random() * 0.5) + 's';
+      floor.appendChild(c);
+      setTimeout(() => c.remove(), 3500);
+    }
+  }
+
+  // Start with 4 dancers
+  for (let i = 0; i < 4; i++) addDancer();
+</script>
+</body>
+</html>

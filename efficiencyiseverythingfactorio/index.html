@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Factori-E — Efficiency Is Everything</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #0f1115; color: #e8e8e8;
+        font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; height: 100%; }
+      #game { width: 100vw; height: 100vh; display: block; }
+      #loading { position: absolute; inset: 0; display: flex; align-items: center;
+        justify-content: center; color: #8a8a8a; font-size: 14px; letter-spacing: 0.2em; }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="loading">LOADING FACTORY…</div>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="./src/game.js"></script>
+  </body>
+</html>

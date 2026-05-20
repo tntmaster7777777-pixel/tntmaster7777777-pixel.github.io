@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DROMALIS 1 — FINDING RICH</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#0a0502;color:#fff;font-family:'Courier New',monospace;
+  min-height:100vh;overflow-x:hidden;
+}
+.back{position:fixed;top:14px;left:14px;z-index:50;color:#ffd700;text-decoration:none;
+  background:rgba(0,0,0,.8);padding:6px 14px;border:1px solid #ffd700;border-radius:6px;
+  font-size:11px;letter-spacing:2px;font-weight:700}
+.back:hover{background:#ffd700;color:#000}
+
+header{text-align:center;padding:30px 20px 12px;background:linear-gradient(180deg,#3a2a08,transparent)}
+header h1{font-size:44px;font-weight:900;letter-spacing:8px;
+  background:linear-gradient(135deg,#ffd700,#ff8c00,#b8860b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px rgba(255,180,0,.6))}
+header p{font-size:12px;letter-spacing:5px;color:#c4923f;margin-top:4px}
+
+/* Tutorial banner */
+.howto{max-width:1100px;margin:0 auto 14px;padding:12px 18px;
+  background:linear-gradient(135deg,rgba(255,180,0,.15),rgba(127,255,127,.1));
+  border:2px solid #ffd700;border-radius:10px;display:flex;align-items:center;
+  gap:10px;flex-wrap:wrap;justify-content:center;font-size:12px;
+  box-shadow:0 0 20px rgba(255,180,0,.2)}
+.howto b{color:#ffd700;letter-spacing:1px}
+.howto .step{background:rgba(0,0,0,.4);padding:6px 12px;border-radius:6px;
+  border:1px solid #4a3a18;color:#fff}
+.howto .arrow{color:#ffd700;font-size:20px;font-weight:900}
+.howto button{margin-left:auto;background:#ffd700;color:#000;border:none;
+  width:24px;height:24px;border-radius:50%;cursor:pointer;font-weight:900;
+  font-family:inherit}
+
+/* Auto-sell toggle button */
+.autosell{background:linear-gradient(135deg,#1a5a1a,#2a8a2a)!important;
+  color:#7fff7f!important;border:1px solid #44ff44!important;
+  width:100%;padding:8px;margin-bottom:8px;border-radius:6px;cursor:pointer;
+  font-family:'Courier New',monospace;font-weight:900;font-size:11px;letter-spacing:2px}
+.autosell.on{background:linear-gradient(135deg,#2a8a2a,#44ff44)!important;color:#000!important;
+  box-shadow:0 0 15px rgba(68,255,68,.5)}
+
+.layout{display:grid;grid-template-columns:1fr 320px;gap:14px;max-width:1300px;margin:0 auto;
+  padding:0 14px 30px}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}}
+
+/* HUD bar */
+.hud{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:10px 0 14px}
+.stat{background:rgba(40,30,10,.9);border:2px solid #8b6914;border-radius:10px;
+  padding:8px 16px;text-align:center;min-width:110px}
+.stat .l{font-size:9px;letter-spacing:2px;color:#c4923f}
+.stat .v{font-size:18px;font-weight:900;color:#ffd700;margin-top:2px;
+  text-shadow:0 0 8px rgba(255,180,0,.5)}
+.stat.coal .v{color:#888}
+.stat.iron .v{color:#c0c0c0}
+.stat.gold-ore .v{color:#ffd700}
+.stat.diamond .v{color:#88ddff}
+
+/* Mine view */
+.mine{background:linear-gradient(180deg,#2a1a08 0%,#1a0f04 30%,#0a0502 100%);
+  border:3px solid #8b6914;border-radius:14px;height:520px;position:relative;
+  overflow:hidden;box-shadow:inset 0 0 60px rgba(0,0,0,.7)}
+.mine::before{content:'';position:absolute;inset:0;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 30px,rgba(0,0,0,.2) 30px 32px),
+    repeating-linear-gradient(90deg,transparent 0 40px,rgba(0,0,0,.15) 40px 42px);
+  pointer-events:none}
+.mine::after{content:'';position:absolute;top:0;left:0;right:0;height:30px;
+  background:linear-gradient(180deg,#5a3a18,#3a2a10);
+  border-bottom:3px solid #2a1a08;z-index:1;
+  box-shadow:inset 0 -8px 10px rgba(0,0,0,.4)}
+.mine-label{position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:5;
+  font-size:11px;letter-spacing:3px;color:#ffd700;font-weight:900}
+
+/* ===== 3D WORKER ===== */
+.worker{position:absolute;width:60px;height:92px;z-index:3;
+  perspective:280px;perspective-origin:50% 50%;
+  transition:left .3s linear,bottom .3s linear}
+.worker::after{content:'';position:absolute;bottom:-2px;left:50%;
+  transform:translateX(-50%);width:46px;height:9px;
+  background:radial-gradient(ellipse,rgba(0,0,0,.75),transparent 70%);
+  pointer-events:none;z-index:0;filter:blur(1px)}
+.worker-3d{position:absolute;inset:0;transform-style:preserve-3d;
+  transform-origin:50% 100%;
+  animation:spin3d 4s ease-in-out infinite alternate}
+@keyframes spin3d{
+  0%   {transform:scale(1.4) rotateX(-15deg) rotateY(10deg)}
+  100% {transform:scale(1.4) rotateX(-15deg) rotateY(55deg)}
+}
+.worker.flip .worker-3d{
+  animation:spin3dFlip 4s ease-in-out infinite alternate}
+@keyframes spin3dFlip{
+  0%   {transform:scale(1.4) rotateX(-15deg) rotateY(-10deg)}
+  100% {transform:scale(1.4) rotateX(-15deg) rotateY(-55deg)}
+}
+.worker.walking{animation:bob3d .35s ease-in-out alternate infinite}
+@keyframes bob3d{from{transform:translateY(0)}to{transform:translateY(-2px)}}
+
+/* Cuboid base (each body part is a 6-face cube) */
+.cu{position:absolute;left:50%;bottom:0;width:0;height:0;
+  transform-style:preserve-3d}
+.cu .f{position:absolute;box-sizing:border-box;
+  border:1px solid rgba(0,0,0,.4)}
+.cu .ft,.cu .bk{
+  width:calc(var(--w)*1px);height:calc(var(--h)*1px);
+  left:calc(var(--w)*-.5px);top:calc(var(--h)*-.5px)}
+.cu .ft{background:var(--col,#888);transform:translateZ(calc(var(--d)*.5px))}
+.cu .bk{background:var(--cdk,#444);transform:rotateY(180deg) translateZ(calc(var(--d)*.5px))}
+.cu .rt,.cu .lf{
+  width:calc(var(--d)*1px);height:calc(var(--h)*1px);
+  left:calc(var(--d)*-.5px);top:calc(var(--h)*-.5px)}
+.cu .rt{background:var(--csi,#666);transform:rotateY(90deg) translateZ(calc(var(--w)*.5px))}
+.cu .lf{background:var(--csi,#666);transform:rotateY(-90deg) translateZ(calc(var(--w)*.5px))}
+.cu .tp,.cu .bt{
+  width:calc(var(--w)*1px);height:calc(var(--d)*1px);
+  left:calc(var(--w)*-.5px);top:calc(var(--d)*-.5px)}
+.cu .tp{background:var(--ctp,#aaa);transform:rotateX(90deg) translateZ(calc(var(--h)*.5px))}
+.cu .bt{background:var(--cbt,#333);transform:rotateX(-90deg) translateZ(calc(var(--h)*.5px))}
+
+/* Hard hat */
+.cu.helmet{--w:18;--h:7;--d:18;
+  --col:#ffd700;--cdk:#8b6914;--csi:#c4a300;--ctp:#fff599;--cbt:#5a4408;
+  transform:translate3d(0,-47px,0)}
+.cu.helmet .ft{background:linear-gradient(180deg,#ffd700 0 55%,#fff 55% 72%,#ffd700 72%)}
+.cu.helmet .tp{background:radial-gradient(ellipse at center,#fff599 0%,#ffd700 60%,#c4a300 100%)}
+
+/* Head */
+.cu.head{--w:11;--h:11;--d:11;
+  --col:#f4c79b;--cdk:#9a6438;--csi:#c4925a;--ctp:#ffd9b0;--cbt:#6a3818;
+  transform:translate3d(0,-37px,0)}
+.cu.head .ft{
+  background:
+    radial-gradient(circle at 30% 38%,#1a0a05 0 1.4px,transparent 1.6px),
+    radial-gradient(circle at 70% 38%,#1a0a05 0 1.4px,transparent 1.6px),
+    radial-gradient(ellipse at 50% 70%,#8b3818 0 1.2px,transparent 1.4px),
+    #f4c79b}
+
+/* Torso (orange safety vest with reflective stripe) */
+.cu.torso{--w:16;--h:18;--d:9;
+  --col:#ff4500;--cdk:#5a1500;--csi:#aa2800;--ctp:#ff7733;--cbt:#3a0d00;
+  transform:translate3d(0,-23px,0)}
+.cu.torso .ft{
+  background:linear-gradient(180deg,#ff4500 0 55%,#ffe680 55% 70%,#ff4500 70%)}
+.cu.torso .bk{
+  background:linear-gradient(180deg,#5a1500 0 55%,#aa9533 55% 70%,#5a1500 70%)}
+
+/* Left arm */
+.cu.arm-l{--w:4;--h:16;--d:4;
+  --col:#ff4500;--cdk:#5a1500;--csi:#aa2800;--ctp:#ff7733;--cbt:#3a0d00;
+  transform:translate3d(-10px,-24px,0)}
+
+/* Legs */
+.cu.leg-l{--w:5;--h:14;--d:5;
+  --col:#2a1808;--cdk:#0a0500;--csi:#1a0e00;--ctp:#4a2a18;--cbt:#000;
+  transform:translate3d(-3px,-7px,0)}
+.cu.leg-r{--w:5;--h:14;--d:5;
+  --col:#2a1808;--cdk:#0a0500;--csi:#1a0e00;--ctp:#4a2a18;--cbt:#000;
+  transform:translate3d(3px,-7px,0)}
+
+/* Right arm + pickaxe (rotates around shoulder) */
+.shoulder-pos{position:absolute;left:50%;bottom:0;width:0;height:0;
+  transform-style:preserve-3d;transform:translate3d(10px,-32px,0)}
+.shoulder-rot{position:absolute;width:0;height:0;
+  transform-style:preserve-3d}
+.cu.arm-r{--w:4;--h:16;--d:4;
+  --col:#ff4500;--cdk:#5a1500;--csi:#aa2800;--ctp:#ff7733;--cbt:#3a0d00}
+.shoulder-rot .cu.arm-r{transform:translate3d(0,8px,0)}
+.cu.pick-h{--w:2;--h:22;--d:2;
+  --col:#8b4513;--cdk:#3a2010;--csi:#5a2d0a;--ctp:#aa5c1a;--cbt:#1a0a00}
+.shoulder-rot .cu.pick-h{transform:translate3d(2px,12px,4px)}
+.cu.pick-t{--w:11;--h:4;--d:4;
+  --col:#aaa;--cdk:#444;--csi:#777;--ctp:#ccc;--cbt:#222}
+.cu.pick-t .ft{background:linear-gradient(135deg,#e0e0e0,#888 60%,#444)}
+.cu.pick-t .tp{background:linear-gradient(90deg,#ddd,#aaa)}
+.shoulder-rot .cu.pick-t{transform:translate3d(2px,-1px,4px)}
+
+.worker.swinging .shoulder-rot{
+  animation:swing3d .5s ease-in-out alternate infinite}
+@keyframes swing3d{
+  from{transform:rotateX(-25deg)}
+  to{transform:rotateX(75deg)}
+}
+
+/* Rocks */
+.rock{position:absolute;width:34px;height:34px;z-index:2;cursor:pointer;
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;border:2px solid;transition:transform .15s}
+.rock.coal{background:radial-gradient(circle,#444,#1a1a1a);border-color:#000;color:#fff}
+.rock.iron{background:radial-gradient(circle,#a8a8b0,#5a5a60);border-color:#3a3a40;color:#fff}
+.rock.gold{background:radial-gradient(circle,#ffd700,#8b6914);border-color:#5a4408;color:#fff;
+  box-shadow:0 0 12px rgba(255,180,0,.5)}
+.rock.diamond{background:radial-gradient(circle,#a0e8ff,#1a7a99);border-color:#0a4a5a;color:#fff;
+  box-shadow:0 0 15px rgba(100,200,255,.6)}
+.rock:hover{transform:scale(1.1)}
+.rock.cracking{animation:crack .3s}
+@keyframes crack{0%,100%{transform:scale(1)}50%{transform:scale(.85) rotate(8deg)}}
+
+/* Hp bar over rock */
+.rock .hp{position:absolute;top:-6px;left:0;right:0;height:3px;
+  background:rgba(0,0,0,.6);border-radius:2px;overflow:hidden}
+.rock .hp .f{height:100%;background:#ff4500;transition:width .2s}
+
+/* Ground level marker */
+.ground{position:absolute;left:0;right:0;height:2px;background:#5a3a18;z-index:1}
+.ground.l1{bottom:130px}
+.ground.l2{bottom:260px}
+.ground.l3{bottom:390px}
+
+/* Particles when mining */
+.spark{position:absolute;width:4px;height:4px;background:#ffd700;border-radius:50%;
+  pointer-events:none;z-index:5;animation:spark .8s ease-out forwards}
+@keyframes spark{
+  0%{transform:translate(0,0) scale(1);opacity:1}
+  100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}
+}
+
+/* Floating money text */
+.float{position:absolute;color:#7fff7f;font-weight:900;font-size:14px;
+  pointer-events:none;z-index:10;animation:floatup 1.2s ease-out forwards;
+  text-shadow:0 0 6px #000,0 0 12px #000}
+@keyframes floatup{
+  from{transform:translateY(0);opacity:1}
+  to{transform:translateY(-50px);opacity:0}
+}
+
+/* Sidebar */
+.sidebar{display:flex;flex-direction:column;gap:12px}
+.panel{background:rgba(20,15,5,.9);border:2px solid #8b6914;border-radius:10px;padding:12px}
+.panel h3{font-size:12px;letter-spacing:3px;color:#ffd700;margin-bottom:10px;
+  border-bottom:1px solid #8b6914;padding-bottom:5px}
+
+/* Market */
+.market-item{display:flex;justify-content:space-between;align-items:center;
+  padding:6px 8px;margin-bottom:5px;background:rgba(0,0,0,.4);border-radius:6px;
+  border:1px solid #4a3a18;font-size:12px}
+.market-item .info{display:flex;align-items:center;gap:8px}
+.market-item .ore{font-size:18px}
+.market-item .amt{color:#ffd700;font-weight:900;min-width:30px;text-align:center}
+.market-item .price{color:#7fff7f;font-size:10px}
+.market-item button{background:linear-gradient(135deg,#1a5a1a,#2a8a2a);color:#7fff7f;
+  border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-family:inherit;
+  font-weight:900;font-size:10px;letter-spacing:1px}
+.market-item button:hover{background:linear-gradient(135deg,#2a8a2a,#44ff44);color:#fff}
+.market-item button:disabled{background:#2a2a2a;color:#666;cursor:not-allowed}
+
+/* Shop */
+.shop-item{display:flex;justify-content:space-between;align-items:center;
+  padding:8px;margin-bottom:5px;background:rgba(0,0,0,.4);border-radius:6px;
+  border:1px solid #4a3a18}
+.shop-item .name{flex:1;font-size:11px}
+.shop-item .name b{color:#ffd700;display:block;font-size:12px;letter-spacing:1px}
+.shop-item .name span{color:#888;font-size:9px}
+.shop-item button{background:linear-gradient(135deg,#8b6914,#c4923f);color:#000;
+  border:none;padding:6px 10px;border-radius:5px;cursor:pointer;font-family:inherit;
+  font-weight:900;font-size:10px;letter-spacing:1px}
+.shop-item button:hover:not(:disabled){background:linear-gradient(135deg,#c4923f,#ffd700)}
+.shop-item button:disabled{background:#3a2a10;color:#666;cursor:not-allowed}
+
+/* Depth zones */
+.zone-btn{width:100%;background:rgba(0,0,0,.4);border:1px solid #4a3a18;color:#fff;
+  padding:8px;margin-bottom:4px;border-radius:5px;cursor:pointer;font-family:inherit;
+  font-size:11px;letter-spacing:1px;text-align:left;transition:all .2s}
+.zone-btn:hover:not(:disabled){background:rgba(255,180,0,.15);border-color:#ffd700}
+.zone-btn.active{background:linear-gradient(135deg,#8b6914,#c4923f);color:#000;
+  font-weight:900;border-color:#ffd700}
+.zone-btn:disabled{opacity:.4;cursor:not-allowed}
+.zone-btn small{display:block;font-size:9px;color:#aaa;margin-top:2px}
+.zone-btn.active small{color:#3a2a10}
+
+/* Log */
+.log{max-height:140px;overflow-y:auto;font-size:10px;line-height:1.7;
+  background:rgba(0,0,0,.5);padding:8px;border-radius:6px;border:1px solid #4a3a18}
+.log .l{padding:2px 0;border-bottom:1px dashed rgba(255,180,0,.1)}
+.log .gold{color:#ffd700}.log .info{color:#c4923f}.log .ok{color:#7fff7f}.log .bad{color:#ff6666}
+
+/* Win overlay */
+#winOverlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:20px}
+#winOverlay.show{display:flex}
+#winBox{background:linear-gradient(135deg,#3a2a08,#1a1004);
+  border:4px solid #ffd700;padding:40px;border-radius:20px;max-width:500px;text-align:center;
+  box-shadow:0 0 80px rgba(255,215,0,.6)}
+#winBox h2{font-size:32px;color:#ffd700;letter-spacing:6px;margin-bottom:14px}
+#winBox p{color:#fff;margin-bottom:20px;line-height:1.6}
+#winBox button{background:#ffd700;color:#000;border:none;padding:14px 30px;
+  font-family:inherit;font-weight:900;letter-spacing:3px;cursor:pointer;border-radius:8px}
+</style>
+</head>
+<body>
+
+<a class="back" href="../index.html">← VAULT</a>
+
+<header>
+  <h1>⛏ DROMALIS 1</h1>
+  <p>FINDING RICH — MINING OPERATION</p>
+</header>
+
+<div class="howto" id="howto">
+  <b>📖 HOW TO PLAY:</b>
+  <span class="step"><b>1.</b> Workers mine rocks → you get ore</span>
+  <span class="arrow">→</span>
+  <span class="step"><b>2.</b> Sell ore in <b style="color:#7fff7f">MARKET</b> → get money 💰</span>
+  <span class="arrow">→</span>
+  <span class="step"><b>3.</b> Buy pickaxes/workers/luck in <b style="color:#ffd700">SHOP</b></span>
+  <button onclick="document.getElementById('howto').style.display='none'">✕</button>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="hud">
+      <div class="stat"><div class="l">💰 MONEY</div><div class="v" id="money">50</div></div>
+      <div class="stat"><div class="l">👷 WORKERS</div><div class="v" id="workerCount">1</div></div>
+      <div class="stat"><div class="l">🍀 LUCK</div><div class="v" id="luck">1.0x</div></div>
+      <div class="stat coal"><div class="l">⚫ COAL</div><div class="v" id="oreCoal">0</div></div>
+      <div class="stat iron"><div class="l">⬜ IRON</div><div class="v" id="oreIron">0</div></div>
+      <div class="stat gold-ore"><div class="l">🟡 GOLD</div><div class="v" id="oreGold">0</div></div>
+      <div class="stat diamond"><div class="l">💎 DIAMOND</div><div class="v" id="oreDiamond">0</div></div>
+    </div>
+
+    <div class="mine" id="mine">
+      <div class="mine-label" id="mineLabel">⛰ SURFACE PIT</div>
+      <div class="ground l1"></div>
+      <div class="ground l2"></div>
+      <div class="ground l3"></div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="panel">
+      <h3>🗺 MINE DEPTH</h3>
+      <div id="zones"></div>
+    </div>
+    <div class="panel">
+      <h3>💱 MARKET — SELL ORE</h3>
+      <button class="autosell" id="autoSellBtn">💸 AUTO-SELL: OFF</button>
+      <div id="market"></div>
+    </div>
+    <div class="panel">
+      <h3>🛒 SHOP</h3>
+      <div id="shop"></div>
+    </div>
+    <div class="panel">
+      <h3>📜 LOG</h3>
+      <div class="log" id="log"><div class="l info">⛏ Your one miner starts working...</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="winOverlay">
+  <div id="winBox">
+    <h2>👑 LEGEND OF DROMALIS</h2>
+    <p>You earned <span id="finalMoney">0</span> gold! Your mining empire is the talk of every kingdom.</p>
+    <button onclick="resetGame()">DIG AGAIN</button>
+  </div>
+</div>
+
+<script>
+const state = {
+  money: 50,
+  luck: 1.0,
+  ores: {coal:0, iron:0, gold:0, diamond:0},
+  workers: [],
+  rocks: [],
+  zoneIdx: 0,
+  pickaxeLevel: 1, // worker speed/power
+  workerCost: 100,
+  pickaxeCost: 150,
+  luckCost: 80,
+  autoSell: false,
+};
+
+const ZONES = [
+  {name:'⛰ SURFACE PIT', costToUnlock:0, rocks:['coal','coal','coal','iron']},
+  {name:'🏔 ROCKY DEPTHS', costToUnlock:500, rocks:['coal','iron','iron','gold']},
+  {name:'💎 CRYSTAL CAVERN', costToUnlock:3000, rocks:['iron','gold','gold','diamond']},
+  {name:'🔥 LAVA FORGE', costToUnlock:15000, rocks:['gold','gold','diamond','diamond']},
+  {name:'☠ DRAGON\'S VAULT', costToUnlock:75000, rocks:['gold','diamond','diamond','diamond']},
+];
+const unlockedZones = new Set([0]);
+
+const ORE_DATA = {
+  coal:    {emoji:'⚫', label:'Coal',    price:2,    hp:3, color:'#444'},
+  iron:    {emoji:'⬜', label:'Iron',    price:10,   hp:6, color:'#a8a8b0'},
+  gold:    {emoji:'🟡', label:'Gold',    price:50,   hp:12,color:'#ffd700'},
+  diamond: {emoji:'💎', label:'Diamond', price:300,  hp:25,color:'#88ddff'},
+};
+
+const mineEl = document.getElementById('mine');
+
+// ===== Workers =====
+function spawnWorker(){
+  const w = {
+    id: Math.random().toString(36).slice(2),
+    x: 50 + Math.random()*100,
+    y: pickGroundY(),
+    targetRock: null,
+    state: 'wander', // wander, walking, mining
+    facing: 1,
+    speed: 0.7 + state.pickaxeLevel*0.2,
+    power: state.pickaxeLevel,
+  };
+  state.workers.push(w);
+  const el = document.createElement('div');
+  el.className = 'worker';
+  el.id = 'w'+w.id;
+  const cube = (cls) => `<div class="cu ${cls}"><div class="f ft"></div><div class="f bk"></div><div class="f rt"></div><div class="f lf"></div><div class="f tp"></div><div class="f bt"></div></div>`;
+  el.innerHTML = `<div class="worker-3d">
+    ${cube('helmet')}
+    ${cube('head')}
+    ${cube('torso')}
+    ${cube('arm-l')}
+    ${cube('leg-l')}
+    ${cube('leg-r')}
+    <div class="shoulder-pos"><div class="shoulder-rot">
+      ${cube('arm-r')}
+      ${cube('pick-h')}
+      ${cube('pick-t')}
+    </div></div>
+  </div>`;
+  el.style.left = w.x+'px';
+  el.style.bottom = w.y+'px';
+  mineEl.appendChild(el);
+  return w;
+}
+
+function pickGroundY(){
+  const grounds = [0, 130, 260, 390];
+  return grounds[Math.floor(Math.random()*Math.min(3, state.zoneIdx+2))] + 4;
+}
+
+// ===== Rocks =====
+function spawnRock(){
+  if(state.rocks.length >= 8) return;
+  const zone = ZONES[state.zoneIdx];
+  const type = zone.rocks[Math.floor(Math.random()*zone.rocks.length)];
+  const data = ORE_DATA[type];
+  const rock = {
+    id: Math.random().toString(36).slice(2),
+    type, data,
+    x: 20 + Math.random()*(mineEl.clientWidth - 70),
+    y: pickGroundY(),
+    hp: data.hp,
+    maxHp: data.hp,
+  };
+  state.rocks.push(rock);
+  const el = document.createElement('div');
+  el.className = 'rock '+type;
+  el.id = 'r'+rock.id;
+  el.innerHTML = `${data.emoji}<div class="hp"><div class="f" style="width:100%"></div></div>`;
+  el.style.left = rock.x+'px';
+  el.style.bottom = rock.y+'px';
+  el.addEventListener('click', ()=>{
+    // Player can also click to mine
+    damageRock(rock, 1);
+  });
+  mineEl.appendChild(el);
+}
+
+function damageRock(rock, dmg){
+  if(!rock || rock.dead) return;
+  rock.hp -= dmg;
+  const el = document.getElementById('r'+rock.id);
+  if(!el) return;
+  el.classList.remove('cracking'); void el.offsetWidth; el.classList.add('cracking');
+  el.querySelector('.f').style.width = Math.max(0,(rock.hp/rock.maxHp)*100)+'%';
+  // Sparks
+  for(let i=0;i<3;i++){
+    const s = document.createElement('div');
+    s.className = 'spark';
+    s.style.left = (rock.x+17)+'px';
+    s.style.bottom = (rock.y+17)+'px';
+    s.style.setProperty('--dx', ((Math.random()-0.5)*40)+'px');
+    s.style.setProperty('--dy', (-Math.random()*30-10)+'px');
+    s.style.background = rock.data.color;
+    mineEl.appendChild(s);
+    setTimeout(()=>s.remove(), 800);
+  }
+  if(rock.hp <= 0){
+    breakRock(rock);
+  }
+}
+
+function breakRock(rock){
+  rock.dead = true;
+  // Apply luck
+  let amount = 1;
+  if(Math.random() < (state.luck-1)*0.3){
+    amount = 2;
+  }
+  state.ores[rock.type] += amount;
+  const el = document.getElementById('r'+rock.id);
+  if(el){
+    // Floating text
+    const f = document.createElement('div');
+    f.className='float';
+    f.style.left = rock.x+'px';
+    f.style.bottom = (rock.y+30)+'px';
+    f.style.color = rock.data.color;
+    const auto = state.autoSell;
+    f.textContent = auto ? `+$${amount * rock.data.price}` : `+${amount} ${rock.data.emoji}`;
+    mineEl.appendChild(f);
+    setTimeout(()=>f.remove(), 1200);
+    el.remove();
+  }
+  state.rocks = state.rocks.filter(r=>r!==rock);
+  // Free workers targeting this rock
+  state.workers.forEach(w=>{ if(w.targetRock===rock){ w.targetRock=null; w.state='wander'; }});
+  // Auto-sell instantly
+  if(state.autoSell){
+    state.money += amount * rock.data.price;
+    state.ores[rock.type] -= amount;
+  }
+  updateHud();
+  checkWin();
+}
+
+// ===== Worker AI loop =====
+function tickWorkers(){
+  state.workers.forEach(w => {
+    const el = document.getElementById('w'+w.id);
+    if(!el) return;
+    // Find nearest rock if no target
+    if(!w.targetRock || w.targetRock.dead){
+      // Find closest rock at similar y
+      let best=null, bestDist=Infinity;
+      state.rocks.forEach(r=>{
+        if(r.dead) return;
+        const dy = Math.abs(r.y - w.y);
+        const dx = Math.abs(r.x - w.x);
+        const dist = dx + dy*3;
+        if(dist < bestDist){bestDist=dist; best=r;}
+      });
+      w.targetRock = best;
+      if(!best){
+        w.state = 'wander';
+        // Random wander
+        if(Math.random()<0.01){
+          const dx = (Math.random()-0.5)*40;
+          w.x = Math.max(10, Math.min(mineEl.clientWidth-44, w.x+dx));
+        }
+        el.style.left = w.x+'px';
+        el.style.bottom = w.y+'px';
+        el.classList.remove('swinging','walking');
+        return;
+      }
+    }
+    const r = w.targetRock;
+    // Move y first (climb to right ground level)
+    if(Math.abs(r.y - w.y) > 5){
+      w.y += Math.sign(r.y - w.y) * 2;
+      el.style.bottom = w.y+'px';
+      el.classList.remove('swinging');
+      el.classList.add('walking');
+      return;
+    }
+    const dx = r.x - w.x;
+    if(Math.abs(dx) > 28){
+      w.x += Math.sign(dx) * w.speed * 2;
+      w.facing = Math.sign(dx);
+      if(w.facing < 0) el.classList.add('flip'); else el.classList.remove('flip');
+      el.style.left = w.x+'px';
+      el.classList.remove('swinging');
+      el.classList.add('walking');
+      w.state='walking';
+    } else {
+      // Mining!
+      el.classList.remove('walking');
+      el.classList.add('swinging');
+      w.state='mining';
+      if(!w.lastHit || Date.now()-w.lastHit > 600/state.pickaxeLevel){
+        w.lastHit = Date.now();
+        damageRock(r, w.power);
+      }
+    }
+  });
+}
+
+// ===== Market =====
+function buildMarket(){
+  const m = document.getElementById('market');
+  m.innerHTML = '';
+  Object.entries(ORE_DATA).forEach(([key, data])=>{
+    const amount = state.ores[key];
+    const div = document.createElement('div');
+    div.className='market-item';
+    div.innerHTML = `
+      <div class="info">
+        <span class="ore">${data.emoji}</span>
+        <div>
+          <div><b style="color:${data.color}">${data.label}</b></div>
+          <div class="price">$${data.price}/each</div>
+        </div>
+      </div>
+      <span class="amt">×${amount}</span>
+      <button ${amount<=0?'disabled':''}>SELL</button>
+      <button ${amount<=0?'disabled':''}>ALL</button>
+    `;
+    const btns = div.querySelectorAll('button');
+    btns[0].addEventListener('click', ()=>sellOre(key,1));
+    btns[1].addEventListener('click', ()=>sellOre(key,amount));
+    m.appendChild(div);
+  });
+}
+
+function sellOre(type, qty){
+  if(state.ores[type] < qty) return;
+  const earned = qty * ORE_DATA[type].price;
+  state.ores[type] -= qty;
+  state.money += earned;
+  log(`💰 Sold ${qty}× ${ORE_DATA[type].label} → $${earned}`, 'ok');
+  updateHud();
+  checkWin();
+}
+
+// ===== Shop =====
+function buildShop(){
+  const s = document.getElementById('shop');
+  s.innerHTML = '';
+  const items = [
+    {
+      name:`👷 Hire Worker`,
+      desc:`Now: ${state.workers.length} workers`,
+      cost: state.workerCost,
+      buy:()=>{ state.money -= state.workerCost; spawnWorker();
+        state.workerCost = Math.floor(state.workerCost*1.8);
+        log(`👷 New miner hired!`,'ok'); }
+    },
+    {
+      name:`⛏ Better Pickaxe`,
+      desc:`Lv.${state.pickaxeLevel} — faster mining`,
+      cost: state.pickaxeCost,
+      buy:()=>{ state.money -= state.pickaxeCost; state.pickaxeLevel++;
+        // boost existing workers
+        state.workers.forEach(w=>{w.speed += 0.2; w.power = state.pickaxeLevel});
+        state.pickaxeCost = Math.floor(state.pickaxeCost*1.7);
+        log(`⛏ Pickaxes upgraded to Lv.${state.pickaxeLevel}!`,'gold'); }
+    },
+    {
+      name:`🍀 Luck Charm`,
+      desc:`Luck ${state.luck.toFixed(2)}x — chance for double ore`,
+      cost: state.luckCost,
+      buy:()=>{ state.money -= state.luckCost; state.luck += 0.15;
+        state.luckCost = Math.floor(state.luckCost*1.6);
+        log(`🍀 Luck charm bought! Luck → ${state.luck.toFixed(2)}x`,'ok'); }
+    },
+  ];
+  items.forEach(it=>{
+    const d = document.createElement('div');
+    d.className='shop-item';
+    const can = state.money >= it.cost;
+    d.innerHTML = `<div class="name"><b>${it.name}</b><span>${it.desc}</span></div>
+      <button ${can?'':'disabled'}>$${it.cost}</button>`;
+    d.querySelector('button').addEventListener('click', ()=>{
+      if(state.money < it.cost) return;
+      it.buy();
+      updateHud();
+    });
+    s.appendChild(d);
+  });
+}
+
+// ===== Zones =====
+function buildZones(){
+  const z = document.getElementById('zones');
+  z.innerHTML = '';
+  ZONES.forEach((zone,i)=>{
+    const unlocked = unlockedZones.has(i);
+    const canUnlock = !unlocked && state.money >= zone.costToUnlock;
+    const btn = document.createElement('button');
+    btn.className = 'zone-btn'+(i===state.zoneIdx?' active':'');
+    btn.disabled = !unlocked && !canUnlock;
+    btn.innerHTML = `${zone.name}${unlocked?'':`<small>UNLOCK: $${zone.costToUnlock.toLocaleString()}</small>`}`;
+    btn.addEventListener('click', ()=>{
+      if(!unlocked){
+        if(state.money >= zone.costToUnlock){
+          state.money -= zone.costToUnlock;
+          unlockedZones.add(i);
+          log(`🗝 Unlocked ${zone.name}!`,'gold');
+        } else return;
+      }
+      state.zoneIdx = i;
+      document.getElementById('mineLabel').textContent = zone.name;
+      // Clear rocks
+      state.rocks.forEach(r=>{
+        const el = document.getElementById('r'+r.id);
+        if(el) el.remove();
+      });
+      state.rocks = [];
+      updateHud();
+    });
+    z.appendChild(btn);
+  });
+}
+
+function log(msg, cls=''){
+  const l = document.getElementById('log');
+  const d = document.createElement('div');
+  d.className='l '+cls;
+  d.textContent = msg;
+  l.insertBefore(d, l.firstChild);
+  while(l.children.length>30) l.removeChild(l.lastChild);
+}
+
+function updateHud(){
+  document.getElementById('money').textContent = '$'+state.money.toLocaleString();
+  document.getElementById('workerCount').textContent = state.workers.length;
+  document.getElementById('luck').textContent = state.luck.toFixed(2)+'x';
+  document.getElementById('oreCoal').textContent = state.ores.coal;
+  document.getElementById('oreIron').textContent = state.ores.iron;
+  document.getElementById('oreGold').textContent = state.ores.gold;
+  document.getElementById('oreDiamond').textContent = state.ores.diamond;
+  buildMarket();
+  buildShop();
+  buildZones();
+}
+
+function checkWin(){
+  if(state.money >= 100000){
+    document.getElementById('finalMoney').textContent = '$'+state.money.toLocaleString();
+    document.getElementById('winOverlay').classList.add('show');
+  }
+}
+
+function resetGame(){
+  location.reload();
+}
+
+// ===== Auto-sell toggle =====
+document.getElementById('autoSellBtn').addEventListener('click', ()=>{
+  state.autoSell = !state.autoSell;
+  const btn = document.getElementById('autoSellBtn');
+  btn.textContent = state.autoSell ? '💸 AUTO-SELL: ON' : '💸 AUTO-SELL: OFF';
+  btn.classList.toggle('on', state.autoSell);
+  log(state.autoSell ? '💸 Auto-sell ENABLED — ore sells instantly!' : '💸 Auto-sell disabled.', 'ok');
+});
+
+// ===== Init =====
+spawnWorker();
+// Spawn initial rocks
+for(let i=0;i<5;i++) spawnRock();
+updateHud();
+
+// Auto spawn rocks
+setInterval(()=>{
+  if(state.rocks.length < 6+Math.floor(state.workers.length/2)) spawnRock();
+}, 1500);
+
+// Worker AI tick
+setInterval(tickWorkers, 60);
+</script>
+</body>
+</html>

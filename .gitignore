@@ -1,0 +1,14 @@
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+.vscode/
+.idea/
+node_modules/
+
+# Claude Code local settings — shouldn't be public
+.claude/
+**/.claude/
+
+# 'os' has its own independent git repo; skip it for the Pages site
+os/

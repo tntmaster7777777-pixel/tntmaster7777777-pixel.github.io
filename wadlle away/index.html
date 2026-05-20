@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waddle Away - The Duck Song Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+            background: #87CEEB;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas { display: block; }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+
+        /* Lyrics bar at top - shows song lyrics */
+        #lyrics-bar {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.7);
+            color: #FFD700;
+            font-size: 28px;
+            text-align: center;
+            padding: 12px 20px;
+            z-index: 12;
+            font-style: italic;
+            letter-spacing: 1px;
+        }
+
+        /* Dialogue popup */
+        #dialogue-box {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 4px solid #333;
+            border-radius: 20px;
+            padding: 20px 30px;
+            max-width: 700px;
+            width: 90%;
+            text-align: center;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        #dialogue-box .speaker {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        #dialogue-box .text {
+            font-size: 22px;
+            line-height: 1.4;
+            margin-bottom: 15px;
+            min-height: 30px;
+        }
+        #dialogue-box .choices {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        #dialogue-box .choices button {
+            font-family: 'Comic Sans MS', cursive;
+            font-size: 18px;
+            padding: 12px 28px;
+            border: 3px solid #333;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+        #dialogue-box .choices button:hover { transform: scale(1.08); }
+        #dialogue-box .choices button:active { transform: scale(0.95); }
+
+        .btn-grape { background: #9B59B6; color: white; }
+        .btn-lemonade { background: #F1C40F; color: #333; }
+        .btn-waddle { background: #E67E22; color: white; }
+        .btn-run { background: #E74C3C; color: white; }
+        .btn-continue { background: #3498DB; color: white; }
+
+        /* Title screen */
+        #title-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 100%);
+            z-index: 20;
+        }
+        #title-screen h1 {
+            font-size: 60px;
+            color: #E8A317;
+            text-shadow: 3px 3px 0 #333, -1px -1px 0 #333;
+            margin-bottom: 10px;
+        }
+        #title-screen h2 {
+            font-size: 26px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #333;
+            margin-bottom: 30px;
+        }
+        #title-screen .title-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        #title-screen button {
+            font-family: 'Comic Sans MS', cursive;
+            font-size: 28px;
+            padding: 12px 40px;
+            background: #E8A317;
+            color: white;
+            border: 4px solid #333;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        #title-screen button:hover { transform: scale(1.1); background: #D4941A; }
+        #title-screen .continue-btn { background: #27AE60; font-size: 22px; padding: 10px 30px; }
+        #title-screen .continue-btn:hover { background: #219A52; }
+        #title-screen .saved-info { color: #fff; font-size: 16px; text-shadow: 1px 1px 0 #333; }
+
+        /* Rock lyrics during chase */
+        #rock-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 15;
+            pointer-events: none;
+        }
+        #rock-text {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 52px;
+            color: #FF0000;
+            text-shadow: 3px 3px 0 #000, -1px -1px 0 #000;
+            font-weight: bold;
+            text-align: center;
+            animation: rockBounce 0.3s infinite alternate;
+        }
+        @keyframes rockBounce {
+            from { transform: translate(-50%, -50%) rotate(-3deg) scale(1); }
+            to { transform: translate(-50%, -50%) rotate(3deg) scale(1.08); }
+        }
+
+        #run-bar {
+            display: none;
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 500px;
+            z-index: 16;
+            text-align: center;
+        }
+        #run-bar .bar-bg {
+            background: #333;
+            border-radius: 15px;
+            height: 30px;
+            overflow: hidden;
+            border: 3px solid #fff;
+        }
+        #run-bar .bar-fill {
+            background: linear-gradient(90deg, #E74C3C, #FF6B35, #FFD700);
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s;
+            border-radius: 12px;
+        }
+        #run-bar .bar-label {
+            color: white;
+            font-size: 22px;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        #tap-zone {
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 17;
+        }
+        #tap-zone button {
+            font-family: 'Comic Sans MS', cursive;
+            font-size: 32px;
+            padding: 20px 50px;
+            background: #E74C3C;
+            color: white;
+            border: 4px solid #fff;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            touch-action: manipulation;
+            animation: tapPulse 0.4s infinite alternate;
+        }
+        @keyframes tapPulse {
+            from { transform: scale(1); background: #E74C3C; }
+            to { transform: scale(1.1); background: #C0392B; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="title-screen">
+            <h1>WADDLE AWAY</h1>
+            <h2>A Duck Song Game</h2>
+            <div class="title-buttons">
+                <button onclick="startNewGame()">New Game</button>
+                <button class="continue-btn" id="continue-btn" style="display:none" onclick="continueGame()">Continue</button>
+                <div class="saved-info" id="saved-info"></div>
+            </div>
+        </div>
+
+        <div id="lyrics-bar"></div>
+
+        <div id="dialogue-box">
+            <div class="speaker"></div>
+            <div class="text"></div>
+            <div class="choices"></div>
+        </div>
+
+        <div id="rock-overlay">
+            <div id="rock-text"></div>
+        </div>
+
+        <div id="run-bar">
+            <div class="bar-label">WADDLE AWAY!!</div>
+            <div class="bar-bg"><div class="bar-fill" id="run-fill"></div></div>
+        </div>
+        <div id="tap-zone"><button id="tap-btn">WADDLE!!</button></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const lyricsBar = document.getElementById('lyrics-bar');
+        const rockOverlay = document.getElementById('rock-overlay');
+        const rockText = document.getElementById('rock-text');
+        const runBar = document.getElementById('run-bar');
+        const runFill = document.getElementById('run-fill');
+        const tapZone = document.getElementById('tap-zone');
+        const tapBtn = document.getElementById('tap-btn');
+
+        let W, H;
+        function resize() {
+            W = canvas.width = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // ---- SAVE SYSTEM ----
+        function saveProgress(dayNum) {
+            localStorage.setItem('waddleAway_day', dayNum);
+        }
+        function loadProgress() {
+            return parseInt(localStorage.getItem('waddleAway_day') || '0');
+        }
+        function clearProgress() {
+            localStorage.removeItem('waddleAway_day');
+        }
+
+        // Show continue button if save exists
+        function checkSave() {
+            const saved = loadProgress();
+            const contBtn = document.getElementById('continue-btn');
+            const savedInfo = document.getElementById('saved-info');
+            if (saved > 0) {
+                contBtn.style.display = 'block';
+                const dayNames = ['', 'Day 1 - First visit', 'Day 2 - Second visit', 'Day 3 - THE GLUE PART'];
+                savedInfo.textContent = 'Saved: ' + (dayNames[saved] || 'Day ' + saved);
+            } else {
+                contBtn.style.display = 'none';
+                savedInfo.textContent = '';
+            }
+        }
+
+        // ---- GAME STATE ----
+        let gameState = 'title';
+        let day = 1;
+        let duckX, duckY, standX, standY;
+        let manAnger = 0;
+        let walkTarget = null;
+        let frame = 0;
+        let typingText = '';
+        let typingIndex = 0;
+        let typingTimer = 0;
+
+        // Running phase
+        let runProgress = 0; // 0 to 100
+        let runManDist = 100; // man distance from duck, starts far
+        let caught = false;
+        let escaped = false;
+        let rockLyricIndex = 0;
+        let lyricInterval = null;
+        let riffTimeout = null;
+
+        // Song lyrics for each day (shown at top as LYRICS not dialogue)
+        const dayLyrics = {
+            1: [
+                "A duck walked up to a lemonade stand",
+                "And he said to the man, running the stand:",
+                "Hey!  bum bum bum",
+                "Got any grapes?",
+            ],
+            2: [
+                "Then the duck walked up to the lemonade stand",
+                "And he said to the man, running the stand:",
+                "Hey!  bum bum bum",
+                "Got any grapes?",
+            ],
+            3: [
+                "Then the duck walked up to the lemonade stand",
+                "And he said to the man, running the stand:",
+                "Hey!  bum bum bum",
+                "Got any grapes?",
+            ]
+        };
+
+        // Rock song lyrics for the chase
+        const rockLyrics = [
+            "DUN DUN DUUUN",
+            "DUN DUN DU-DUUUN",
+            "DUN DUN DUUUN",
+            "DUN-DUN",
+            "",
+            "WADDLE WADDLE",
+            "WADDLE WADDLE AWAY",
+            "",
+            "DUN DUN DUUUN",
+            "DUN DUN DU-DUUUN",
+            "GOT ANY GRAPES?!",
+            "NOT TODAY!!",
+            "",
+            "WADDLE WADDLE",
+            "TILL THE VERY NEXT DAY",
+            "BAM BAM BA-DAM"
+        ];
+
+        // ---- AUDIO ----
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playNote(freq, duration, time, type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type || 'square';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.12, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(time);
+            osc.stop(time + duration);
+        }
+
+        function playRockRiff() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [
+                [196, 0.3, 0], [233, 0.3, 0.35], [261, 0.5, 0.7],
+                [196, 0.3, 1.4], [233, 0.3, 1.75], [277, 0.15, 2.1], [261, 0.5, 2.3],
+                [196, 0.3, 3.1], [233, 0.3, 3.45], [261, 0.5, 3.8],
+                [233, 0.3, 4.5], [196, 0.6, 4.85],
+            ];
+            notes.forEach(([f, d, t]) => playNote(f, d, now + t, 'square'));
+            riffTimeout = setTimeout(() => {
+                if (gameState === 'running') playRockRiff();
+            }, 5600);
+        }
+
+        function playQuack() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.2);
+        }
+
+        // ---- DRAWING ----
+        function drawSky(red) {
+            let grad = ctx.createLinearGradient(0, 0, 0, H);
+            if (red) {
+                grad.addColorStop(0, '#FF4444');
+                grad.addColorStop(0.5, '#FF8800');
+                grad.addColorStop(1, '#44AA44');
+            } else {
+                grad.addColorStop(0, '#87CEEB');
+                grad.addColorStop(0.7, '#98D8C8');
+                grad.addColorStop(1, '#7EC850');
+            }
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        function drawGround(dark) {
+            const gy = H * 0.7;
+            ctx.fillStyle = dark ? '#557733' : '#7EC850';
+            ctx.fillRect(0, gy, W, H - gy);
+            ctx.fillStyle = dark ? '#AA8855' : '#C4A265';
+            ctx.fillRect(0, gy + 10, W, 40);
+        }
+
+        function drawSun() {
+            ctx.fillStyle = '#FFE066';
+            ctx.beginPath();
+            ctx.arc(W - 100, 80, 50, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#FFE066';
+            ctx.lineWidth = 3;
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2 + frame * 0.01;
+                ctx.beginPath();
+                ctx.moveTo(W - 100 + Math.cos(a) * 55, 80 + Math.sin(a) * 55);
+                ctx.lineTo(W - 100 + Math.cos(a) * 70, 80 + Math.sin(a) * 70);
+                ctx.stroke();
+            }
+        }
+
+        function drawCloud(x, y, s) {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.beginPath();
+            ctx.arc(x, y, s, 0, Math.PI * 2);
+            ctx.arc(x + s, y - s * 0.3, s * 0.8, 0, Math.PI * 2);
+            ctx.arc(x - s * 0.8, y - s * 0.2, s * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawStand(x, y) {
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(x - 60, y - 40, 120, 60);
+            ctx.fillStyle = '#DEB887';
+            ctx.fillRect(x - 65, y - 45, 130, 10);
+            ctx.fillStyle = '#FF6347';
+            ctx.beginPath();
+            ctx.moveTo(x - 80, y - 80);
+            ctx.lineTo(x + 80, y - 80);
+            ctx.lineTo(x + 70, y - 45);
+            ctx.lineTo(x - 70, y - 45);
+            ctx.fill();
+            ctx.fillStyle = '#FFE066';
+            ctx.fillRect(x - 50, y - 75, 100, 25);
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Comic Sans MS';
+            ctx.textAlign = 'center';
+            ctx.fillText('LEMONADE', x, y - 58);
+            ctx.fillStyle = '#FFE066';
+            ctx.fillRect(x - 10, y - 38, 20, 25);
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(x - 55, y + 20, 8, 40);
+            ctx.fillRect(x + 47, y + 20, 8, 40);
+        }
+
+        function drawMan(x, y, angry) {
+            ctx.fillStyle = '#4169E1';
+            ctx.fillRect(x - 15, y - 30, 30, 40);
+            ctx.fillStyle = '#FFDAB9';
+            ctx.beginPath(); ctx.arc(x, y - 45, 18, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = angry ? '#FF0000' : '#333';
+            ctx.beginPath();
+            ctx.arc(x - 6, y - 48, angry ? 4 : 3, 0, Math.PI * 2);
+            ctx.arc(x + 6, y - 48, angry ? 4 : 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.beginPath();
+            if (angry) { ctx.arc(x, y - 33, 8, Math.PI * 1.2, Math.PI * 1.8); }
+            else { ctx.arc(x, y - 38, 6, 0, Math.PI); }
+            ctx.stroke();
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(x - 12, y - 25, 24, 30);
+            ctx.fillStyle = '#333';
+            ctx.fillRect(x - 10, y + 10, 8, 20);
+            ctx.fillRect(x + 2, y + 10, 8, 20);
+            if (angry) {
+                ctx.fillStyle = '#FF4444';
+                ctx.font = '20px Comic Sans MS';
+                ctx.textAlign = 'center';
+                ctx.fillText('!!!', x, y - 68);
+            }
+        }
+
+        function drawDuck(x, y, flip, waddle) {
+            ctx.save();
+            if (flip) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); }
+            const bob = Math.sin(frame * 0.1) * 3;
+            const wa = waddle ? Math.sin(frame * 0.3) * 0.15 : 0;
+            ctx.translate(x, y + bob);
+            ctx.rotate(wa);
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath(); ctx.ellipse(0, 0, 25, 18, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(20, -15, 14, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(26, -18, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath(); ctx.arc(27, -19, 1, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#FF8C00';
+            ctx.beginPath(); ctx.moveTo(32, -15); ctx.lineTo(42, -13); ctx.lineTo(32, -10); ctx.fill();
+            ctx.fillStyle = '#EDBA00';
+            ctx.beginPath(); ctx.ellipse(-5, 0, 15, 10, -0.3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#FF8C00';
+            const fa = waddle ? Math.sin(frame * 0.3) * 5 : 0;
+            ctx.fillRect(-8 + fa, 15, 12, 4);
+            ctx.fillRect(5 - fa, 15, 12, 4);
+            ctx.restore();
+        }
+
+        function drawRunMan(x, y) {
+            const la = Math.sin(frame * 0.4) * 15;
+            ctx.save(); ctx.translate(x, y);
+            ctx.fillStyle = '#4169E1'; ctx.fillRect(-15, -30, 30, 40);
+            ctx.fillStyle = '#FFDAB9';
+            ctx.beginPath(); ctx.arc(0, -45, 18, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath(); ctx.arc(-6, -48, 4, 0, Math.PI * 2); ctx.arc(6, -48, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#FFFFFF'; ctx.fillRect(18, -20, 12, 20);
+            ctx.fillStyle = '#FF6600'; ctx.fillRect(20, -25, 8, 8);
+            ctx.fillStyle = '#333'; ctx.font = '6px Arial'; ctx.fillText('GLUE', 19, -8);
+            ctx.fillStyle = '#333';
+            ctx.save(); ctx.translate(-5, 10); ctx.rotate(la * 0.05); ctx.fillRect(-4, 0, 8, 25); ctx.restore();
+            ctx.save(); ctx.translate(5, 10); ctx.rotate(-la * 0.05); ctx.fillRect(-4, 0, 8, 25); ctx.restore();
+            ctx.restore();
+        }
+
+        // ---- LYRICS DISPLAY ----
+        let lyricQueue = [];
+        let lyricStep = 0;
+
+        function showLyrics(lyrics, onDone) {
+            lyricQueue = lyrics;
+            lyricStep = 0;
+            lyricsBar.style.display = 'block';
+            lyricsBar.textContent = lyrics[0] || '';
+
+            // Show each lyric line, then call onDone
+            function nextLyric() {
+                lyricStep++;
+                if (lyricStep >= lyricQueue.length) {
+                    setTimeout(() => {
+                        lyricsBar.style.display = 'none';
+                        if (onDone) onDone();
+                    }, 800);
+                    return;
+                }
+                lyricsBar.textContent = lyricQueue[lyricStep];
+                setTimeout(nextLyric, 1400);
+            }
+            setTimeout(nextLyric, 1400);
+        }
+
+        // ---- TYPEWRITER ----
+        function typeText(text, callback) {
+            typingText = text;
+            typingIndex = 0;
+            clearInterval(typingTimer);
+            typingTimer = setInterval(() => {
+                typingIndex++;
+                document.querySelector('#dialogue-box .text').textContent = typingText.substring(0, typingIndex);
+                if (typingIndex >= typingText.length) {
+                    clearInterval(typingTimer);
+                    if (callback) setTimeout(callback, 600);
+                }
+            }, 35);
+        }
+
+        // ---- DIALOGUE SYSTEM ----
+        function showPopup(speaker, speakerColor, text, buttons) {
+            dialogueBox.style.display = 'block';
+            const sp = document.querySelector('#dialogue-box .speaker');
+            const tx = document.querySelector('#dialogue-box .text');
+            const ch = document.querySelector('#dialogue-box .choices');
+            sp.textContent = speaker;
+            sp.style.color = speakerColor;
+            tx.textContent = '';
+            ch.innerHTML = '';
+
+            if (text) {
+                typeText(text, () => {
+                    if (buttons) addButtons(ch, buttons);
+                });
+            } else {
+                if (buttons) addButtons(ch, buttons);
+            }
+        }
+
+        function addButtons(container, buttons) {
+            container.innerHTML = '';
+            buttons.forEach(b => {
+                const btn = document.createElement('button');
+                btn.textContent = b.label;
+                btn.className = b.cls || 'btn-lemonade';
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    initAudio();
+                    playQuack();
+                    b.action();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function hidePopup() {
+            dialogueBox.style.display = 'none';
+            clearInterval(typingTimer);
+        }
+
+        // ---- DAY FLOWS ----
+        // Each day: lyrics play -> duck walks up -> you click "got any grapes" -> man responds -> you choose -> waddle/run
+
+        function runDay(dayNum) {
+            day = dayNum;
+            manAnger = day - 1;
+            standX = W * 0.6;
+            standY = H * 0.62;
+            duckX = -50;
+            duckY = H * 0.65;
+            hidePopup();
+
+            // Show song lyrics at top
+            gameState = 'lyrics';
+            showLyrics(dayLyrics[dayNum], () => {
+                // After lyrics, duck walks up
+                gameState = 'walking';
+                walkTarget = standX - 80;
+            });
+        }
+
+        function duckArrived() {
+            gameState = 'dialogue';
+            // Save that we reached this day
+            saveProgress(day);
+
+            if (day === 1) {
+                showPopup('You (Duck)', '#E8A317', null, [
+                    { label: '"Got any GRAPES?"', cls: 'btn-grape', action: () => day1Response() }
+                ]);
+            } else if (day === 2) {
+                showPopup('You (Duck)', '#E8A317', null, [
+                    { label: '"Got any GRAPES?"', cls: 'btn-grape', action: () => day2Response() }
+                ]);
+            } else if (day === 3) {
+                showPopup('You (Duck)', '#E8A317', null, [
+                    { label: '"Got any GRAPES?"', cls: 'btn-grape', action: () => day3Response() }
+                ]);
+            }
+        }
+
+        function day1Response() {
+            showPopup('Man', '#4169E1', "No, we just sell lemonade. But it's cold and it's fresh and it's all home-made. Can I get you a glass?", [
+                { label: '"Got any grapes?"', cls: 'btn-grape', action: () => {
+                    showPopup('Man', '#4169E1', "No! Just lemonade!", [
+                        { label: '"I\'ll pass."', cls: 'btn-waddle', action: () => startWaddle(2) }
+                    ]);
+                }},
+                { label: '"I\'ll pass."', cls: 'btn-waddle', action: () => startWaddle(2) }
+            ]);
+        }
+
+        function day2Response() {
+            showPopup('Man', '#4169E1', "No, like I said yesterday, we just sell lemonade. OK? Why not give it a try?", [
+                { label: '"Got any grapes?"', cls: 'btn-grape', action: () => {
+                    showPopup('Man', '#FF4444', "NO!! For the last time, NO GRAPES!", [
+                        { label: '"Goodbye."', cls: 'btn-waddle', action: () => startWaddle(3) }
+                    ]);
+                }},
+                { label: '"Goodbye."', cls: 'btn-waddle', action: () => startWaddle(3) }
+            ]);
+        }
+
+        function day3Response() {
+            showPopup('Man', '#FF0000', "LOOK! This is a LEMONADE stand! We only sell LEMONADE!", null);
+            setTimeout(() => {
+                showPopup('Man', '#FF0000', "If you ask me again... I'll GLUE you to a tree and leave you there ALL DAY stuck!", [
+                    { label: '"...Got any grapes?"', cls: 'btn-grape', action: () => {
+                        showPopup('Man', '#FF0000', "THAT'S IT!!!", null);
+                        setTimeout(() => {
+                            hidePopup();
+                            startRunning();
+                        }, 1200);
+                    }},
+                ]);
+            }, 2500);
+        }
+
+        // ---- WADDLE AWAY ----
+        function startWaddle(nextDay) {
+            hidePopup();
+            gameState = 'waddle';
+            lyricsBar.style.display = 'block';
+            lyricsBar.textContent = 'And he waddled away... waddle waddle...';
+            setTimeout(() => {
+                lyricsBar.textContent = "'til the very next day...";
+            }, 2000);
+            // After waddle off screen, go to next day
+            waddleNextDay = nextDay;
+        }
+        let waddleNextDay = 2;
+
+        // ---- RUNNING / CHASE ----
+        function startRunning() {
+            gameState = 'running';
+            runProgress = 0;
+            runManDist = 300;
+            caught = false;
+            escaped = false;
+            rockLyricIndex = 0;
+
+            rockOverlay.style.display = 'block';
+            runBar.style.display = 'block';
+            tapZone.style.display = 'block';
+            runFill.style.width = '0%';
+
+            initAudio();
+            playRockRiff();
+
+            // Rotate rock lyrics
+            lyricInterval = setInterval(() => {
+                if (gameState === 'running') {
+                    rockText.textContent = rockLyrics[rockLyricIndex % rockLyrics.length];
+                    rockLyricIndex++;
+                } else {
+                    clearInterval(lyricInterval);
+                }
+            }, 700);
+        }
+
+        function waddle() {
+            if (gameState !== 'running' || caught || escaped) return;
+            runProgress += 3;
+            runManDist += 8;
+            runFill.style.width = Math.min(runProgress, 100) + '%';
+            playQuack();
+
+            if (runProgress >= 100) {
+                escaped = true;
+                endChase(true);
+            }
+        }
+
+        // Tap button for running
+        tapBtn.addEventListener('click', (e) => { e.stopPropagation(); waddle(); });
+        tapBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); waddle(); });
+
+        // Arrow keys / any key for running
+        document.addEventListener('keydown', (e) => {
+            if (gameState === 'running' && !caught && !escaped) {
+                waddle();
+                e.preventDefault();
+            }
+        });
+
+        // Man slowly catches up
+        let chaseInterval = null;
+        function startChaseTimer() {
+            chaseInterval = setInterval(() => {
+                if (gameState !== 'running' || caught || escaped) {
+                    clearInterval(chaseInterval);
+                    return;
+                }
+                runManDist -= 4;
+                if (runManDist <= 0) {
+                    caught = true;
+                    endChase(false);
+                }
+            }, 100);
+        }
+
+        function endChase(won) {
+            clearInterval(lyricInterval);
+            clearTimeout(riffTimeout);
+            rockOverlay.style.display = 'none';
+            rockText.textContent = '';
+            runBar.style.display = 'none';
+            tapZone.style.display = 'none';
+
+            if (won) {
+                gameState = 'win';
+                clearProgress(); // Beat the game!
+                showPopup('', '#E8A317', "You waddled away!! The duck lives to ask another day!", [
+                    { label: 'Play Again!', cls: 'btn-grape', action: () => { hidePopup(); resetToTitle(); }}
+                ]);
+            } else {
+                gameState = 'caught';
+                showPopup('Man', '#FF0000', "GOT YOU! Now you're glued to this tree FOREVER!", [
+                    { label: 'Try Again (from Day 3)', cls: 'btn-run', action: () => { hidePopup(); runDay(3); }},
+                    { label: 'Start Over', cls: 'btn-waddle', action: () => { hidePopup(); clearProgress(); resetToTitle(); }}
+                ]);
+            }
+        }
+
+        // ---- GAME FLOW ----
+        function startNewGame() {
+            clearProgress();
+            document.getElementById('title-screen').style.display = 'none';
+            runDay(1);
+        }
+
+        function continueGame() {
+            const saved = loadProgress();
+            document.getElementById('title-screen').style.display = 'none';
+            runDay(saved);
+        }
+
+        function resetToTitle() {
+            gameState = 'title';
+            hidePopup();
+            lyricsBar.style.display = 'none';
+            rockOverlay.style.display = 'none';
+            runBar.style.display = 'none';
+            tapZone.style.display = 'none';
+            document.getElementById('title-screen').style.display = 'flex';
+            checkSave();
+        }
+
+        // ---- MAIN LOOP ----
+        function update() {
+            frame++;
+            const isChase = gameState === 'running' || gameState === 'caught';
+
+            drawSky(isChase);
+            drawGround(isChase);
+            if (!isChase) {
+                drawSun();
+                drawCloud(100 + Math.sin(frame * 0.005) * 20, 60, 30);
+                drawCloud(300 + Math.sin(frame * 0.003) * 15, 90, 25);
+                drawCloud(500 + Math.sin(frame * 0.004) * 25, 50, 35);
+            }
+
+            if (gameState === 'walking') {
+                duckX += 2.5;
+                if (duckX >= walkTarget) {
+                    duckX = walkTarget;
+                    duckArrived();
+                }
+                drawStand(standX, standY);
+                drawMan(standX, standY - 15, manAnger >= 2);
+                drawDuck(duckX, duckY, false, true);
+            }
+            else if (gameState === 'lyrics' || gameState === 'dialogue') {
+                drawStand(standX, standY);
+                drawMan(standX, standY - 15, manAnger >= 2);
+                if (gameState === 'dialogue') {
+                    drawDuck(duckX, duckY, false, false);
+                }
+            }
+            else if (gameState === 'waddle') {
+                duckX -= 2.5;
+                drawStand(standX, standY);
+                drawMan(standX, standY - 15, false);
+                drawDuck(duckX, duckY, true, true);
+                if (duckX < -60) {
+                    lyricsBar.style.display = 'none';
+                    gameState = 'transition';
+                    setTimeout(() => runDay(waddleNextDay), 800);
+                }
+            }
+            else if (gameState === 'running') {
+                // Chase scene with trees rushing by
+                for (let i = 0; i < 10; i++) {
+                    const treeX = ((i * 200 + frame * 3) % (W + 200)) - 100;
+                    ctx.fillStyle = '#2D5016';
+                    ctx.beginPath();
+                    ctx.moveTo(treeX, H * 0.55);
+                    ctx.lineTo(treeX + 25, H * 0.35);
+                    ctx.lineTo(treeX + 50, H * 0.55);
+                    ctx.fill();
+                    ctx.fillStyle = '#4A2F0A';
+                    ctx.fillRect(treeX + 20, H * 0.55, 10, H * 0.15);
+                }
+
+                // Duck on left, man approaching from right
+                drawDuck(W * 0.25, H * 0.65, true, true);
+                const manScreenX = W * 0.25 + Math.min(runManDist, 400);
+                drawRunMan(manScreenX, H * 0.65);
+
+                // Screen shake when man is close
+                if (runManDist < 100) {
+                    ctx.save();
+                    ctx.translate(Math.random() * 6 - 3, Math.random() * 6 - 3);
+                    ctx.restore();
+                }
+            }
+            else if (gameState === 'caught') {
+                // Glued to tree
+                ctx.fillStyle = '#4A2F0A';
+                ctx.fillRect(W / 2 - 15, H * 0.35, 30, H * 0.35);
+                ctx.fillStyle = '#2D5016';
+                ctx.beginPath();
+                ctx.moveTo(W / 2 - 60, H * 0.45);
+                ctx.lineTo(W / 2, H * 0.2);
+                ctx.lineTo(W / 2 + 60, H * 0.45);
+                ctx.fill();
+                drawDuck(W / 2, H * 0.6, false, false);
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    ctx.ellipse(W / 2 - 20 + i * 10, H * 0.58 + Math.sin(frame * 0.05 + i) * 3, 4, 6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            else if (gameState === 'win') {
+                const sg = ctx.createLinearGradient(0, 0, 0, H);
+                sg.addColorStop(0, '#FF6B35');
+                sg.addColorStop(0.5, '#FFD700');
+                sg.addColorStop(1, '#7EC850');
+                ctx.fillStyle = sg;
+                ctx.fillRect(0, 0, W, H);
+                ctx.fillStyle = '#FFE066';
+                ctx.beginPath();
+                ctx.arc(W / 2, H * 0.5, 80, 0, Math.PI * 2);
+                ctx.fill();
+                drawDuck(W / 2 + Math.sin(frame * 0.02) * 5, H * 0.6, false, true);
+                ctx.fillStyle = '#333';
+                ctx.font = '24px Comic Sans MS';
+                ctx.textAlign = 'center';
+                ctx.fillText('waddle waddle waddle...', W / 2, H * 0.8);
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // Init
+        checkSave();
+
+        // Start chase timer when running starts
+        const origStartRunning = startRunning;
+        startRunning = function () {
+            origStartRunning();
+            startChaseTimer();
+        };
+
+        update();
+    </script>
+</body>
+</html>

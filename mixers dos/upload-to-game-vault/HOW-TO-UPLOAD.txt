@@ -1,0 +1,70 @@
+HOW TO ADD MIXERS DOS TO kirkautomations.github.io/game-vault
+================================================================
+
+I CAN'T push to GitHub from inside Claude Code (no credentials for
+your account). But everything is ready for you. Two steps:
+
+----------------------------------------------------------------
+STEP 1 — Upload the game folder
+----------------------------------------------------------------
+
+On GitHub, go to your repo:
+  https://github.com/kirkautomations/game-vault
+
+Click into the "games" folder. Click "Add file" > "Upload files".
+
+Drag the folder from this location into the upload area:
+  C:\Users\Michael\games\mixers dos\upload-to-game-vault\games\mixers-dos\
+
+(It contains a single file: index.html. The folder name "mixers-dos"
+matters — that's the URL slug.)
+
+Commit the upload.
+
+----------------------------------------------------------------
+STEP 2 — Register it in js/games.js
+----------------------------------------------------------------
+
+On GitHub, open:
+  https://github.com/kirkautomations/game-vault/blob/main/js/games.js
+
+Click the pencil (Edit). Find the games array — it ends with
+something like "EIE: Be A Food" at position 48.
+
+Add this entry AFTER the last game (before the closing `]`):
+
+  {
+    title: "Mixers DOS",
+    subtitle: "Tactical RPG: brew elements, dodge the Mixer",
+    icon: "🧪",
+    href: "games/mixers-dos/index.html",
+    category: "Strategy",
+    added: 49
+  },
+
+Commit the change.
+
+----------------------------------------------------------------
+STEP 3 — Wait ~30 seconds
+----------------------------------------------------------------
+
+GitHub Pages will rebuild. Then your game will be live at:
+  https://kirkautomations.github.io/game-vault/games/mixers-dos/
+
+And it will show up as a card on the main vault page.
+
+----------------------------------------------------------------
+TROUBLESHOOTING
+----------------------------------------------------------------
+
+- If you bump the "added" number and yours doesn't show as newest,
+  check that your number is higher than every other entry.
+
+- If the Three.js 3D scene doesn't load in the embedded view but
+  works standalone, the parent site might block the CDN. The game
+  falls back to direct 2D combat if Three.js is missing, so it
+  will still run.
+
+- The game wants the full window. If Game Vault embeds it in an
+  iframe with a small size, drag the corner or open it in a new
+  tab via the game's own link.
