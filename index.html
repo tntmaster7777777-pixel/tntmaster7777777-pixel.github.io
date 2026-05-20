@@ -368,6 +368,7 @@ header h1.shake{animation:shake .3s}
 </div>
 
 <button id="helpBtn" onclick="toggleHelp()" title="Help">?</button>
+<button id="fsBtn" title="Fullscreen" style="position:fixed;top:20px;left:20px;width:54px;height:54px;background:linear-gradient(135deg,#ffd700,#ff8c00);border:3px solid #000;border-radius:50%;font-size:22px;cursor:pointer;z-index:6;box-shadow:0 0 20px rgba(255,215,0,.5);color:#000;font-weight:900">⛶</button>
 <div id="helpModal" onclick="if(event.target===this)toggleHelp()">
   <div id="helpBox">
     <h2>❓ DAME VAULT — HELP</h2>
@@ -819,7 +820,7 @@ header h1.shake{animation:shake .3s}
 
 </div>
 
-<div class="hint">PSST... THERE ARE 12 SECRETS. JUST START TYPING WORDS. (BOO · MOON · VOID · MEOW · RAIN · SODA · CULT · BREAD · EYE · 1090 · 42 · STAR)</div>
+<div class="hint">PSST... 12 SECRETS. TYPE WORDS: BOO · MOON · VOID · MEOW · RAIN · SODA · CULT · BREAD · EYE · 1090 · 42 &nbsp;—&nbsp; AND 🎁 ONE PRESENT IS HIDDEN AT THE TOP OF MIXERS DOS</div>
 
 <script>
 // --- Stars (more of them, varied colors) ---
@@ -954,7 +955,7 @@ const SECRETS = {
   'CULT':  { cardId: 'cultCard',    storageKey: 'vault_cult',    toast: 'THE CULT WELCOMES YOU' },
   'BREAD': { cardId: 'pigeonCard',  storageKey: 'vault_pigeon',  toast: 'PIGEON FEEDING UNLOCKED' },
   '42':    { cardId: 'answerCard',  storageKey: 'vault_answer',  toast: 'YOU FOUND THE ANSWER' },
-  'STAR':  { cardId: 'starCatchCard', storageKey: 'vault_starcatch', toast: 'STAR CATCHER UNLOCKED' },
+  // NOTE: STAR CATCHER is NOT typed — it unlocks by finding the 🎁 present hidden in Mixers Dos.
 };
 let buf = '';
 addEventListener('keydown', (e) => {
@@ -999,12 +1000,20 @@ function restoreUnlocked() {
       anyUnlocked = true;
     }
   }
+  // STAR CATCHER unlocks via the hidden 🎁 present in Mixers Dos (not a typed code)
+  if (localStorage.getItem('vault_starcatch') === '1') {
+    document.getElementById('starCatchCard').classList.add('revealed');
+    anyUnlocked = true;
+  }
   if (anyUnlocked) {
     const empty = document.getElementById('emptyAisle');
     if (empty) empty.style.display = 'none';
   }
 }
 restoreUnlocked();
+// Re-check when returning to the page (e.g. after grabbing the present in Mixers Dos)
+addEventListener('pageshow', () => { restoreUnlocked(); updateCount(); });
+addEventListener('focus',    () => { restoreUnlocked(); updateCount(); });
 
 // Update stat count based on how many secrets unlocked (11 base + up to 12 secrets)
 const updateCount = () => {
@@ -1012,6 +1021,7 @@ const updateCount = () => {
   for (const code in SECRETS) {
     if (localStorage.getItem(SECRETS[code].storageKey) === '1') total++;
   }
+  if (localStorage.getItem('vault_starcatch') === '1') total++; // present-unlocked Star Catcher
   document.querySelector('.stat .n').textContent = total;
 };
 updateCount();
@@ -1020,6 +1030,29 @@ updateCount();
 function toggleHelp() {
   document.getElementById('helpModal').classList.toggle('show');
 }
+
+// --- Fullscreen ---
+const fsBtn = document.getElementById('fsBtn');
+function inFs(){ return document.fullscreenElement || document.webkitFullscreenElement; }
+function enterFs(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (req) { try { const p = req.call(el); if (p && p.catch) p.catch(()=>{}); } catch(_){} }
+}
+function exitFs(){
+  const ex = document.exitFullscreen || document.webkitExitFullscreen;
+  if (ex) { try { ex.call(document); } catch(_){} }
+}
+function toggleFs(){ if (inFs()) exitFs(); else enterFs(); }
+fsBtn.addEventListener('click', (e)=>{ e.stopPropagation(); toggleFs(); });
+document.addEventListener('fullscreenchange', ()=>{ fsBtn.textContent = inFs() ? '🗗' : '⛶'; });
+// Browsers block auto-fullscreen on load, so go fullscreen on the first empty-space click
+function fsOnFirstClick(e){
+  if (e.target.closest('a, button, .vbtn')) return; // don't hijack card/button clicks
+  enterFs();
+  removeEventListener('click', fsOnFirstClick, true);
+}
+addEventListener('click', fsOnFirstClick, true);
 
 // --- Version switcher ---
 function setVersion(v) {
