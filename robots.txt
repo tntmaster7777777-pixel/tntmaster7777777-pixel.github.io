@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tntmaster7777777-pixel.github.io/sitemap.xml
