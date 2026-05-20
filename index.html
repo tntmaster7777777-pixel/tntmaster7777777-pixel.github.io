@@ -673,6 +673,19 @@ header h1.shake{animation:shake .3s}
     </div>
   </a>
 
+  <!-- 🌟 STAR CATCHER -->
+  <a class="card secret" id="starCatchCard" href="secrets/starcatch.html">
+    <div class="card-thumb" style="background:radial-gradient(ellipse at top,#10173a,#05050f 70%)"><span>🌟</span></div>
+    <span class="badge-new" style="background:#ffe680;color:#000">SECRET</span>
+    <span class="badge-mode">??? · ARCADE</span>
+    <div class="card-body">
+      <h2>STAR CATCHER</h2>
+      <p>Catch the falling stars with your basket. Miss three and it's over. Dodge the comets.</p>
+      <div class="card-tags"><span class="tag" style="border-color:#ffe680;color:#ffe680">ARCADE</span></div>
+      <span class="play-btn green">▶ ENTER</span>
+    </div>
+  </a>
+
 </div>
 
 <!-- ============================== -->
@@ -806,7 +819,7 @@ header h1.shake{animation:shake .3s}
 
 </div>
 
-<div class="hint">PSST... THERE ARE 11 SECRETS. JUST START TYPING WORDS. (BOO · MOON · VOID · MEOW · RAIN · SODA · CULT · BREAD · EYE · 1090 · 42)</div>
+<div class="hint">PSST... THERE ARE 12 SECRETS. JUST START TYPING WORDS. (BOO · MOON · VOID · MEOW · RAIN · SODA · CULT · BREAD · EYE · 1090 · 42 · STAR)</div>
 
 <script>
 // --- Stars (more of them, varied colors) ---
@@ -941,6 +954,7 @@ const SECRETS = {
   'CULT':  { cardId: 'cultCard',    storageKey: 'vault_cult',    toast: 'THE CULT WELCOMES YOU' },
   'BREAD': { cardId: 'pigeonCard',  storageKey: 'vault_pigeon',  toast: 'PIGEON FEEDING UNLOCKED' },
   '42':    { cardId: 'answerCard',  storageKey: 'vault_answer',  toast: 'YOU FOUND THE ANSWER' },
+  'STAR':  { cardId: 'starCatchCard', storageKey: 'vault_starcatch', toast: 'STAR CATCHER UNLOCKED' },
 };
 let buf = '';
 addEventListener('keydown', (e) => {
