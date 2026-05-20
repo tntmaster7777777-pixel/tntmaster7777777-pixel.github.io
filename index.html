@@ -424,6 +424,19 @@ header h1.shake{animation:shake .3s}
 #helpBox li b{color:#ffd700}
 #helpBox button{font-family:inherit;background:#ffd700;color:#000;border:0;
   padding:10px 24px;font-weight:900;letter-spacing:2px;cursor:pointer;border-radius:6px}
+
+/* Click-to-enter fullscreen splash */
+#enterFs{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;cursor:pointer;text-align:center;
+  background:radial-gradient(ellipse at center,#0a0a18,#05050a 80%)}
+#enterFs .efs-t{font-size:54px;font-weight:900;letter-spacing:10px;
+  background:linear-gradient(135deg,#ffd700,#ff8c00,#ff4500);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 30px rgba(255,180,0,.5))}
+#enterFs .efs-s{margin-top:24px;font-size:18px;letter-spacing:4px;color:#ffe680;
+  animation:efsPulse 1.6s ease-in-out infinite}
+#enterFs .efs-k{margin-top:12px;font-size:12px;letter-spacing:2px;color:#667}
+@keyframes efsPulse{0%,100%{opacity:.45}50%{opacity:1}}
 </style>
 </head>
 <body>
@@ -433,6 +446,12 @@ header h1.shake{animation:shake .3s}
 <div class="scanlines"></div>
 <canvas id="fx"></canvas>
 <div id="toast">SECRET UNLOCKED</div>
+
+<div id="enterFs">
+  <div class="efs-t">⚔ DAME VAULT</div>
+  <div class="efs-s">▶ CLICK ANYWHERE FOR FULLSCREEN</div>
+  <div class="efs-k">or press Esc to skip</div>
+</div>
 
 <div id="versionBar">
   <button class="vbtn" data-v="1">v1 ORIGINAL</button>
@@ -1125,13 +1144,15 @@ function exitFs(){
 function toggleFs(){ if (inFs()) exitFs(); else enterFs(); }
 fsBtn.addEventListener('click', (e)=>{ e.stopPropagation(); toggleFs(); });
 document.addEventListener('fullscreenchange', ()=>{ fsBtn.textContent = inFs() ? '🗗' : '⛶'; });
-// Browsers block auto-fullscreen on load, so go fullscreen on the first empty-space click
-function fsOnFirstClick(e){
-  if (e.target.closest('a, button, .vbtn')) return; // don't hijack card/button clicks
-  enterFs();
-  removeEventListener('click', fsOnFirstClick, true);
-}
-addEventListener('click', fsOnFirstClick, true);
+// Browsers block auto-fullscreen on page load (fullscreen MUST follow a click),
+// so show a splash on every open — one click enters fullscreen reliably.
+const enterFsEl = document.getElementById('enterFs');
+function dismissEnter(){ enterFsEl.style.display = 'none'; }
+function showEnter(){ if (!inFs()) enterFsEl.style.display = 'flex'; }
+enterFsEl.addEventListener('click', ()=>{ enterFs(); dismissEnter(); });
+addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && enterFsEl.style.display !== 'none') dismissEnter(); });
+showEnter();
+addEventListener('pageshow', showEnter);
 
 // --- Version switcher ---
 function setVersion(v) {
