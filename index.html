@@ -153,7 +153,7 @@ header p{font-size:14px;letter-spacing:4px;color:#888;margin-top:10px}
 /* VERSION SWITCHER               */
 /* ============================== */
 #versionBar{position:fixed;top:20px;left:50%;transform:translateX(-50%);
-  display:flex;gap:6px;z-index:6;
+  display:flex;gap:6px;z-index:6;flex-wrap:wrap;justify-content:center;max-width:min(740px,72vw);
   background:rgba(0,0,0,.6);padding:6px;border-radius:30px;
   border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px)}
 .vbtn{font-family:'Courier New',monospace;font-size:12px;letter-spacing:1px;
@@ -258,6 +258,81 @@ body.v5 #versionBar{background:rgba(255,255,255,.9);border-color:#ddd}
 body.v5 .hint{color:#999}
 body.v5 .stats-bar{background:#fff;border-color:#eee}
 body.v5 .empty-aisle{background:#fafafa;border-color:#ddd;color:#666}
+
+/* v6 BLOOD — crimson horror */
+body.v6{background:#0a0204}
+body.v6::before{background:
+  radial-gradient(circle at 25% 30%,rgba(200,0,0,.30),transparent 42%),
+  radial-gradient(circle at 80% 25%,rgba(120,0,0,.30),transparent 45%),
+  radial-gradient(circle at 50% 80%,rgba(255,40,40,.18),transparent 50%)}
+body.v6::after{background-image:
+  linear-gradient(rgba(200,0,0,.5) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(200,0,0,.5) 1px,transparent 1px)}
+body.v6 header h1{background:linear-gradient(135deg,#ff4d4d,#c80000,#5a0000);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+body.v6 #cursor{background:radial-gradient(circle,rgba(220,0,0,.18),transparent 70%)}
+body.v6 .stat .n,body.v6 .aisle-title.rec{color:#ff4d4d;text-shadow:0 0 20px rgba(255,40,40,.6)}
+body.v6 .aisle-title.rec{border-bottom-color:#ff4d4d}
+body.v6 .rank{background:linear-gradient(135deg,#ff4d4d,#8b0000)}
+body.v6 #helpBtn,body.v6 #fsBtn{background:linear-gradient(135deg,#ff4d4d,#8b0000);box-shadow:0 0 20px rgba(255,40,40,.5);color:#fff}
+body.v6 .card:hover{box-shadow:0 30px 80px rgba(200,0,0,.4),0 0 0 1px rgba(255,80,80,.5)}
+body.v6 .vbtn.active{background:linear-gradient(135deg,#ff4d4d,#8b0000);color:#fff}
+
+/* v7 OCEAN — deep aqua */
+body.v7{background:#021018}
+body.v7::before{background:
+  radial-gradient(circle at 20% 30%,rgba(0,180,180,.28),transparent 42%),
+  radial-gradient(circle at 80% 20%,rgba(0,120,200,.26),transparent 45%),
+  radial-gradient(circle at 50% 85%,rgba(0,220,180,.18),transparent 50%)}
+body.v7::after{background-image:
+  linear-gradient(rgba(0,200,180,.5) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,200,180,.5) 1px,transparent 1px)}
+body.v7 header h1{background:linear-gradient(135deg,#5ffbe0,#00b4d8,#0077b6);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+body.v7 #cursor{background:radial-gradient(circle,rgba(0,200,180,.18),transparent 70%)}
+body.v7 .stat .n,body.v7 .aisle-title.rec{color:#5ffbe0;text-shadow:0 0 20px rgba(0,220,200,.6)}
+body.v7 .aisle-title.rec{border-bottom-color:#5ffbe0}
+body.v7 .rank{background:linear-gradient(135deg,#5ffbe0,#0077b6)}
+body.v7 #helpBtn,body.v7 #fsBtn{background:linear-gradient(135deg,#5ffbe0,#0077b6);box-shadow:0 0 20px rgba(0,220,200,.5);color:#012}
+body.v7 .card:hover{box-shadow:0 30px 80px rgba(0,180,180,.4),0 0 0 1px rgba(95,251,224,.5)}
+body.v7 .vbtn.active{background:linear-gradient(135deg,#5ffbe0,#0077b6);color:#012}
+
+/* v8 SUNSET — warm dusk */
+body.v8{background:linear-gradient(180deg,#2a0a3a,#7a1f4f 55%,#c84b1f 100%)}
+body.v8::before{background:
+  radial-gradient(circle at 25% 25%,rgba(255,120,60,.30),transparent 45%),
+  radial-gradient(circle at 80% 70%,rgba(255,60,140,.30),transparent 45%)}
+body.v8::after{background-image:
+  linear-gradient(rgba(255,120,60,.4) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,120,60,.4) 1px,transparent 1px)}
+body.v8 header h1{background:linear-gradient(135deg,#ffd16b,#ff7eb3,#ff4d6d);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+body.v8 #cursor{background:radial-gradient(circle,rgba(255,140,80,.2),transparent 70%)}
+body.v8 .stat .n,body.v8 .aisle-title.rec{color:#ffd16b;text-shadow:0 0 20px rgba(255,140,80,.6)}
+body.v8 .aisle-title.rec{border-bottom-color:#ffd16b}
+body.v8 .rank{background:linear-gradient(135deg,#ffd16b,#ff4d6d)}
+body.v8 #helpBtn,body.v8 #fsBtn{background:linear-gradient(135deg,#ffd16b,#ff4d6d);box-shadow:0 0 20px rgba(255,120,100,.5);color:#3a0a1a}
+body.v8 .card:hover{box-shadow:0 30px 80px rgba(255,80,120,.4),0 0 0 1px rgba(255,180,120,.5)}
+body.v8 .vbtn.active{background:linear-gradient(135deg,#ffd16b,#ff4d6d);color:#3a0a1a}
+
+/* v9 GALAXY — violet cosmos */
+body.v9{background:radial-gradient(ellipse at center,#1a0a40,#08021a 75%)}
+body.v9::before{background:
+  radial-gradient(circle at 20% 30%,rgba(150,80,255,.30),transparent 42%),
+  radial-gradient(circle at 80% 25%,rgba(90,40,220,.30),transparent 45%),
+  radial-gradient(circle at 55% 85%,rgba(200,120,255,.20),transparent 50%)}
+body.v9::after{background-image:
+  linear-gradient(rgba(150,80,255,.5) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(150,80,255,.5) 1px,transparent 1px)}
+body.v9 header h1{background:linear-gradient(135deg,#d8b4ff,#9d4edd,#6a00f4);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+body.v9 #cursor{background:radial-gradient(circle,rgba(170,100,255,.2),transparent 70%)}
+body.v9 .stat .n,body.v9 .aisle-title.rec{color:#d8b4ff;text-shadow:0 0 20px rgba(170,100,255,.6)}
+body.v9 .aisle-title.rec{border-bottom-color:#d8b4ff}
+body.v9 .rank{background:linear-gradient(135deg,#d8b4ff,#6a00f4)}
+body.v9 #helpBtn,body.v9 #fsBtn{background:linear-gradient(135deg,#d8b4ff,#6a00f4);box-shadow:0 0 20px rgba(170,100,255,.5);color:#1a0a40}
+body.v9 .card:hover{box-shadow:0 30px 80px rgba(120,40,220,.4),0 0 0 1px rgba(200,150,255,.5)}
+body.v9 .vbtn.active{background:linear-gradient(135deg,#d8b4ff,#6a00f4);color:#1a0a40}
 
 .badge-new{position:absolute;top:12px;right:12px;background:#ff4500;color:#fff;
   font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:2px}
@@ -365,6 +440,10 @@ header h1.shake{animation:shake .3s}
   <button class="vbtn" data-v="3">v3 RETRO</button>
   <button class="vbtn" data-v="4">v4 NEON</button>
   <button class="vbtn" data-v="5">v5 PAPER</button>
+  <button class="vbtn" data-v="6">v6 BLOOD</button>
+  <button class="vbtn" data-v="7">v7 OCEAN</button>
+  <button class="vbtn" data-v="8">v8 SUNSET</button>
+  <button class="vbtn" data-v="9">v9 GALAXY</button>
 </div>
 
 <button id="helpBtn" onclick="toggleHelp()" title="Help">?</button>
@@ -1056,7 +1135,7 @@ addEventListener('click', fsOnFirstClick, true);
 
 // --- Version switcher ---
 function setVersion(v) {
-  document.body.classList.remove('v2','v3','v4','v5');
+  document.body.classList.remove('v2','v3','v4','v5','v6','v7','v8','v9');
   if (v !== '1') document.body.classList.add('v' + v);
   document.querySelectorAll('.vbtn').forEach(b =>
     b.classList.toggle('active', b.dataset.v === v));
