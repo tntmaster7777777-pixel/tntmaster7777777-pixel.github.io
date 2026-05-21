@@ -24,7 +24,8 @@
 body{
   background:#05050a;
   color:#fff;font-family:'Courier New',monospace;min-height:100vh;overflow-x:hidden;
-  perspective:1500px;
+  /* NOTE: body perspective removed — it broke position:fixed (splash/buttons flew off when scrolled).
+     Cards use their own per-element perspective(800px), so 3D tilt is unaffected. */
 }
 
 /* Animated nebula gradient layer */
@@ -426,16 +427,17 @@ header h1.shake{animation:shake .3s}
   padding:10px 24px;font-weight:900;letter-spacing:2px;cursor:pointer;border-radius:6px}
 
 /* Click-to-enter fullscreen splash (vault shows dimly behind so it never looks broken) */
-#enterFs{position:fixed;inset:0;z-index:200;display:flex;align-items:center;
-  justify-content:center;cursor:pointer;text-align:center;background:rgba(5,5,12,.72)}
-#enterFs .efs-box{background:#0a0a16;border:2px solid #ffd700;border-radius:18px;padding:30px 38px;
-  box-shadow:0 0 60px rgba(255,200,0,.45)}
-#enterFs .efs-t{font-size:38px;font-weight:900;letter-spacing:8px;color:#ffd700;
+#enterFs{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-start;
+  justify-content:center;cursor:pointer;text-align:center;background:rgba(5,5,12,.72);
+  padding:max(40px,13vh) 16px 16px;-webkit-tap-highlight-color:transparent}
+#enterFs .efs-box{background:#0a0a16;border:2px solid #ffd700;border-radius:18px;max-width:92vw;
+  padding:clamp(20px,5vw,32px) clamp(18px,6vw,40px);box-shadow:0 0 60px rgba(255,200,0,.45)}
+#enterFs .efs-t{font-size:clamp(24px,7vw,38px);font-weight:900;letter-spacing:6px;color:#ffd700;
   text-shadow:0 0 24px rgba(255,180,0,.6)}
-#enterFs .efs-btn{display:inline-block;margin-top:22px;font-size:18px;font-weight:900;letter-spacing:3px;
-  background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;padding:14px 30px;border-radius:10px;
-  animation:efsPulse 1.4s ease-in-out infinite}
-#enterFs .efs-k{margin-top:16px;font-size:12px;letter-spacing:2px;color:#9ab}
+#enterFs .efs-btn{display:inline-block;margin-top:20px;font-size:clamp(15px,4.6vw,18px);font-weight:900;
+  letter-spacing:2px;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;
+  padding:14px clamp(20px,7vw,30px);border-radius:10px;animation:efsPulse 1.4s ease-in-out infinite}
+#enterFs .efs-k{margin-top:14px;font-size:12px;letter-spacing:2px;color:#9ab}
 @keyframes efsPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 </style>
 </head>
@@ -1149,9 +1151,17 @@ document.addEventListener('fullscreenchange', ()=>{ fsBtn.textContent = inFs() ?
 // Browsers block auto-fullscreen on page load (fullscreen MUST follow a click),
 // so show a splash on every open — one click enters fullscreen reliably.
 const enterFsEl = document.getElementById('enterFs');
+function fsSupported(){ const el=document.documentElement; return !!(el.requestFullscreen||el.webkitRequestFullscreen); }
 function dismissEnter(){ enterFsEl.style.display = 'none'; }
 function showEnter(){ if (!inFs()) enterFsEl.style.display = 'flex'; }
-enterFsEl.addEventListener('click', ()=>{ enterFs(); dismissEnter(); });
+// On devices without fullscreen support (e.g. iPhone), the splash just opens the vault
+if(!fsSupported()){
+  const b=document.querySelector('#enterFs .efs-btn'); if(b) b.textContent='▶ ENTER';
+  const k=document.querySelector('#enterFs .efs-k'); if(k) k.textContent='tap to enter';
+}
+function enterAndDismiss(e){ if(e) e.preventDefault(); enterFs(); dismissEnter(); }
+enterFsEl.addEventListener('click', enterAndDismiss);
+enterFsEl.addEventListener('touchend', enterAndDismiss, {passive:false});
 addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && enterFsEl.style.display !== 'none') dismissEnter(); });
 showEnter();
 addEventListener('pageshow', showEnter);
