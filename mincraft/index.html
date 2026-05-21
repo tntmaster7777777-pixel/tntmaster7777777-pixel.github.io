@@ -2887,6 +2887,32 @@ function respawn(){
   document.getElementById('lockScreen').style.display='flex';
 }
 </script>
+
+<!-- 📱 Mobile camera look: drag on the world to rotate the view (move/jump/mine/place buttons already exist) -->
+<script>(function(){
+  var c=document.getElementById('c'); if(!c)return;
+  c.style.touchAction='none';
+  var lx=0,ly=0,touching=false,id=null;
+  c.addEventListener('touchstart',function(e){
+    var t=e.changedTouches[0]; lx=t.clientX; ly=t.clientY; touching=true; id=t.identifier;
+  },{passive:true});
+  c.addEventListener('touchmove',function(e){
+    if(!touching)return;
+    var t=null;
+    for(var i=0;i<e.changedTouches.length;i++){ if(e.changedTouches[i].identifier===id){ t=e.changedTouches[i]; break; } }
+    if(!t)return;
+    var dx=t.clientX-lx, dy=t.clientY-ly; lx=t.clientX; ly=t.clientY;
+    if(typeof yaw!=='undefined'){
+      yaw-=dx*0.005;
+      pitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,pitch-dy*0.005));
+      if(typeof camera!=='undefined'&&camera.rotation){ camera.rotation.y=yaw; camera.rotation.x=pitch; }
+    }
+    e.preventDefault();
+  },{passive:false});
+  c.addEventListener('touchend',function(){ touching=false; },{passive:true});
+  c.addEventListener('touchcancel',function(){ touching=false; },{passive:true});
+})();</script>
+
 <script src="secrets.js"></script>
 </body>
 </html>
