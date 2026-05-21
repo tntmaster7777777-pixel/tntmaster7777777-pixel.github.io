@@ -425,18 +425,18 @@ header h1.shake{animation:shake .3s}
 #helpBox button{font-family:inherit;background:#ffd700;color:#000;border:0;
   padding:10px 24px;font-weight:900;letter-spacing:2px;cursor:pointer;border-radius:6px}
 
-/* Click-to-enter fullscreen splash */
-#enterFs{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;cursor:pointer;text-align:center;
-  background:radial-gradient(ellipse at center,#0a0a18,#05050a 80%)}
-#enterFs .efs-t{font-size:54px;font-weight:900;letter-spacing:10px;
-  background:linear-gradient(135deg,#ffd700,#ff8c00,#ff4500);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  filter:drop-shadow(0 0 30px rgba(255,180,0,.5))}
-#enterFs .efs-s{margin-top:24px;font-size:18px;letter-spacing:4px;color:#ffe680;
-  animation:efsPulse 1.6s ease-in-out infinite}
-#enterFs .efs-k{margin-top:12px;font-size:12px;letter-spacing:2px;color:#667}
-@keyframes efsPulse{0%,100%{opacity:.45}50%{opacity:1}}
+/* Click-to-enter fullscreen splash (vault shows dimly behind so it never looks broken) */
+#enterFs{position:fixed;inset:0;z-index:200;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;text-align:center;background:rgba(5,5,12,.72)}
+#enterFs .efs-box{background:#0a0a16;border:2px solid #ffd700;border-radius:18px;padding:30px 38px;
+  box-shadow:0 0 60px rgba(255,200,0,.45)}
+#enterFs .efs-t{font-size:38px;font-weight:900;letter-spacing:8px;color:#ffd700;
+  text-shadow:0 0 24px rgba(255,180,0,.6)}
+#enterFs .efs-btn{display:inline-block;margin-top:22px;font-size:18px;font-weight:900;letter-spacing:3px;
+  background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;padding:14px 30px;border-radius:10px;
+  animation:efsPulse 1.4s ease-in-out infinite}
+#enterFs .efs-k{margin-top:16px;font-size:12px;letter-spacing:2px;color:#9ab}
+@keyframes efsPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 </style>
 </head>
 <body>
@@ -448,9 +448,11 @@ header h1.shake{animation:shake .3s}
 <div id="toast">SECRET UNLOCKED</div>
 
 <div id="enterFs">
-  <div class="efs-t">⚔ DAME VAULT</div>
-  <div class="efs-s">▶ CLICK ANYWHERE FOR FULLSCREEN</div>
-  <div class="efs-k">or press Esc to skip</div>
+  <div class="efs-box">
+    <div class="efs-t">⚔ DAME VAULT</div>
+    <div class="efs-btn">▶ ENTER FULLSCREEN</div>
+    <div class="efs-k">or press Esc / click outside to skip</div>
+  </div>
 </div>
 
 <div id="versionBar">
