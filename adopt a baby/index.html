@@ -99,9 +99,11 @@ body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#fce4ec
 .mg-targets{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
 .mg-target{font-size:44px;cursor:pointer;transition:transform .15s;user-select:none}
 .mg-target:hover{transform:scale(1.2)}
-#music-btn{position:fixed;top:10px;right:10px;z-index:50;width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(135deg,#ff80ab,#f50057);color:#fff;font-size:1.2rem;cursor:pointer;box-shadow:0 3px 8px rgba(245,0,87,.3);display:flex;align-items:center;justify-content:center}
-#music-btn:hover{transform:scale(1.1)}
-#music-btn.off{background:linear-gradient(135deg,#bbb,#888)}
+#music-btn{position:fixed;top:10px;right:10px;z-index:50;min-width:48px;height:48px;padding:0 14px;border-radius:24px;border:none;background:linear-gradient(135deg,#ff80ab,#f50057);color:#fff;font-size:1.3rem;font-weight:700;cursor:pointer;box-shadow:0 3px 8px rgba(245,0,87,.3);display:flex;align-items:center;justify-content:center;gap:6px}
+#music-btn:hover{transform:scale(1.08)}
+#music-btn.off{background:linear-gradient(135deg,#ff80ab,#f50057);animation:musicPulse 1.4s ease-in-out infinite}
+@keyframes musicPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,0,87,.5)}50%{box-shadow:0 0 0 10px rgba(245,0,87,0)}}
+#music-btn .mlabel{font-size:.7rem;font-weight:700}
 </style>
 </head>
 <body>
@@ -134,8 +136,9 @@ body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#fce4ec
   <button id="adopt-btn" onclick="adoptBaby()">Adopt My Baby!</button>
 </div>
 
+<button id="music-btn" class="off" onclick="toggleMusic()">&#x1F507;<span class="mlabel">Play Music</span></button>
+
 <div id="game-screen">
-  <button id="music-btn" onclick="toggleMusic()">&#x1F3B5;</button>
   <div id="game-title">Adopt a Baby</div>
   <div id="baby-name-display"></div>
   <div id="hud">
@@ -867,7 +870,7 @@ function updateLyrics(){
     for(let i=LYRICS_SYNC.length-1;i>=0;i--){
       if(t>=LYRICS_SYNC[i].t){ current=LYRICS_SYNC[i].text; break; }
     }
-    document.getElementById('lyrics').textContent=current;
+    const ly=document.getElementById('lyrics');if(ly)ly.textContent=current;
   },500);
 }
 
@@ -876,24 +879,30 @@ function toggleMusic(){
   if(musicPlaying){
     musicPlaying=false;
     btn.classList.add('off');
-    btn.innerHTML='&#x1F507;';
+    btn.innerHTML='&#x1F507;<span class="mlabel">Play Music</span>';
     if(ytPlayer&&ytPlayer.pauseVideo) ytPlayer.pauseVideo();
     clearInterval(lyricsInterval);
-    document.getElementById('lyrics').textContent='';
+    const ly=document.getElementById('lyrics');if(ly)ly.textContent='';
   } else {
     musicPlaying=true;
     btn.classList.remove('off');
-    btn.innerHTML='&#x1F3B5;';
+    btn.innerHTML='&#x1F3B5;<span class="mlabel">Music On</span>';
     if(ytReady&&ytPlayer&&ytPlayer.playVideo){
+      ytPlayer.unMute&&ytPlayer.unMute();
+      ytPlayer.setVolume&&ytPlayer.setVolume(100);
       ytPlayer.playVideo();
       updateLyrics();
     } else {
+      btn.innerHTML='&#x1F3B5;<span class="mlabel">Loading…</span>';
       // Wait for YT to be ready
       const check=setInterval(()=>{
         if(ytReady&&ytPlayer&&ytPlayer.playVideo){
           clearInterval(check);
+          ytPlayer.unMute&&ytPlayer.unMute();
+          ytPlayer.setVolume&&ytPlayer.setVolume(100);
           ytPlayer.playVideo();
           updateLyrics();
+          if(musicPlaying)btn.innerHTML='&#x1F3B5;<span class="mlabel">Music On</span>';
         }
       },300);
     }
