@@ -2212,5 +2212,40 @@ requestAnimationFrame(loop);
 
 })();
 </script>
+
+<!-- 📱 Mobile touch controls (dispatch synthetic key events; no game-logic changes) -->
+<style>
+#mtc{position:fixed;inset:0;z-index:99990;pointer-events:none;display:none}
+@media (pointer:coarse),(max-width:900px){#mtc{display:block}}
+#mtc .tb{position:absolute;pointer-events:auto;border-radius:50%;width:62px;height:62px;
+  background:rgba(20,20,30,.5);border:2px solid rgba(255,255,255,.5);color:#fff;font-size:24px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;
+  user-select:none;-webkit-user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+#mtc .tb:active{background:rgba(255,215,0,.65);color:#000}
+#mtc .tb.wide{width:auto;min-width:92px;height:56px;border-radius:30px;font-size:15px;font-weight:900;letter-spacing:1px}
+</style>
+<div id="mtc"></div>
+<script>(function(){
+  var pad=document.getElementById('mtc');
+  var BTNS=[
+    {l:'▲',k:'ArrowUp',c:'ArrowUp',kc:38,s:'left:78px;bottom:150px'},
+    {l:'◀',k:'ArrowLeft',c:'ArrowLeft',kc:37,s:'left:14px;bottom:84px'},
+    {l:'▶',k:'ArrowRight',c:'ArrowRight',kc:39,s:'left:142px;bottom:84px'},
+    {l:'▼',k:'ArrowDown',c:'ArrowDown',kc:40,s:'left:78px;bottom:18px'},
+    {l:'⚔ ATK',k:' ',c:'Space',kc:32,s:'right:22px;bottom:92px',w:1},
+    {l:'» DASH',k:'Shift',c:'ShiftLeft',kc:16,s:'right:22px;bottom:26px',w:1}
+  ];
+  function ev(t,b){window.dispatchEvent(new KeyboardEvent(t,{key:b.k,code:b.c,keyCode:b.kc,which:b.kc,bubbles:true}));}
+  BTNS.forEach(function(b){
+    var el=document.createElement('div');el.className='tb'+(b.w?' wide':'');el.textContent=b.l;el.style.cssText=b.s;
+    var dn=function(e){e.preventDefault();ev('keydown',b);};
+    var up=function(e){e.preventDefault();ev('keyup',b);};
+    el.addEventListener('touchstart',dn,{passive:false});
+    el.addEventListener('touchend',up,{passive:false});
+    el.addEventListener('touchcancel',up,{passive:false});
+    el.addEventListener('mousedown',dn);el.addEventListener('mouseup',up);
+    pad.appendChild(el);
+  });
+})();</script>
 </body>
 </html>
