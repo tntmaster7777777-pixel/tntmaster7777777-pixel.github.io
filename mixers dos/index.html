@@ -1175,6 +1175,34 @@ const audio = {
       o1.connect(lp); lp.connect(g);
       o1.start(now);
       o1.stop(now + dur + rel + 0.1);
+    } else if (o === 'flute') {
+      // Airy sine + breathy noise + slight vibrato
+      const o1 = this.ctx.createOscillator(); o1.type = 'sine'; o1.frequency.value = freq;
+      const o2 = this.ctx.createOscillator(); o2.type = 'triangle'; o2.frequency.value = freq * 2;
+      const g2 = this.ctx.createGain(); g2.gain.value = 0.12;
+      const lfo = this.ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5;
+      const lfoG = this.ctx.createGain(); lfoG.gain.value = freq * 0.008;
+      lfo.connect(lfoG); lfoG.connect(o1.frequency);
+      // breath noise
+      const nbuf = this.ctx.createBuffer(1, this.ctx.sampleRate * (dur + rel + 0.1), this.ctx.sampleRate);
+      const nd = nbuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * 0.5;
+      const nsrc = this.ctx.createBufferSource(); nsrc.buffer = nbuf;
+      const nbp = this.ctx.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = freq * 2; nbp.Q.value = 2;
+      const ng = this.ctx.createGain(); ng.gain.value = 0.04;
+      nsrc.connect(nbp); nbp.connect(ng); ng.connect(g);
+      o1.connect(g); o2.connect(g2); g2.connect(g);
+      o1.start(now); o2.start(now); lfo.start(now); nsrc.start(now);
+      o1.stop(now + dur + rel + 0.05); o2.stop(now + dur + rel + 0.05); lfo.stop(now + dur + rel + 0.05);
+    } else if (o === 'shaker') {
+      // High filtered noise tick for rhythm
+      const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.06, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/data.length);
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const hp = this.ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 6000;
+      src.connect(hp); hp.connect(g);
+      src.start(now);
     } else if (o === 'drum') {
       // noise burst through bandpass for a hand-drum thump
       const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.3, this.ctx.sampleRate);
@@ -1202,28 +1230,58 @@ const audio = {
   startMusic(theme) {
     this.init();
     if (this.musicTimer) this.stopMusic();
+    this.currentTheme = theme;          // remember for un-mute resume
+    if (this.muted) return;             // stay silent while muted
     this.beatIndex = 0;
     const themes = {
       explore: {
+        // Warm, wistful Am – F – C – G (the classic "adventure" progression)
         progression: [
-          { root: 33, chord: [45, 48, 52] }, // Am
-          { root: 29, chord: [41, 45, 48] }, // F
-          { root: 26, chord: [38, 41, 45] }, // Dm
-          { root: 28, chord: [40, 43, 47] }, // E (V)
+          { root: 33, chord: [45, 48, 52] }, // Am  (A3 C4 E4)
+          { root: 29, chord: [41, 45, 48] }, // F   (F3 A3 C4)
+          { root: 24, chord: [40, 43, 48] }, // C   (E3 G3 C4)
+          { root: 31, chord: [43, 47, 50] }, // G   (G3 B3 D4)
         ],
-        beatMs: 1800,
-        melodyOdds: 0.45,
+        beatMs: 1700,
+        // COMPOSED melody — detailed 8-note phrase per bar (null = rest to breathe)
+        melodyPhrases: [
+          [69, 72, 76, 74, 72, 71, 69, null],  // Am: A C E D C B A -
+          [72, 77, 76, 72, 69, null, 65, 69],  // F:  C F E C A - F A
+          [67, 72, 76, 79, 76, 72, 67, null],  // C:  G C E G E C G -
+          [74, 71, 67, 71, 74, null, 67, 71],  // G:  D B G B D - G B
+        ],
+        // Flute counter-melody answers in the gaps (higher, sparse)
+        counterPhrases: [
+          [null, null, 81, null, null, 79, null, 76],
+          [null, 81, null, null, 77, null, null, 72],
+          [null, null, 84, null, 79, null, 76, null],
+          [null, 79, null, 74, null, null, 71, null],
+        ],
+        melodyInst: 'violin',
       },
       boss: {
+        // Darker, surging Am – G – F – E with a leading-tone climax
         progression: [
           { root: 33, chord: [45, 48, 52] }, // Am
-          { root: 32, chord: [44, 47, 51] }, // G#dim ish (tense)
-          { root: 26, chord: [38, 41, 45] }, // Dm
-          { root: 28, chord: [40, 44, 47] }, // E
+          { root: 31, chord: [43, 47, 50] }, // G
+          { root: 29, chord: [41, 45, 48] }, // F
+          { root: 28, chord: [40, 44, 47] }, // E (major V — tension)
         ],
-        beatMs: 1400,
-        melodyOdds: 0.7,
+        beatMs: 1300,
         boss: true,
+        melodyPhrases: [
+          [69, 72, 76, 81, 76, 72, 69, null],  // Am: A C E A E C A -
+          [71, 74, 79, 74, 71, 67, null, 71],  // G:  B D G D B G - B
+          [72, 77, 81, 77, 72, 69, 65, null],  // F:  C F A F C A F -
+          [68, 71, 76, 80, 76, 71, 68, null],  // E:  G# B E G# E B G# -
+        ],
+        counterPhrases: [
+          [null, null, 84, null, null, 81, null, null],
+          [null, 83, null, null, 79, null, null, null],
+          [null, null, 88, null, 84, null, null, null],
+          [null, 83, null, 80, null, null, 76, null],
+        ],
+        melodyInst: 'violin',
       },
       // Frenzied mid-boss theme — relentless driving rhythm that builds
       // from repeated low pulses into climbing notes and sustained highs.
@@ -1332,9 +1390,16 @@ const audio = {
         this.voice(this.midiHz(n - 12), bs * 1.4, { kind: 'pad', gain: 0.04, atk: bs * 0.4, rel: bs * 0.6 });
       });
 
-      // -------- LAYER 2: Low strings holding the root (cello) --------
-      this.voice(this.midiHz(b.root - 24), bs * 1.4, { kind: 'strings', gain: 0.08, atk: bs * 0.3, rel: bs * 0.5 });
-      this.voice(this.midiHz(b.root - 12), bs * 1.4, { kind: 'strings', gain: 0.05, atk: bs * 0.3, rel: bs * 0.5 });
+      // -------- LAYER 2: Walking bass — root, then a passing tone mid-bar --------
+      this.voice(this.midiHz(b.root - 24), bs * 0.55, { kind: 'strings', gain: 0.09, atk: bs * 0.1, rel: bs * 0.3 });
+      this.voice(this.midiHz(b.root - 12), bs * 1.4, { kind: 'strings', gain: 0.04, atk: bs * 0.3, rel: bs * 0.5 });
+      // mid-bar walking note toward the next chord
+      const nextB = T.progression[(this.beatIndex + 1) % T.progression.length];
+      const walkNote = (b.root + nextB.root) / 2;  // step between this root and next
+      setTimeout(() => {
+        if (this.muted) return;
+        this.voice(this.midiHz(Math.round(walkNote) - 24), bs * 0.45, { kind: 'strings', gain: 0.07, atk: bs * 0.08, rel: bs * 0.3 });
+      }, T.beatMs * 0.5);
 
       // -------- LAYER 3: Choir aah on the chord top --------
       b.chord.forEach((n, i) => {
@@ -1352,45 +1417,44 @@ const audio = {
         this.voice(this.midiHz(b.root - 24), 0.35, { kind: 'timpani', gain: 0.18, atk: 0.001, rel: 0.2 });
       }
 
-      // -------- LAYER 5: Violin lead melody (solo, sparse + soaring) --------
-      // Use scale notes for melodic line, not just random pentatonic
-      if (Math.random() < T.melodyOdds) {
-        const scale = T.boss
-          ? [69, 71, 72, 74, 76, 77, 79, 81, 84]   // A natural minor
-          : [69, 72, 74, 76, 77, 79, 81, 84];      // A minor with leading
-        // Pick a phrase of 1-3 notes rather than just one
-        const phraseLen = Math.random() < 0.5 ? 1 : (Math.random() < 0.7 ? 2 : 3);
-        for (let p = 0; p < phraseLen; p++) {
-          const note = scale[Math.floor(Math.random() * scale.length)];
-          const delay = (Math.random() * 0.3 + p * 0.4) * T.beatMs;
+      // -------- LAYER 5: COMPOSED melody — a real, flowing phrase per bar --------
+      if (T.melodyPhrases) {
+        const phrase = T.melodyPhrases[this.beatIndex % T.melodyPhrases.length];
+        const noteDur = (T.beatMs / 1000) / phrase.length;  // notes evenly fill the bar
+        phrase.forEach((note, i) => {
+          // skip a note occasionally for a more natural, breathing feel
+          if (note == null) return;
+          const delay = (i / phrase.length) * T.beatMs;
           setTimeout(() => {
             if (this.muted) return;
-            this.voice(this.midiHz(note), 0.9, { kind: 'violin', gain: 0.08, atk: 0.04, rel: 0.7 });
+            this.voice(this.midiHz(note), noteDur * 0.9, {
+              kind: T.melodyInst || 'violin', gain: 0.085, atk: 0.03, rel: noteDur * 0.6
+            });
+            // soft octave-down doubling for warmth
+            this.voice(this.midiHz(note - 12), noteDur * 0.9, {
+              kind: 'choir', gain: 0.018, atk: 0.05, rel: noteDur * 0.6
+            });
           }, delay);
-        }
+        });
       }
 
-      // -------- LAYER 6: French horn counter-melody (boss only, rare but bold) --------
-      if (T.boss && this.beatIndex % 4 === 2 && Math.random() < 0.5) {
-        const hornNotes = [60, 62, 64, 65, 67, 69, 72];
-        const n = hornNotes[Math.floor(Math.random() * hornNotes.length)];
+      // -------- LAYER 6: French horn — sustained chord root (boss only, adds weight) --------
+      if (T.boss && this.beatIndex % 2 === 0) {
         setTimeout(() => {
           if (this.muted) return;
-          this.voice(this.midiHz(n), 1.2, { kind: 'brass', gain: 0.07, atk: 0.15, rel: 0.6 });
-        }, T.beatMs * 0.3);
+          this.voice(this.midiHz(b.root), bs * 1.6, { kind: 'brass', gain: 0.05, atk: 0.2, rel: bs * 0.7 });
+        }, T.beatMs * 0.25);
       }
 
-      // -------- LAYER 7: Pizzicato/harp arpeggio sparkle (explore, occasional) --------
-      if (!T.boss && Math.random() < 0.35) {
-        const arpScale = [69, 72, 76, 81, 84];
-        const baseDelay = Math.random() * (T.beatMs * 0.3);
-        for (let i = 0; i < 3; i++) {
-          const n = arpScale[Math.floor(Math.random() * arpScale.length)];
+      // -------- LAYER 7: Harp — gentle rising arpeggio of the CURRENT chord (explore) --------
+      if (!T.boss) {
+        const arp = [b.chord[0], b.chord[1], b.chord[2], b.chord[1] + 12];
+        arp.forEach((n, i) => {
           setTimeout(() => {
             if (this.muted) return;
-            this.voice(this.midiHz(n), 0.4, { kind: 'harp', gain: 0.05, atk: 0.001, rel: 0.4 });
-          }, baseDelay + i * 110);
-        }
+            this.voice(this.midiHz(n), 0.5, { kind: 'harp', gain: 0.045, atk: 0.001, rel: 0.5 });
+          }, (i / arp.length) * T.beatMs + T.beatMs * 0.05);
+        });
       }
 
       this.beatIndex++;
@@ -1407,6 +1471,13 @@ const audio = {
   toggleMute() {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.6;
+    if (this.muted) {
+      // Fully stop the song — halt the note schedulers, not just the volume
+      this.stopMusic();
+    } else if (this.currentTheme) {
+      // Resume the last theme when un-muted
+      this.startMusic(this.currentTheme);
+    }
     return this.muted;
   },
 
@@ -6813,5 +6884,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- +marker+: if Fullscreen Forever is on in the vault, go fullscreen on first tap -->
 <script>(function(){try{if(localStorage.getItem("fsForever")==="1"){var go=function(){var el=document.documentElement,r=el.requestFullscreen||el.webkitRequestFullscreen;if(r){try{var p=r.call(el);if(p&&p.catch)p.catch(function(){});}catch(e){}}window.removeEventListener("click",go);window.removeEventListener("touchend",go);};window.addEventListener("click",go);window.addEventListener("touchend",go,{passive:true});}}catch(e){}})();</script>
+
+<script>/* gamepad-bridge */(function(){if(!navigator.getGamepads)return;var st={};function K(t,k,c,kc){window.dispatchEvent(new KeyboardEvent(t,{key:k,code:c,keyCode:kc,which:kc,bubbles:true}));}function set(id,dn,k,c,kc){if(dn&&!st[id]){st[id]=1;K("keydown",k,c,kc);}else if(!dn&&st[id]){st[id]=0;K("keyup",k,c,kc);}}function bd(p,i){return p.buttons[i]&&p.buttons[i].pressed;}function loop(){var ps=navigator.getGamepads();for(var i=0;i<ps.length;i++){var p=ps[i];if(!p)continue;var x=p.axes[0]||0,y=p.axes[1]||0;set("L",x<-.5||bd(p,14),"ArrowLeft","ArrowLeft",37);set("R",x>.5||bd(p,15),"ArrowRight","ArrowRight",39);set("U",y<-.5||bd(p,12),"ArrowUp","ArrowUp",38);set("D",y>.5||bd(p,13),"ArrowDown","ArrowDown",40);set("Asp",bd(p,0)," ","Space",32);set("Aen",bd(p,0),"Enter","Enter",13);set("Bsh",bd(p,1),"Shift","ShiftLeft",16);break;}requestAnimationFrame(loop);}requestAnimationFrame(loop);})();</script>
 </body>
 </html>

@@ -793,37 +793,103 @@ function animBaby(cls){
 let musicPlaying=false;
 let ytPlayer=null;
 let ytReady=false;
+let usingSynth=false;       // true when falling back to synthesized melody
+let synthTimer=null;        // schedules the next note
+let synthNoteIdx=0;
+let fallbackTimer=null;     // the 2s "did YouTube actually play?" check
 
 // Load YouTube IFrame API
 const ytScript=document.createElement('script');
 ytScript.src='https://www.youtube.com/iframe_api';
+ytScript.onerror=()=>{ ytReady=false; }; // network blocked → we'll use synth
 document.head.appendChild(ytScript);
 
-// Hidden YT player container
+// Hidden YT player container (kept small but on-screen edge for best chance to play)
 const ytDiv=document.createElement('div');
 ytDiv.id='yt-player';
-ytDiv.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;';
+ytDiv.style.cssText='position:fixed;bottom:0;right:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1';
 document.body.appendChild(ytDiv);
 
 function onYouTubeIframeAPIReady(){
-  ytPlayer=new YT.Player('yt-player',{
-    height:'1',width:'1',
-    videoId:'MtN1YnoL46Q', // The Duck Song by Bryant Oden
-    playerVars:{autoplay:0,loop:1,playlist:'MtN1YnoL46Q',controls:0},
-    events:{
-      onReady:function(){ ytReady=true; },
-      onStateChange:function(e){
-        // When video ends, loop it
-        if(e.data===YT.PlayerState.ENDED && musicPlaying){
-          ytPlayer.playVideo();
-        }
-        // Update lyrics display based on playback
-        if(e.data===YT.PlayerState.PLAYING && musicPlaying){
-          updateLyrics();
+  try{
+    ytPlayer=new YT.Player('yt-player',{
+      height:'1',width:'1',
+      videoId:'MtN1YnoL46Q', // The Duck Song by Bryant Oden
+      playerVars:{autoplay:0,loop:1,playlist:'MtN1YnoL46Q',controls:0},
+      events:{
+        onReady:function(){ ytReady=true; },
+        onStateChange:function(e){
+          if(e.data===YT.PlayerState.ENDED && musicPlaying && !usingSynth){ ytPlayer.playVideo(); }
+          if(e.data===YT.PlayerState.PLAYING && musicPlaying && !usingSynth){ updateLyrics(); }
         }
       }
-    }
-  });
+    });
+  }catch(e){ ytReady=false; }
+}
+
+// ---- Synthesized Duck Song melody (always works, no network) ----
+// "A duck walked up to a lemonade stand..." cheerful bouncy tune
+const NOTE={C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,B4:493.88,C5:523.25,D5:587.33,E5:659.25,REST:0};
+const DUCK_MELODY=[
+  // "A duck walked up to a lemon-ade stand"
+  ['G4',.28],['G4',.28],['A4',.28],['G4',.28],['C5',.5],['B4',.5],
+  ['REST',.2],
+  // "and he said to the man got any grapes"
+  ['G4',.28],['G4',.28],['A4',.28],['G4',.28],['D5',.5],['C5',.5],
+  ['REST',.2],
+  // "got any grapes?"  (the famous hook)
+  ['E5',.3],['E5',.3],['C5',.3],['G4',.3],['A4',.45],['G4',.55],
+  ['REST',.35]
+];
+
+function playSynthNote(freq,dur){
+  if(freq<=0)return; // rest
+  try{
+    const ctx=getAudioCtx(),t=ctx.currentTime;
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='triangle';o.frequency.setValueAtTime(freq,t);
+    // little vibrato for a "singing duck" feel
+    const v=ctx.createOscillator(),vg=ctx.createGain();
+    v.frequency.value=6;vg.gain.value=4;v.connect(vg);vg.connect(o.frequency);v.start(t);v.stop(t+dur);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.18,t+.03);
+    g.gain.setValueAtTime(.18,t+dur-.06);
+    g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+dur);
+  }catch(e){}
+}
+
+function startSynthMusic(){
+  usingSynth=true;
+  synthNoteIdx=0;
+  const btn=document.getElementById('music-btn');
+  if(btn)btn.innerHTML='&#x1F3B5;<span class="mlabel">Duck Song 🦆</span>';
+  scheduleSynthNote();
+  // drive lyrics from synth timeline
+  startSynthLyrics();
+}
+function scheduleSynthNote(){
+  if(!musicPlaying||!usingSynth)return;
+  const [name,dur]=DUCK_MELODY[synthNoteIdx];
+  playSynthNote(NOTE[name],dur);
+  synthNoteIdx=(synthNoteIdx+1)%DUCK_MELODY.length;
+  synthTimer=setTimeout(scheduleSynthNote,dur*1000);
+}
+function stopSynthMusic(){
+  usingSynth=false;
+  clearTimeout(synthTimer);
+}
+let synthLyricStart=0;
+function startSynthLyrics(){
+  synthLyricStart=Date.now();
+  clearInterval(lyricsInterval);
+  lyricsInterval=setInterval(()=>{
+    if(!musicPlaying){clearInterval(lyricsInterval);return;}
+    const t=((Date.now()-synthLyricStart)/1000)%LYRICS_SYNC[LYRICS_SYNC.length-1].t;
+    let current='🦆🍋 The Duck Song';
+    for(let i=LYRICS_SYNC.length-1;i>=0;i--){ if(t>=LYRICS_SYNC[i].t){current=LYRICS_SYNC[i].text;break;} }
+    const ly=document.getElementById('lyrics');if(ly)ly.textContent=current;
+  },500);
 }
 
 // Lyrics synced roughly to the song timestamps
@@ -876,36 +942,40 @@ function updateLyrics(){
 
 function toggleMusic(){
   const btn=document.getElementById('music-btn');
+  // wake the audio engine on this user gesture (needed for synth + burp)
+  try{getAudioCtx().resume();}catch(e){}
+  clearTimeout(fallbackTimer); // never let checks stack
   if(musicPlaying){
     musicPlaying=false;
     btn.classList.add('off');
     btn.innerHTML='&#x1F507;<span class="mlabel">Play Music</span>';
-    if(ytPlayer&&ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+    // Instant silence: mute right away (pauseVideo is async and lags ~1s)
+    try{ if(ytPlayer){ ytPlayer.mute&&ytPlayer.mute(); ytPlayer.pauseVideo&&ytPlayer.pauseVideo(); } }catch(e){}
+    stopSynthMusic();
     clearInterval(lyricsInterval);
     const ly=document.getElementById('lyrics');if(ly)ly.textContent='';
   } else {
     musicPlaying=true;
     btn.classList.remove('off');
     btn.innerHTML='&#x1F3B5;<span class="mlabel">Music On</span>';
+    // Try YouTube (the real song). If it isn't actually playing within 2s, fall back to synth.
     if(ytReady&&ytPlayer&&ytPlayer.playVideo){
-      ytPlayer.unMute&&ytPlayer.unMute();
-      ytPlayer.setVolume&&ytPlayer.setVolume(100);
-      ytPlayer.playVideo();
-      updateLyrics();
-    } else {
-      btn.innerHTML='&#x1F3B5;<span class="mlabel">Loading…</span>';
-      // Wait for YT to be ready
-      const check=setInterval(()=>{
-        if(ytReady&&ytPlayer&&ytPlayer.playVideo){
-          clearInterval(check);
-          ytPlayer.unMute&&ytPlayer.unMute();
-          ytPlayer.setVolume&&ytPlayer.setVolume(100);
-          ytPlayer.playVideo();
-          updateLyrics();
-          if(musicPlaying)btn.innerHTML='&#x1F3B5;<span class="mlabel">Music On</span>';
-        }
-      },300);
+      try{
+        ytPlayer.unMute&&ytPlayer.unMute();
+        ytPlayer.setVolume&&ytPlayer.setVolume(100);
+        ytPlayer.playVideo();
+        updateLyrics();
+      }catch(e){}
     }
+    // Verify real playback; otherwise use the always-works synth Duck Song
+    fallbackTimer=setTimeout(()=>{
+      if(!musicPlaying)return;
+      let playing=false;
+      try{ playing=ytPlayer&&ytPlayer.getPlayerState&&ytPlayer.getPlayerState()===1; }catch(e){}
+      if(!playing && !usingSynth){
+        startSynthMusic(); // guaranteed sound
+      }
+    },2000);
   }
 }
 
@@ -1084,5 +1154,7 @@ addLollipop();
 
 <!-- +marker+: if Fullscreen Forever is on in the vault, go fullscreen on first tap -->
 <script>(function(){try{if(localStorage.getItem("fsForever")==="1"){var go=function(){var el=document.documentElement,r=el.requestFullscreen||el.webkitRequestFullscreen;if(r){try{var p=r.call(el);if(p&&p.catch)p.catch(function(){});}catch(e){}}window.removeEventListener("click",go);window.removeEventListener("touchend",go);};window.addEventListener("click",go);window.addEventListener("touchend",go,{passive:true});}}catch(e){}})();</script>
+
+<script>/* gamepad-bridge */(function(){if(!navigator.getGamepads)return;var st={};function K(t,k,c,kc){window.dispatchEvent(new KeyboardEvent(t,{key:k,code:c,keyCode:kc,which:kc,bubbles:true}));}function set(id,dn,k,c,kc){if(dn&&!st[id]){st[id]=1;K("keydown",k,c,kc);}else if(!dn&&st[id]){st[id]=0;K("keyup",k,c,kc);}}function bd(p,i){return p.buttons[i]&&p.buttons[i].pressed;}function loop(){var ps=navigator.getGamepads();for(var i=0;i<ps.length;i++){var p=ps[i];if(!p)continue;var x=p.axes[0]||0,y=p.axes[1]||0;set("L",x<-.5||bd(p,14),"ArrowLeft","ArrowLeft",37);set("R",x>.5||bd(p,15),"ArrowRight","ArrowRight",39);set("U",y<-.5||bd(p,12),"ArrowUp","ArrowUp",38);set("D",y>.5||bd(p,13),"ArrowDown","ArrowDown",40);set("Asp",bd(p,0)," ","Space",32);set("Aen",bd(p,0),"Enter","Enter",13);set("Bsh",bd(p,1),"Shift","ShiftLeft",16);break;}requestAnimationFrame(loop);}requestAnimationFrame(loop);})();</script>
 </body>
 </html>
