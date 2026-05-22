@@ -1336,8 +1336,8 @@ function setVersion(v) {
 }
 document.querySelectorAll('.vbtn').forEach(b =>
   b.addEventListener('click', (e) => { e.stopPropagation(); setVersion(b.dataset.v); }));
-// Restore on load
-setVersion(localStorage.getItem('vault_version') || '1');
+// Always start on v1 ORIGINAL every time the vault opens
+setVersion('1');
 </script>
 </body>
 </html>
