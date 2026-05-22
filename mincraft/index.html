@@ -2914,5 +2914,8 @@ function respawn(){
 })();</script>
 
 <script src="secrets.js"></script>
+
+<!-- +marker+: if Fullscreen Forever is on in the vault, go fullscreen on first tap -->
+<script>(function(){try{if(localStorage.getItem("fsForever")==="1"){var go=function(){var el=document.documentElement,r=el.requestFullscreen||el.webkitRequestFullscreen;if(r){try{var p=r.call(el);if(p&&p.catch)p.catch(function(){});}catch(e){}}window.removeEventListener("click",go);window.removeEventListener("touchend",go);};window.addEventListener("click",go);window.addEventListener("touchend",go,{passive:true});}}catch(e){}})();</script>
 </body>
 </html>

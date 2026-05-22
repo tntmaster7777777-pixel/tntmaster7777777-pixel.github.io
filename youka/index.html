@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>YOUKA — Hungry: Eat 1 Billion Beans, Then Fart & Eat Dump Shrimp</title>
+<meta name="description" content="YOUKA: a hungry-themed game. Pick one of 15 characters and eat 1 BILLION beans. Build your gut, charge up monster farts, and finish with a huge fart before feasting on shrimp from the dump.">
+<meta name="theme-color" content="#8a5a2b">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bean:#c9a227; --bean2:#8a5a2b; --dark:#1a120a; --crust:#2a1d10;
+  --good:#7bd44a; --funk:#9be53a; --gold:#ffd84d;
+}
+html,body{height:100%}
+body{
+  font-family:'Comic Sans MS','Trebuchet MS','Segoe UI',sans-serif;
+  background:radial-gradient(circle at 50% -10%,#3a2a16,#160f07 70%);
+  color:#fff5e0; overflow:hidden; user-select:none; -webkit-user-select:none;
+  touch-action:manipulation;
+}
+#app{position:fixed;inset:0;overflow:hidden}
+
+/* floating ambient beans */
+.amb{position:absolute;font-size:26px;opacity:.12;pointer-events:none;animation:floatUp linear infinite;z-index:0}
+@keyframes floatUp{from{transform:translateY(110vh) rotate(0)}to{transform:translateY(-15vh) rotate(360deg)}}
+
+button{font-family:inherit;cursor:pointer;border:none;color:inherit}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;z-index:2}
+.screen.on{display:flex}
+
+/* ---------- TITLE / SELECT ---------- */
+#select{align-items:center;overflow-y:auto;padding:18px 12px 40px}
+.logo{font-size:clamp(44px,12vw,96px);font-weight:900;letter-spacing:3px;margin-top:8px;
+  background:linear-gradient(180deg,#ffe98a,#e0a82e 55%,#7a4a1d);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 4px 0 #4a2e10) drop-shadow(0 0 22px rgba(255,190,60,.5));
+  text-align:center;line-height:.95;transform:rotate(-2deg);animation:wob 4s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:rotate(-2deg) scale(1)}50%{transform:rotate(2deg) scale(1.03)}}
+.tag{font-size:clamp(13px,3.4vw,18px);color:#ffcf7a;text-align:center;margin:6px 0 2px;text-shadow:0 2px 6px #000}
+.goalline{font-size:clamp(12px,3vw,15px);color:#bda; text-align:center;opacity:.85;margin-bottom:14px}
+.goalline b{color:var(--gold)}
+.pickhint{font-size:13px;color:#ffd; background:rgba(0,0,0,.25);padding:7px 16px;border-radius:30px;margin-bottom:12px;border:1px solid rgba(255,210,120,.25)}
+
+.charGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;
+  width:100%;max-width:860px}
+.char{background:linear-gradient(160deg,#2e2112,#1c1409);border:2px solid #4a3418;border-radius:16px;
+  padding:12px 10px 14px;text-align:center;transition:transform .15s,border-color .15s,box-shadow .15s;position:relative;overflow:hidden}
+.char:hover,.char:focus-visible{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 10px 26px rgba(0,0,0,.5),0 0 0 2px rgba(255,216,77,.4)}
+.char .face{font-size:46px;line-height:1;filter:drop-shadow(0 4px 4px rgba(0,0,0,.5));display:block;margin:2px 0 6px;transition:transform .15s}
+.char:hover .face{transform:scale(1.12) rotate(-4deg)}
+.char .nm{font-weight:900;font-size:15px;color:#ffe2a6;letter-spacing:.3px}
+.char .perk{font-size:11px;color:var(--good);margin-top:3px;font-weight:bold}
+.char .blurb{font-size:10.5px;color:#cbb89a;margin-top:4px;line-height:1.25;min-height:26px}
+
+/* ---------- GAME ---------- */
+#game{flex-direction:column}
+.topbar{padding:8px 12px 6px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);position:relative;z-index:5}
+.counter{text-align:center}
+.beans{font-size:clamp(30px,8vw,58px);font-weight:900;color:#fff;letter-spacing:1px;
+  text-shadow:0 3px 0 #4a2e10,0 0 18px rgba(255,200,90,.5);line-height:1}
+.beans small{font-size:.42em;color:var(--bean);font-weight:900;letter-spacing:1px}
+.goalrow{display:flex;align-items:center;gap:8px;max-width:560px;margin:6px auto 0;font-size:12px;color:#e8d2a8}
+.bar{flex:1;height:14px;background:#160f06;border-radius:10px;overflow:hidden;border:1px solid #4a3418;box-shadow:inset 0 2px 4px #000}
+.barfill{height:100%;width:0;background:linear-gradient(90deg,#e0a82e,#ffe07a,#7bd44a);transition:width .25s;border-radius:10px}
+.bps{text-align:center;font-size:13px;color:#ffcf7a;margin-top:3px;min-height:18px}
+
+.playwrap{flex:1;display:flex;min-height:0}
+.stage{flex:1.15;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:6px;min-width:0}
+.shoppanel{flex:1;max-width:380px;background:linear-gradient(180deg,#1c1409,#120c05);border-left:2px solid #3a2a16;
+  display:flex;flex-direction:column;min-width:0}
+.shophead{padding:9px 12px;font-weight:900;color:#ffd98a;letter-spacing:1px;font-size:14px;
+  border-bottom:1px solid #3a2a16;display:flex;justify-content:space-between;align-items:center;flex:none}
+.shoplist{overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:7px;flex:1}
+.item{display:flex;align-items:center;gap:10px;background:#241a0d;border:1px solid #3d2c16;border-radius:12px;
+  padding:8px 10px;transition:transform .08s,background .12s,border-color .12s;text-align:left;width:100%}
+.item:not(.locked):hover{background:#2e2210;border-color:#5a4220}
+.item:active{transform:scale(.98)}
+.item.cant{opacity:.5}
+.item .ic{font-size:30px;flex:none;width:40px;text-align:center;filter:drop-shadow(0 2px 2px #000)}
+.item .info{flex:1;min-width:0}
+.item .iname{font-weight:900;font-size:14px;color:#ffe2a6}
+.item .idesc{font-size:11px;color:#b39e7c}
+.item .right{text-align:right;flex:none}
+.item .cost{font-weight:900;font-size:14px;color:var(--gold)}
+.item .cost.ok{color:var(--good)}
+.item .owned{font-size:11px;color:#8fd46a;font-weight:bold}
+
+/* the big eater */
+.eater{position:relative;cursor:pointer;text-align:center}
+.eaterFace{font-size:clamp(96px,30vw,210px);line-height:1;display:inline-block;
+  filter:drop-shadow(0 12px 14px rgba(0,0,0,.55));will-change:transform}
+.eater:active .eaterFace{animation:chomp .18s}
+@keyframes chomp{0%{transform:scale(1)}45%{transform:scale(1.16,.84)}100%{transform:scale(1)}}
+.belly{margin-top:2px;font-size:13px;color:#ffcf7a;font-weight:bold;text-shadow:0 2px 4px #000}
+.tapme{font-size:13px;color:#fff;opacity:.85;margin-top:4px;animation:pulseTap 1.4s ease-in-out infinite}
+@keyframes pulseTap{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* fart meter + button */
+.fartzone{position:absolute;bottom:10px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 12px}
+.fartmeter{width:100%;max-width:340px;height:20px;background:#15240a;border:2px solid #2f4a12;border-radius:14px;overflow:hidden;position:relative;box-shadow:inset 0 2px 5px #000}
+.fartmeter .ff{height:100%;width:0;background:linear-gradient(90deg,#6aa82a,#9be53a,#d6ff7a);transition:width .12s;border-radius:12px}
+.fartmeter .flbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#eaffd0;text-shadow:0 1px 2px #000;letter-spacing:1px}
+.fartbtn{font-size:18px;font-weight:900;letter-spacing:1px;padding:11px 26px;border-radius:40px;color:#1a2a08;
+  background:linear-gradient(180deg,#bff06a,#7bd44a);box-shadow:0 6px 0 #4f8a28,0 8px 18px rgba(120,220,70,.4);
+  transition:transform .1s,box-shadow .1s,filter .2s;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.fartbtn:active{transform:translateY(4px);box-shadow:0 2px 0 #4f8a28}
+.fartbtn.off{filter:grayscale(.85) brightness(.7);pointer-events:none;box-shadow:0 6px 0 #333}
+.fartbtn.ready{animation:fartGlow 1s ease-in-out infinite}
+@keyframes fartGlow{0%,100%{box-shadow:0 6px 0 #4f8a28,0 0 10px #9be53a}50%{box-shadow:0 6px 0 #4f8a28,0 0 30px #d6ff7a,0 0 50px #9be53a}}
+
+/* top-right controls */
+.ctrls{position:absolute;top:8px;right:10px;display:flex;gap:8px;z-index:8}
+.iconbtn{width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.4);border:1px solid #5a4220;font-size:18px;
+  display:flex;align-items:center;justify-content:center}
+.iconbtn:active{transform:scale(.9)}
+.frenzy{position:absolute;top:8px;left:10px;z-index:8;background:linear-gradient(90deg,#ff5e3a,#ffb43a);
+  color:#3a1500;font-weight:900;font-size:13px;padding:6px 14px;border-radius:30px;display:none;
+  box-shadow:0 0 18px rgba(255,140,40,.7);animation:frenzyP .5s ease-in-out infinite}
+@keyframes frenzyP{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+/* particle layer */
+#fx{position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden}
+.pop{position:absolute;font-weight:900;font-size:20px;color:#fff;text-shadow:0 2px 4px #000,0 0 8px rgba(255,200,80,.8);
+  pointer-events:none;animation:popUp 1s ease-out forwards;white-space:nowrap}
+@keyframes popUp{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}
+  15%{transform:translate(-50%,-90%) scale(1.2);opacity:1}
+  100%{transform:translate(-50%,-210%) scale(1);opacity:0}}
+.flybean{position:absolute;font-size:24px;pointer-events:none;will-change:transform,opacity}
+.cloud{position:absolute;font-size:60px;pointer-events:none;animation:cloudOut 1.1s ease-out forwards}
+@keyframes cloudOut{0%{transform:translate(-50%,-50%) scale(.4);opacity:.9}
+  100%{transform:translate(-50%,-50%) scale(2.6);opacity:0}}
+
+.shake{animation:shake .5s}
+@keyframes shake{0%,100%{transform:translate(0,0)}
+  10%{transform:translate(-9px,4px) rotate(-1deg)}30%{transform:translate(8px,-6px) rotate(1deg)}
+  50%{transform:translate(-7px,5px)}70%{transform:translate(6px,-4px) rotate(.5deg)}90%{transform:translate(-3px,2px)}}
+
+/* ---------- FINALE ---------- */
+#finale{align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle,#3a2a16,#0a0703 75%);overflow:hidden}
+.finFace{font-size:clamp(90px,26vw,200px);line-height:1;filter:drop-shadow(0 0 30px rgba(255,200,80,.6))}
+.finTxt{font-size:clamp(26px,7vw,52px);font-weight:900;color:var(--gold);text-shadow:0 4px 0 #4a2e10,0 0 22px rgba(255,200,80,.6);margin-top:10px;padding:0 14px}
+.finSub{font-size:clamp(14px,4vw,22px);color:#ffd9a0;margin-top:8px;padding:0 14px}
+@keyframes rocketUp{0%{transform:translateY(0) scale(1)}25%{transform:translateY(10px) scale(1.05)}
+  100%{transform:translateY(-130vh) scale(.5) rotate(20deg)}}
+.jet{position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);font-size:80px;opacity:0}
+
+/* dump / shrimp */
+#dump{background:linear-gradient(180deg,#6f7a3a 0%,#5a5a28 38%,#4a3a1e 60%,#2a2010 100%);overflow:hidden}
+#dump .dumphead{padding:14px 16px 6px;text-align:center}
+#dump h2{font-size:clamp(22px,6vw,40px);font-weight:900;color:#fff;text-shadow:0 3px 0 #2a1d0a,0 0 14px #000}
+#dump .dsub{font-size:clamp(13px,3.6vw,18px);color:#f3ffd0;margin-top:4px;text-shadow:0 2px 4px #000}
+#dump .scount{font-size:18px;font-weight:900;color:var(--gold);margin-top:6px;text-shadow:0 2px 4px #000}
+#dumpfield{position:absolute;inset:0;z-index:1}
+.shrimp{position:absolute;font-size:clamp(40px,11vw,64px);cursor:pointer;filter:drop-shadow(0 4px 4px rgba(0,0,0,.5));
+  animation:shrimpWiggle 1.4s ease-in-out infinite;transition:transform .08s}
+.shrimp:active{transform:scale(.7)}
+@keyframes shrimpWiggle{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.fly{position:absolute;font-size:28px;pointer-events:none;animation:flyAround linear infinite;opacity:.7;z-index:2}
+@keyframes flyAround{0%{transform:translate(0,0)}25%{transform:translate(30px,-18px)}50%{transform:translate(-20px,10px)}75%{transform:translate(18px,22px)}100%{transform:translate(0,0)}}
+
+/* ---------- WIN ---------- */
+#win{align-items:center;justify-content:center;text-align:center;
+  background:radial-gradient(circle at 50% 30%,#3a2e12,#0a0703 80%);padding:20px}
+.winTitle{font-size:clamp(34px,10vw,84px);font-weight:900;letter-spacing:2px;
+  background:linear-gradient(180deg,#fff3b0,#ffd84d 55%,#e08a2e);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 4px 0 #4a2e10);animation:wob 3s ease-in-out infinite}
+.winSub{font-size:clamp(15px,4vw,22px);color:#ffe2a6;margin:10px 0 16px;max-width:520px;line-height:1.4}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:440px;width:100%;margin-bottom:18px}
+.stat{background:rgba(255,255,255,.06);border:1px solid #5a4220;border-radius:12px;padding:10px}
+.stat .k{font-size:11px;color:#caa;letter-spacing:.5px}
+.stat .v{font-size:20px;font-weight:900;color:var(--gold);margin-top:2px}
+.btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.bigbtn{font-size:17px;font-weight:900;letter-spacing:.5px;padding:13px 26px;border-radius:40px;
+  background:linear-gradient(180deg,#ffe07a,#e0a82e);color:#3a1f06;box-shadow:0 6px 0 #8a5a1d;transition:transform .1s,box-shadow .1s}
+.bigbtn:active{transform:translateY(4px);box-shadow:0 2px 0 #8a5a1d}
+.bigbtn.alt{background:linear-gradient(180deg,#bcd0e0,#7d93a8);color:#10202c;box-shadow:0 6px 0 #44586a}
+.confetti{position:absolute;top:-20px;font-size:20px;pointer-events:none;animation:fall linear forwards;z-index:1}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.2}}
+
+.smallnote{position:fixed;bottom:6px;width:100%;text-align:center;font-size:11px;color:#7a6a4a;z-index:30}
+a.vault{color:#caa46a;text-decoration:none}
+
+@media(max-width:760px){
+  .playwrap{flex-direction:column}
+  .shoppanel{max-width:none;border-left:none;border-top:2px solid #3a2a16;flex:none;height:42vh}
+  .stage{flex:none;height:auto;padding-top:4px;padding-bottom:96px}
+  .fartzone{position:static;margin-top:8px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== CHARACTER SELECT ===== -->
+  <section id="select" class="screen on">
+    <div class="logo">YOUKA</div>
+    <div class="tag">🍴 So hungry. Must eat ALL the beans 🫘</div>
+    <div class="goalline">Your mission: eat <b>1,000,000,000</b> beans. Then rip a HUGE fart and feast on shrimp from the dump.</div>
+    <div class="pickhint">👇 Pick your eater — each has a special gut</div>
+    <div class="charGrid" id="charGrid"></div>
+  </section>
+
+  <!-- ===== GAME ===== -->
+  <section id="game" class="screen">
+    <div class="topbar">
+      <div class="ctrls">
+        <button class="iconbtn" id="muteBtn" title="Sound">🔊</button>
+        <button class="iconbtn" id="menuBtn" title="New game">↺</button>
+      </div>
+      <div class="frenzy" id="frenzy">💨 FART FRENZY x3!</div>
+      <div class="counter">
+        <div class="beans" id="beanCount">0 <small>BEANS</small></div>
+      </div>
+      <div class="goalrow">
+        <span id="pct">0%</span>
+        <div class="bar"><div class="barfill" id="barfill"></div></div>
+        <span>1B</span>
+      </div>
+      <div class="bps" id="bpsLine"></div>
+    </div>
+
+    <div class="playwrap">
+      <div class="stage">
+        <div class="eater" id="eater">
+          <span class="eaterFace" id="eaterFace">🤠</span>
+          <div class="belly" id="bellyTxt"></div>
+          <div class="tapme">TAP TO EAT BEANS!</div>
+        </div>
+        <div class="fartzone">
+          <div class="fartmeter"><div class="ff" id="fartFill"></div><div class="flbl" id="fartLbl">FART METER</div></div>
+          <button class="fartbtn off" id="fartBtn">💨 RIP A FART</button>
+        </div>
+      </div>
+
+      <div class="shoppanel">
+        <div class="shophead"><span>🛒 GUT UPGRADES</span><span id="shopBps"></span></div>
+        <div class="shoplist" id="shopList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FINALE (huge fart) ===== -->
+  <section id="finale" class="screen">
+    <div id="finInner">
+      <div class="finFace" id="finFace">🤠</div>
+      <div class="finTxt" id="finTxt">1 BILLION BEANS EATEN!</div>
+      <div class="finSub" id="finSub">Oh no. Oh no no no. It's coming...</div>
+    </div>
+  </section>
+
+  <!-- ===== DUMP / SHRIMP ===== -->
+  <section id="dump" class="screen">
+    <div class="dumphead">
+      <h2>🦐 THE DUMP 🦐</h2>
+      <div class="dsub">You're starving again. EAT THE SHRIMP! Tap every shrimp you can find.</div>
+      <div class="scount" id="shrimpCount">Shrimp eaten: 0 / 12</div>
+    </div>
+    <div id="dumpfield"></div>
+  </section>
+
+  <!-- ===== WIN ===== -->
+  <section id="win" class="screen">
+    <div class="winTitle">YOU WIN!</div>
+    <div class="winSub" id="winSub"></div>
+    <div class="stats" id="winStats"></div>
+    <div class="btns">
+      <button class="bigbtn" id="againBtn">🔁 PLAY AGAIN</button>
+      <button class="bigbtn alt" id="vaultBtn">🏠 BACK TO VAULT</button>
+    </div>
+  </section>
+
+  <div id="fx"></div>
+</div>
+
+<div class="smallnote">YOUKA — part of the <a class="vault" href="../index.html">Dame Vault</a></div>
+
+<script>
+"use strict";
+const GOAL = 1e9;
+const SHRIMP_GOAL = 12;
+
+/* ---------- characters ---------- */
+const CHARS = [
+  {f:'🤠',n:'Beano Bill',perk:'+50% bite',blurb:'Lightning-fast bean slinger.',m:{click:1.5}},
+  {f:'👵',n:'Granny Gas',perk:'+40% auto',blurb:'Her slow cooker never quits.',m:{auto:1.4}},
+  {f:'🦖',n:'Rex Rumble',perk:'+100% bite',blurb:'Tiny arms, MASSIVE bites.',m:{click:2.0}},
+  {f:'🐸',n:'Sir Hops',perk:'+60% fart fill',blurb:'A very bloated little frog.',m:{fill:1.6}},
+  {f:'👽',n:'Zorp',perk:'+25% to ALL',blurb:'Digests with cosmic efficiency.',m:{all:1.25}},
+  {f:'🤖',n:'Beanbot 3000',perk:'+60% auto',blurb:'Beep boop. Consuming legumes.',m:{auto:1.6}},
+  {f:'🧛',n:'Count Flatula',perk:'+70% fart power',blurb:'His farts are children of the night.',m:{fpow:1.7}},
+  {f:'🐷',n:'Porkchop',perk:'+50% auto',blurb:'Basically lives at the trough.',m:{auto:1.5}},
+  {f:'🦝',n:'Trash Panda',perk:'5K head start',blurb:'Already raided three dumpsters.',m:{start:5000,all:1.08}},
+  {f:'🧙',n:'Wizard Whiff',perk:'+70% bite',blurb:'Casts Magic Bean on every tap.',m:{click:1.7}},
+  {f:'🦈',n:'Chompers',perk:'+40% bite, +20% auto',blurb:'Never, ever stops eating.',m:{click:1.4,auto:1.2}},
+  {f:'🐉',n:'Burpzilla',perk:'+100% fart power',blurb:'One fart can level a city.',m:{fpow:2.0}},
+  {f:'👹',n:'Stinkface',perk:'+100% fart fill',blurb:'The funk is unbelievably strong.',m:{fill:2.0}},
+  {f:'🐮',n:'Moo Money',perk:'+45% auto',blurb:'Four stomachs = four times beans.',m:{auto:1.45}},
+  {f:'💀',n:'Skullcrush',perk:'+150% bite',blurb:'Hardcore. Bites through anything.',m:{click:2.5}},
+];
+
+/* ---------- shop ---------- */
+// kind 'tap' = adds to bite power; 'auto' = beans/sec
+const SHOP = [
+  {id:'bite', kind:'tap',  ic:'🦷', name:'Bigger Bites', desc:'+3 beans per tap', base:12,    val:3},
+  {id:'spoon',kind:'auto', ic:'🥄', name:'Spoon',         desc:'auto-eats beans',  base:25,    val:1},
+  {id:'fork', kind:'auto', ic:'🍴', name:'Fork Frenzy',   desc:'stabs beans fast', base:180,   val:6},
+  {id:'bowl', kind:'auto', ic:'🥣', name:'Cereal Bowl',   desc:'a bottomless bowl',base:1200,  val:35},
+  {id:'pig',  kind:'auto', ic:'🐷', name:'Hungry Pig',    desc:'snorts them up',   base:8000,  val:200},
+  {id:'tornado',kind:'auto',ic:'🌀',name:'Bean Tornado',  desc:'sucks up the field',base:50000, val:1100},
+  {id:'harvest',kind:'auto',ic:'🚜',name:'Bean Harvester',desc:'industrial scale', base:320000,val:6500},
+  {id:'factory',kind:'auto',ic:'🏭',name:'Bean Factory',  desc:'cans them by the ton',base:2.1e6,val:42000},
+  {id:'rocket', kind:'auto',ic:'🚀',name:'Bean Rocket',   desc:'orbital bean intake',base:1.3e7,val:260000},
+  {id:'hole',   kind:'auto',ic:'🕳️',name:'Bean Black Hole',desc:'inhales reality',  base:8.5e7,val:1.6e6},
+];
+
+/* ---------- state ---------- */
+let S = null;
+function freshState(charIdx){
+  const c = CHARS[charIdx];
+  const owned = {}; SHOP.forEach(s=>owned[s.id]=0);
+  return {
+    char:charIdx, beans:(c.m.start||0), owned,
+    fart:0, fartBonus:1, totalFarts:0,
+    tempUntil:0, startTime:Date.now(), screen:'game'
+  };
+}
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+function cm(key){ return CHARS[S.char].m[key] || (key==='start'?0:1); }
+function fmt(n){
+  n = Math.floor(n);
+  if(n < 1000) return ''+n;
+  const u=['','K','M','B','T','Qa','Qi','Sx']; let i=0,v=n;
+  while(v>=1000 && i<u.length-1){v/=1000;i++;}
+  let s = v>=100? v.toFixed(0) : v.toFixed(2);
+  s = s.replace(/\.?0+$/,'');
+  return s+u[i];
+}
+function comma(n){ return Math.floor(n).toLocaleString('en-US'); }
+
+/* ---------- production ---------- */
+function baseAuto(){
+  let sum=0;
+  for(const s of SHOP){ if(s.kind==='auto') sum += S.owned[s.id]*s.val; }
+  return sum;
+}
+function bitePower(){
+  let base = 1;
+  base += S.owned.bite * SHOP.find(s=>s.id==='bite').val;
+  return base * cm('click') * cm('all') * S.fartBonus;
+}
+function bps(){ // passive beans/sec (no temp mult)
+  return baseAuto() * cm('auto') * cm('all') * S.fartBonus;
+}
+function tempMult(){ return performance.now() < (S._tempUntilPerf||0) ? 3 : 1; }
+function costOf(s){ return Math.ceil(s.base * Math.pow(1.15, S.owned[s.id])); }
+
+/* ---------- audio ---------- */
+let AC=null, muted=false;
+function ac(){ if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}} if(AC.state==='suspended')AC.resume(); return AC; }
+function munch(){
+  if(muted)return; const c=ac(); if(!c)return; const t=c.currentTime;
+  const o=c.createOscillator(),g=c.createGain(); o.type='square';
+  const f=170+Math.random()*150; o.frequency.setValueAtTime(f,t);
+  o.frequency.exponentialRampToValueAtTime(f*0.55,t+0.08);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.07,t+0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.11);
+  o.connect(g).connect(c.destination); o.start(t); o.stop(t+0.12);
+}
+function blip(freq,type,dur,vol){
+  if(muted)return; const c=ac(); if(!c)return; const t=c.currentTime;
+  const o=c.createOscillator(),g=c.createGain(); o.type=type||'sine';
+  o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.12,t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.15));
+  o.connect(g).connect(c.destination); o.start(t); o.stop(t+(dur||0.15)+0.02);
+}
+function fartSound(dur,vol){
+  if(muted)return; const c=ac(); if(!c)return; const t=c.currentTime;
+  dur=dur||0.5; vol=vol||0.28;
+  const o=c.createOscillator(),g=c.createGain(); o.type='sawtooth';
+  o.frequency.setValueAtTime(150+Math.random()*40,t);
+  o.frequency.exponentialRampToValueAtTime(42,t+dur);
+  const lfo=c.createOscillator(),lg=c.createGain();
+  lfo.type='square'; lfo.frequency.setValueAtTime(16,t); lfo.frequency.linearRampToValueAtTime(7,t+dur);
+  lg.gain.value=28; lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t+dur);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=850;
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(lp).connect(g).connect(c.destination); o.start(t); o.stop(t+dur);
+  // squelchy noise
+  const len=Math.floor(c.sampleRate*dur); const nb=c.createBuffer(1,len,c.sampleRate);
+  const d=nb.getChannelData(0); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const ns=c.createBufferSource(); ns.buffer=nb;
+  const ng=c.createGain(); ng.gain.setValueAtTime(vol*0.6,t); ng.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=320; bp.Q.value=1.2;
+  ns.connect(bp).connect(ng).connect(c.destination); ns.start(t); ns.stop(t+dur);
+}
+function hugeFart(){
+  fartSound(2.6,0.42);
+  setTimeout(()=>fartSound(0.5,0.3),1900);
+  setTimeout(()=>fartSound(0.7,0.34),2500);
+  setTimeout(()=>fartSound(0.35,0.26),3300);
+}
+function winJingle(){
+  const notes=[523,659,784,1047,784,1047,1319];
+  notes.forEach((f,i)=>setTimeout(()=>blip(f,'triangle',0.22,0.16),i*150));
+}
+
+/* ---------- fx ---------- */
+const fx = $('fx');
+function spawnPop(x,y,txt,color){
+  const d=document.createElement('div'); d.className='pop'; d.textContent=txt;
+  d.style.left=x+'px'; d.style.top=y+'px'; if(color)d.style.color=color;
+  fx.appendChild(d); setTimeout(()=>d.remove(),1000);
+}
+function spawnBean(x,y){
+  const b=document.createElement('div'); b.className='flybean'; b.textContent='🫘';
+  b.style.left=x+'px'; b.style.top=y+'px';
+  const dx=(Math.random()*2-1)*120, dy=-80-Math.random()*90;
+  b.style.transition='transform .7s cubic-bezier(.2,.7,.3,1),opacity .7s';
+  fx.appendChild(b);
+  requestAnimationFrame(()=>{ b.style.transform=`translate(${dx}px,${dy}px) rotate(${dx}deg)`; b.style.opacity='0'; });
+  setTimeout(()=>b.remove(),720);
+}
+function spawnCloud(x,y){
+  const c=document.createElement('div'); c.className='cloud'; c.textContent='💨';
+  c.style.left=x+'px'; c.style.top=y+'px'; fx.appendChild(c); setTimeout(()=>c.remove(),1100);
+}
+function shake(){
+  const a=$('app'); a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake');
+}
+
+/* ---------- screens ---------- */
+function show(scr){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  $(scr).classList.add('on');
+}
+
+/* ---------- build select ---------- */
+function buildSelect(){
+  const g=$('charGrid'); g.innerHTML='';
+  CHARS.forEach((c,i)=>{
+    const b=document.createElement('button'); b.className='char';
+    b.innerHTML=`<span class="face">${c.f}</span><div class="nm">${c.n}</div>
+      <div class="perk">${c.perk}</div><div class="blurb">${c.blurb}</div>`;
+    b.onclick=()=>startGame(i);
+    g.appendChild(b);
+  });
+}
+
+/* ---------- build shop ---------- */
+function buildShop(){
+  const list=$('shopList'); list.innerHTML='';
+  SHOP.forEach(s=>{
+    const b=document.createElement('button'); b.className='item'; b.dataset.id=s.id;
+    b.innerHTML=`<span class="ic">${s.ic}</span>
+      <span class="info"><span class="iname">${s.name}</span><br><span class="idesc">${s.desc} ${s.kind==='auto'?'(+'+fmt(s.val)+'/s)':''}</span></span>
+      <span class="right"><span class="cost" data-cost></span><br><span class="owned" data-owned></span></span>`;
+    b.onclick=()=>buy(s);
+    list.appendChild(b);
+  });
+}
+function buy(s){
+  const cost=costOf(s);
+  if(S.beans < cost){ blip(120,'square',0.08,0.05); return; }
+  S.beans -= cost; S.owned[s.id]++;
+  blip(440+S.owned[s.id]*8,'triangle',0.1,0.1);
+  if(s.kind==='auto') munch();
+  refreshShop(); save();
+}
+function refreshShop(){
+  for(const s of SHOP){
+    const b=document.querySelector('.item[data-id="'+s.id+'"]'); if(!b)continue;
+    const cost=costOf(s); const can=S.beans>=cost;
+    b.classList.toggle('cant',!can);
+    const cEl=b.querySelector('[data-cost]'); cEl.textContent='🫘'+fmt(cost); cEl.classList.toggle('ok',can);
+    b.querySelector('[data-owned]').textContent = S.owned[s.id]>0 ? 'have '+S.owned[s.id] : '';
+  }
+}
+
+/* ---------- start / loop ---------- */
+let started=false;
+function startGame(idx){
+  S = freshState(idx);
+  enterGame();
+  save();
+}
+function enterGame(){
+  $('eaterFace').textContent = CHARS[S.char].f;
+  $('finFace').textContent = CHARS[S.char].f;
+  buildShop(); refreshShop(); updateHUD();
+  show('game'); started=true;
+}
+
+let lastT = performance.now();
+function loop(now){
+  const dt = Math.min(0.12,(now-lastT)/1000); lastT=now;
+  if(S && S.screen==='game'){
+    const tm = tempMult();
+    S.beans += bps()*tm*dt;
+    S.fart += 0.02 * cm('fill') * dt; // slow passive charge
+    if(S.fart>1)S.fart=1;
+    updateHUD();
+    if(S.beans>=GOAL) startFinale();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- HUD ---------- */
+let lastBeanShown=-1;
+function updateHUD(){
+  const b=Math.floor(S.beans);
+  if(b!==lastBeanShown){
+    $('beanCount').innerHTML = comma(b)+' <small>BEANS</small>';
+    lastBeanShown=b;
+  }
+  const pct=Math.min(100, S.beans/GOAL*100);
+  $('barfill').style.width=pct+'%';
+  $('pct').textContent=(pct<1?pct.toFixed(2):pct.toFixed(0))+'%';
+  const tm=tempMult();
+  const rate=bps()*tm;
+  $('bpsLine').textContent = rate>0 ? '🍽️ '+fmt(rate)+' beans/sec'+(tm>1?'  ⚡x3!':'') : 'Tap to start eating!';
+  $('shopBps').textContent = rate>0? fmt(rate)+'/s':'';
+  // belly
+  const belly=Math.min(100,Math.log10(Math.max(10,S.beans))/9*100);
+  $('bellyTxt').textContent='Belly: '+belly.toFixed(0)+'% full';
+  const sc=1+Math.min(0.35, S.beans/GOAL*0.6);
+  $('eaterFace').style.transform = $('eater').dataset.chomp? '' : 'scale('+sc.toFixed(3)+')';
+  // fart meter
+  $('fartFill').style.width=(S.fart*100)+'%';
+  const ready=S.fart>=1;
+  const fb=$('fartBtn');
+  fb.classList.toggle('off',!ready); fb.classList.toggle('ready',ready);
+  $('fartLbl').textContent = ready? '💨 READY TO RIP! 💨' : 'FART METER '+(S.fart*100).toFixed(0)+'%';
+  $('frenzy').style.display = tm>1?'block':'none';
+}
+
+/* ---------- tapping ---------- */
+$('eater').addEventListener('pointerdown',e=>{
+  if(!S||S.screen!=='game')return;
+  const gained = bitePower()*tempMult();
+  S.beans += gained;
+  S.fart += 0.045*cm('fill'); if(S.fart>1)S.fart=1;
+  const r=fx.getBoundingClientRect();
+  const x=(e.clientX||r.width/2)-r.left, y=(e.clientY||r.height/2)-r.top;
+  spawnPop(x,y,'+'+fmt(gained),'#ffe07a'); spawnBean(x,y); munch();
+  updateHUD();
+});
+
+/* ---------- fart ---------- */
+$('fartBtn').onclick=()=>{
+  if(!S||S.fart<1)return;
+  S.totalFarts++;
+  const power=cm('fpow');
+  const burst=Math.max(bps()*90, bitePower()*45, 500)*power;
+  S.beans += burst;
+  S.fartBonus += 0.03; // permanent momentum
+  S._tempUntilPerf = performance.now()+9000+power*1500;
+  S.fart=0;
+  fartSound(0.6,0.32); shake();
+  const r=fx.getBoundingClientRect();
+  spawnCloud(r.width/2, r.height-70); spawnCloud(r.width/2-50,r.height-50); spawnCloud(r.width/2+50,r.height-50);
+  spawnPop(r.width/2, r.height/2, '💨 BRAAAP! +'+fmt(burst)+' 🫘','#9be53a');
+  for(let i=0;i<8;i++) setTimeout(()=>spawnBean(r.width/2+(Math.random()*200-100), r.height/2),i*40);
+  refreshShop(); updateHUD(); save();
+};
+
+/* ---------- controls ---------- */
+$('muteBtn').onclick=()=>{ muted=!muted; $('muteBtn').textContent=muted?'🔇':'🔊'; if(!muted)ac(); };
+$('menuBtn').onclick=()=>{
+  if(confirm('Start a NEW game? Your current beans will be lost.')){ clearSave(); S=null; started=false; buildSelect(); show('select'); }
+};
+
+/* ---------- FINALE ---------- */
+function startFinale(){
+  if(!S || S.screen==='finale' || S.screen==='win' || S.screen==='dump')return;
+  S.screen='finale'; clearSave();
+  $('finFace').textContent=CHARS[S.char].f;
+  $('finTxt').textContent='1 BILLION BEANS EATEN!';
+  $('finSub').textContent="Oh no. Oh no no no. It's coming...";
+  show('finale');
+  const face=$('finFace');
+  face.style.animation=''; void face.offsetWidth;
+  // rumble build
+  let r=0; const rumble=setInterval(()=>{ shake(); r++; if(r>5)clearInterval(rumble); },280);
+  setTimeout(()=>{
+    // THE HUGE FART
+    $('finSub').textContent='💨💨💨 BRRRRRAAAAAAAAAAPPPPP!!! 💨💨💨';
+    hugeFart(); shake();
+    // jet + launch
+    const inner=$('finInner');
+    const jet=document.createElement('div'); jet.className='jet'; jet.textContent='💨'; inner.appendChild(jet);
+    jet.style.transition='opacity .3s'; requestAnimationFrame(()=>jet.style.opacity='1');
+    face.style.transition=''; face.style.animation='rocketUp 2.4s ease-in forwards';
+    // fart clouds everywhere
+    for(let i=0;i<22;i++) setTimeout(()=>{
+      const c=document.createElement('div'); c.className='cloud'; c.textContent='💨';
+      c.style.left=(Math.random()*100)+'%'; c.style.top=(60+Math.random()*40)+'%';
+      c.style.fontSize=(40+Math.random()*70)+'px'; fx.appendChild(c); setTimeout(()=>c.remove(),1100);
+    }, i*90);
+    setTimeout(()=>{ $('finTxt').textContent='🚀 LIFTOFF! 🚀'; $('finSub').textContent='...and now, somehow, you are hungry again.'; },1400);
+    setTimeout(startDump,3400);
+  },1700);
+}
+
+/* ---------- DUMP / SHRIMP ---------- */
+let shrimpEaten=0, shrimpTimers=[];
+function startDump(){
+  S.screen='dump'; shrimpEaten=0;
+  $('shrimpCount').textContent='Shrimp eaten: 0 / '+SHRIMP_GOAL;
+  const field=$('dumpfield'); field.innerHTML='';
+  show('dump');
+  // ambient flies
+  for(let i=0;i<7;i++){
+    const f=document.createElement('div'); f.className='fly'; f.textContent='🪰';
+    f.style.left=(Math.random()*92)+'%'; f.style.top=(20+Math.random()*70)+'%';
+    f.style.animationDuration=(2+Math.random()*3)+'s'; field.appendChild(f);
+  }
+  spawnShrimp(); spawnShrimp(); spawnShrimp();
+}
+function spawnShrimp(){
+  if(shrimpEaten>=SHRIMP_GOAL) return;
+  const field=$('dumpfield');
+  const live=field.querySelectorAll('.shrimp').length;
+  if(live>=4) return;
+  const s=document.createElement('div'); s.className='shrimp'; s.textContent='🦐';
+  s.style.left=(6+Math.random()*80)+'%'; s.style.top=(28+Math.random()*60)+'%';
+  s.style.animationDelay=(Math.random())+'s';
+  s.addEventListener('pointerdown',()=>eatShrimp(s));
+  field.appendChild(s);
+}
+function eatShrimp(el){
+  if(el.dataset.gone)return; el.dataset.gone='1';
+  shrimpEaten++;
+  blip(300+shrimpEaten*40,'sine',0.12,0.14); munch();
+  const r=fx.getBoundingClientRect(); const er=el.getBoundingClientRect();
+  spawnPop(er.left+er.width/2-r.left, er.top+er.height/2-r.top, 'YUM! 🦐','#ffd0b0');
+  el.style.transition='transform .2s,opacity .2s'; el.style.transform='scale(1.6)'; el.style.opacity='0';
+  setTimeout(()=>el.remove(),200);
+  $('shrimpCount').textContent='Shrimp eaten: '+shrimpEaten+' / '+SHRIMP_GOAL;
+  if(shrimpEaten>=SHRIMP_GOAL){ setTimeout(showWin,500); return; }
+  // respawn a couple
+  setTimeout(spawnShrimp,250+Math.random()*400);
+  if(Math.random()<0.5) setTimeout(spawnShrimp,400+Math.random()*500);
+}
+
+/* ---------- WIN ---------- */
+function showWin(){
+  S.screen='win';
+  const secs=Math.max(1,Math.round((Date.now()-S.startTime)/1000));
+  const mm=Math.floor(secs/60), ss=secs%60;
+  const c=CHARS[S.char];
+  $('winSub').innerHTML=`<b>${c.f} ${c.n}</b> ate a <b>BILLION</b> beans, ripped the fart of the century, and cleaned out the dump.`;
+  $('winStats').innerHTML=`
+    <div class="stat"><div class="k">BEANS EATEN</div><div class="v">1B+</div></div>
+    <div class="stat"><div class="k">FARTS RIPPED</div><div class="v">${S.totalFarts}</div></div>
+    <div class="stat"><div class="k">SHRIMP SCARFED</div><div class="v">${SHRIMP_GOAL}</div></div>
+    <div class="stat"><div class="k">TIME</div><div class="v">${mm}:${ss<10?'0':''}${ss}</div></div>`;
+  show('win'); winJingle();
+  // confetti
+  const emo=['🫘','💨','🦐','⭐','🎉','🟤'];
+  for(let i=0;i<70;i++){
+    const c2=document.createElement('div'); c2.className='confetti'; c2.textContent=emo[i%emo.length];
+    c2.style.left=(Math.random()*100)+'%'; c2.style.animationDuration=(2.5+Math.random()*3)+'s';
+    c2.style.animationDelay=(Math.random()*1.5)+'s'; c2.style.fontSize=(16+Math.random()*18)+'px';
+    fx.appendChild(c2); setTimeout(()=>c2.remove(),6500);
+  }
+}
+$('againBtn').onclick=()=>{ S=null; started=false; buildSelect(); show('select'); fx.innerHTML=''; };
+$('vaultBtn').onclick=()=>{ location.href='../index.html'; };
+
+/* ---------- save ---------- */
+const KEY='youka_save_v1';
+function save(){ if(S && S.screen==='game'){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} } }
+function clearSave(){ try{localStorage.removeItem(KEY);}catch(e){} }
+setInterval(save,2500);
+window.addEventListener('beforeunload',save);
+
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY); if(!raw)return false;
+    const d=JSON.parse(raw);
+    if(d && typeof d.char==='number' && d.beans<GOAL && d.screen==='game'){
+      // backfill any new shop ids
+      SHOP.forEach(s=>{ if(typeof d.owned[s.id]!=='number') d.owned[s.id]=0; });
+      S=d; S._tempUntilPerf=0; enterGame(); return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+/* ---------- ambient beans ---------- */
+function ambientBeans(){
+  const app=$('app');
+  for(let i=0;i<14;i++){
+    const b=document.createElement('div'); b.className='amb'; b.textContent=['🫘','🟤'][i%2];
+    b.style.left=(Math.random()*100)+'%';
+    b.style.fontSize=(18+Math.random()*22)+'px';
+    b.style.animationDuration=(9+Math.random()*12)+'s';
+    b.style.animationDelay=(-Math.random()*15)+'s';
+    app.appendChild(b);
+  }
+}
+
+/* ---------- boot ---------- */
+ambientBeans();
+buildSelect();
+if(!load()) show('select');
+requestAnimationFrame(loop);
+</script>
+
+<!-- +marker+: if Fullscreen Forever is on in the vault, go fullscreen on first tap -->
+<script>(function(){try{if(localStorage.getItem("fsForever")==="1"){var go=function(){var el=document.documentElement,r=el.requestFullscreen||el.webkitRequestFullscreen;if(r){try{var p=r.call(el);if(p&&p.catch)p.catch(function(){});}catch(e){}}window.removeEventListener("click",go);window.removeEventListener("touchend",go);};window.addEventListener("click",go);window.addEventListener("touchend",go,{passive:true});}}catch(e){}})();</script>
+</body>
+</html>
